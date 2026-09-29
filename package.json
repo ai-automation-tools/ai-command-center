@@ -1,0 +1,28 @@
+{
+  "name": "ai-command-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One window for the browser, terminal, file sidebar and agent harness on Mike's machine.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "node scripts/smoke.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "spike:extensions": "node scripts/smoke.js https://www.bestbuy.com --install hdokiejnpimakedhajhdlcegeplioahd,chhjbpecpncaggjpdakmflnfcopglcmi"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "electron-chrome-extensions": "^4.9.0",
+    "electron-chrome-web-store": "^0.13.0",
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true
+  }
+}

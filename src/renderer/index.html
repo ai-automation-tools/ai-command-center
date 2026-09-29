@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http: crx:; connect-src 'self'; font-src 'self' data:">
+  <title>AI Command Center</title>
+  <link rel="stylesheet" href="/vendor/xterm/css/xterm.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar" aria-label="Sidebar">
+      <header class="side-head">
+        <span class="brand">🧭 Command Center</span>
+        <span id="hub-status" class="dot" title="Project Hub: checking…"></span>
+      </header>
+      <div class="search-wrap">
+        <input id="search" type="search" placeholder="Search files, bookmarks, recent  (Ctrl+Shift+F)" autocomplete="off" spellcheck="false">
+      </div>
+      <nav class="side-tabs" role="tablist">
+        <button role="tab" data-panel="files" aria-selected="true">Files</button>
+        <button role="tab" data-panel="bookmarks" aria-selected="false">Bookmarks</button>
+        <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
+      </nav>
+      <section id="panel-files" class="panel" role="tabpanel"></section>
+      <section id="panel-bookmarks" class="panel" role="tabpanel" hidden>
+        <div class="panel-tools">
+          <select id="bookmark-source" aria-label="Bookmark source"></select>
+        </div>
+        <div id="bookmark-tree"></div>
+      </section>
+      <section id="panel-recent" class="panel" role="tabpanel" hidden></section>
+      <section id="panel-search" class="panel" role="region" aria-label="Search results" hidden></section>
+    </aside>
+
+    <div id="side-split" class="splitter vertical" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Resize sidebar"></div>
+
+    <main id="main">
+      <div id="tabstrip" role="tablist" aria-label="Browser tabs">
+        <div id="tab-list"></div>
+        <button id="new-tab" class="icon-btn" title="New tab (Ctrl+T)" aria-label="New tab">＋</button>
+      </div>
+      <div id="navbar">
+        <button class="icon-btn" data-cmd="back" title="Back" aria-label="Back">←</button>
+        <button class="icon-btn" data-cmd="forward" title="Forward" aria-label="Forward">→</button>
+        <button class="icon-btn" data-cmd="reload" title="Reload (F5)" aria-label="Reload">⟳</button>
+        <form id="address-form">
+          <input id="address" type="text" placeholder="Search or enter address  (Alt+D)" autocomplete="off" spellcheck="false" aria-label="Address">
+        </form>
+        <div id="actions-host"></div>
+        <button id="open-external" class="icon-btn" title="Open in default browser" aria-label="Open in default browser">↗</button>
+      </div>
+      <div id="content">
+        <div id="empty" class="empty">
+          <h1>🧭 AI Command Center</h1>
+          <p>Pick a file in the sidebar, or type an address above.</p>
+          <div id="quick-links"></div>
+        </div>
+      </div>
+      <div id="term-split" class="splitter horizontal" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="Resize terminal"></div>
+      <section id="terminal-panel" aria-label="Terminal">
+        <div class="term-head">
+          <div id="term-tabs" role="tablist" aria-label="Terminals"></div>
+          <button id="term-new" class="icon-btn" title="New terminal (Ctrl+Shift+`)" aria-label="New terminal">＋</button>
+          <button id="term-toggle" class="icon-btn" title="Hide terminal (Ctrl+`)" aria-label="Hide terminal">▾</button>
+        </div>
+        <div id="term-host"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
