@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { absPath, defaultAction, flatten, flattenBookmarks, isContainer, search, terminalDir } from '../src/shared/tree.js';
 
-const scan = { base: 'D:/AI_Agents', home: 'C:/Users/mikes' };
+const scan = { base: 'D:/work', home: 'C:/Users/dev' };
 
 const tree = [
   {
@@ -20,9 +20,9 @@ const tree = [
 ];
 
 test('absPath resolves base-relative, home-relative and virtual ids', () => {
-  assert.equal(absPath('Projects/Lab/README.md', scan), 'D:/AI_Agents/Projects/Lab/README.md');
-  assert.equal(absPath('~/.claude/settings.json', scan), 'C:/Users/mikes/.claude/settings.json');
-  assert.equal(absPath('~', scan), 'C:/Users/mikes');
+  assert.equal(absPath('Projects/Lab/README.md', scan), 'D:/work/Projects/Lab/README.md');
+  assert.equal(absPath('~/.claude/settings.json', scan), 'C:/Users/dev/.claude/settings.json');
+  assert.equal(absPath('~', scan), 'C:/Users/dev');
   assert.equal(absPath('@projects', scan), null);
   assert.equal(absPath('', scan), null);
 });
@@ -40,8 +40,8 @@ test('defaultAction: folders expand, html browses, the rest opens in code', () =
 });
 
 test('terminalDir uses the folder itself, or a file\'s parent', () => {
-  assert.equal(terminalDir({ id: 'Projects/Lab', name: 'Lab', kind: 'root', children: [] }, scan), 'D:/AI_Agents/Projects/Lab');
-  assert.equal(terminalDir({ id: 'Projects/Lab/README.md', name: 'README.md', kind: 'md' }, scan), 'D:/AI_Agents/Projects/Lab');
+  assert.equal(terminalDir({ id: 'Projects/Lab', name: 'Lab', kind: 'root', children: [] }, scan), 'D:/work/Projects/Lab');
+  assert.equal(terminalDir({ id: 'Projects/Lab/README.md', name: 'README.md', kind: 'md' }, scan), 'D:/work/Projects/Lab');
   assert.equal(terminalDir({ id: '@projects', name: 'Projects', kind: 'projects', children: [] }, scan), null);
 });
 

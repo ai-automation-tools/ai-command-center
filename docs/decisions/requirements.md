@@ -11,7 +11,7 @@
 
 ---
 
-Source: the build prompt, `Repos/Private/Draft/AI-Command-Center/Prompts/initial-build.md` (kept local, not in this repo). Ranked on 2026-09-29, after the business analysis in the same Draft folder found 13 of these 16 features already run on this machine in some form. That finding drives most of the rankings below: where a tool already exists, the app's job is to host or link it, not to rebuild it.
+Source: the original build prompt, kept outside this repo. Ranked on 2026-09-29, after a business analysis (also kept outside the repo) found 13 of these 16 features already run on this machine in some form. That finding drives most of the rankings below: where a tool already exists, the app's job is to host or link it, not to rebuild it.
 
 ## The four pillars
 

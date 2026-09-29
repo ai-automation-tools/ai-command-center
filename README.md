@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/michaelschecht/ai-command-center">GitHub (private)</a>
+  <a href="https://github.com/ai-automation-tools/ai-command-center">GitHub (private, incubating)</a>
   ·
   <a href="docs/ROADMAP.md">Roadmap</a>
   ·
@@ -42,7 +42,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 > **LastPass and Rakuten don't work yet.** Both install from the Chrome Web Store and show their toolbar icons, but their background service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
 
 > [!NOTE]
-> The business analysis (kept local in `Repos/Private/Draft/AI-Command-Center/Analysis/`) recommended not building this and composing existing tools instead. Mike decided to build it on 2026-09-29; that override is recorded in the analysis's decisions folder.
+> A business analysis kept outside this repo recommended not building this and composing existing tools instead. Mike decided to build it on 2026-09-29; that override is recorded in the analysis's decisions folder.
 
 ## ✨ What works today
 
@@ -66,8 +66,8 @@ npm install
 # 3. Run the app
 npm start
 
-# 4. Check it: unit tests, then a scripted launch that saves screenshots to .smoke/
-npm test; npm run smoke
+# 4. Check it: lint and unit tests, then a scripted launch that saves screenshots to .smoke/
+npm run lint; npm test; npm run smoke
 ```
 
 `npm install` on npm 11 asks before running install scripts; `node-pty` is already approved in `package.json`. If Electron's binary didn't download, run `node node_modules/electron/install.js`.
@@ -81,7 +81,7 @@ git push origin mike_desktop
 gh pr create --base main --head mike_desktop
 ```
 
-The daily repo sync (`\AI-Maintenance\Repo-Updates\Update All Repos`, 07:00) merges `main` back into `mike_desktop` and pushes it. It doesn't install anything for this repo, so after a dependency PR merges, quit the app and run `npm install` yourself.
+A weekly roadmap routine also opens PRs, from `roadmap/auto-<date>` branches, one release gate at a time (see [the roadmap](docs/ROADMAP.md)). Dependency changes are never made by the routine, so after one merges, quit the app and run `npm install` yourself.
 
 ## ⌨️ Shortcuts
 
@@ -103,8 +103,9 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 |:---|:---|
 | [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
 | [**🧪 tests/**](tests/README.md) | 18 unit tests, plus how the smoke run and the extension spike check the real app. |
-| [**📚 docs/**](docs/README.md) | Roadmap, changelog, requirements, architecture options, and three ADRs. |
-| [**📜 scripts/smoke.js**](scripts/smoke.js) | The launcher behind `npm run smoke` and `npm run spike:extensions`. |
+| [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
+| [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
+| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`. |
 
 ## 🔒 Security model
 
@@ -118,5 +119,5 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 ---
 
 <p align="center">
-  Private repo <a href="https://github.com/michaelschecht/ai-command-center">michaelschecht/ai-command-center</a> · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> (GPL-3.0) · <a href="docs/README.md">Docs</a>
+  Incubating in <a href="https://github.com/ai-automation-tools">ai-automation-tools</a>, private until its release gates are done · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> (GPL-3.0) · <a href="docs/README.md">Docs</a>
 </p>

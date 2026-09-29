@@ -27,10 +27,12 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 - Recent list of pages, files and terminals, and one search box across files, bookmarks and recent. *(roadmap: Phase 1)*
 - `npm test` with 18 unit tests for the tree, URL and recent helpers, and `npm run smoke`, which launches the app, drives the sidebar, saves screenshots and quits. *(roadmap: Phase 1)*
 - `npm run spike:extensions`, which installs LastPass and Rakuten and reports what happens.
+- `npm run lint` (`node --check` over every JavaScript file), `CLAUDE.md` for the agent that works this repo each week, and `docs/product/` with the spec and build plan. *(roadmap: Phase 1)*
 
 **Changed**
 
-- Moved out of `Draft/AI-Command-Center/Repo` to `Repos/Private/Other_Apps/ai-command-center` and pushed to a private GitHub repo, `michaelschecht/ai-command-center`, with `main` and the `mike_desktop` working branch. Links to the build prompt and the business analysis, which stay local in `Draft/`, are now plain paths. *(roadmap: Later)*
+- Moved into the ai-automation-tools org pipeline: the repo is now `ai-automation-tools/ai-command-center` (private, transferred from a personal account the same day, with secret scanning, push protection and Dependabot alerts verified on) and the local clone sits in the org's `Draft/` incubator. *(roadmap: Phase 1)*
+- The roadmap now marks everything above `## After public release` as a release gate; LastPass support, Mike's daily-use checks and Phase 3 moved below it.
 
 **Fixed**
 

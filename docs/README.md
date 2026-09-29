@@ -14,19 +14,20 @@
 
 ---
 
-Start with the roadmap if you want to know what to do next, or the decisions folder if you want to know why the app looks like this. The business case that argued against building it lives outside this repo, in `Repos/Private/Draft/AI-Command-Center/Analysis/` on Mike's machine, and isn't pushed. The override that started the build is recorded there too.
+Start with the roadmap if you want to know what to do next, or the decisions folder if you want to know why the app looks like this. The business analysis that argued against building it, and the override that started the build, are kept outside this repo with the original build prompt. [product/](product/README.md) has the spec and build plan the weekly routine works from.
 
 ## 🗺️ Planning
 
 | Document | What's inside |
 |:---|:---|
-| [**🗺️ ROADMAP.md**](ROADMAP.md) | Phase 0 done, Phase 1 mostly done, then the harness and the rest. The LastPass blocker and a daily-use log table sit at the top of what's left. |
+| [**🗺️ ROADMAP.md**](ROADMAP.md) | The release gates: two Phase 1 items left, then the Phase 2 harness and the public-release checklist. LastPass, Mike's daily-use log and Phase 3 sit below `After public release`. |
 | [**📋 CHANGELOG.md**](CHANGELOG.md) | 0.1.0: the Phase 1 slice, two shutdown and layout fixes, and the extension known issue. |
 
 ## ⚖️ Design
 
 | Folder | What's inside |
 |:---|:---|
+| [**🎯 product/**](product/README.md) | The spec (must stories with acceptance criteria, the Won't list) and the build plan with its stop points. |
 | [**⚖️ decisions/**](decisions/README.md) | Requirements, three architecture options, and three ADRs: the Electron shell (with the extension spike), Project Hub over HTTP, and the terminal. |
 
 <p align="right">(<a href="#docs-top">back to top</a>)</p>

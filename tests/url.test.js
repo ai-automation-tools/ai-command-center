@@ -9,7 +9,7 @@ test('toUrl keeps full URLs as they are', () => {
 });
 
 test('toUrl turns Windows paths into file URLs', () => {
-  assert.equal(toUrl('D:\\AI_Agents\\site\\index.html'), 'file:///D:/AI_Agents/site/index.html');
+  assert.equal(toUrl('D:\\work\\site\\index.html'), 'file:///D:/work/site/index.html');
   assert.equal(toUrl('C:/x/y.html'), 'file:///C:/x/y.html');
 });
 

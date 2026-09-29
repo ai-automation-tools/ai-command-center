@@ -11,7 +11,7 @@
 
 ---
 
-Hours are Mike's supervising time with an agent doing the typing. They're judgment calls anchored on the business analysis (450 hours for the whole app; kept local in `Repos/Private/Draft/AI-Command-Center/Analysis/`) and on Cronsole, which took about four months to reach 0.9.0. Treat them as ranges, not quotes.
+Hours are Mike's supervising time with an agent doing the typing. They're judgment calls anchored on the business analysis (450 hours for the whole app; kept outside this repo) and on Cronsole, which took about four months to reach 0.9.0. Treat them as ranges, not quotes.
 
 ## The options
 

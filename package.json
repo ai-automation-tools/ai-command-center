@@ -8,8 +8,9 @@
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "smoke": "node scripts/smoke.js",
+    "lint": "node scripts/lint.js",
     "test": "node --test \"tests/**/*.test.js\"",
+    "smoke": "node scripts/smoke.js",
     "spike:extensions": "node scripts/smoke.js https://www.bestbuy.com --install hdokiejnpimakedhajhdlcegeplioahd,chhjbpecpncaggjpdakmflnfcopglcmi"
   },
   "dependencies": {
