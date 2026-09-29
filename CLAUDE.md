@@ -45,6 +45,7 @@ touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop sess
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu.
 - **Docs move with code.** Update `README.md`, `src/README.md`, `docs/` and this file when a change makes them untrue. Every ticked roadmap item gets a `docs/CHANGELOG.md` line in the same commit, tagged with its phase in italics.
 - **Commits:** plain imperative sentences, no Conventional Commit prefixes.
+- **Licence:** GPL-3.0-or-later. A new runtime dependency must have a GPL-3.0-compatible licence (MIT, BSD, Apache-2.0, LGPL, GPL); say which in the PR body.
 - **Never commit** `.env*`, `node_modules/`, `.smoke/`, or any absolute local path (`C:\Users\...`, `D:\AI_Agents\...`). This repo is going public.
 
 ## Won't

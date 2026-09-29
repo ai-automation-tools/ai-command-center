@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "One window for the browser, terminal, file sidebar and agent harness on Mike's machine.",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "main": "src/main/main.js",
   "scripts": {

@@ -13,6 +13,12 @@
 
 Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
+## Unreleased
+
+**Added**
+
+- Licensed GPL-3.0-or-later: `LICENSE` with the unmodified GPL-3.0 text, `package.json` updated, and a Licence section in the README explaining the GPL dependency. *(roadmap: Public release)*
+
 ## 0.1.0 — 2026-09-29
 
 **Added**

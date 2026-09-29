@@ -24,6 +24,7 @@
   <img src="https://img.shields.io/badge/status-Phase_1_·_MVP-F59E0B?style=for-the-badge" alt="Status: Phase 1 MVP">
   <img src="https://img.shields.io/badge/runs_on-Windows_11-0078D4?style=for-the-badge" alt="Runs on Windows 11">
   <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/plan-ROADMAP-8B5CF6?style=for-the-badge" alt="Roadmap"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-2ea44f?style=for-the-badge" alt="License: GPL-3.0-or-later"></a>
 </p>
 
 <p align="center">
@@ -114,10 +115,16 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 - The terminal's executable and arguments are fixed in the main process; the UI can only choose a starting folder.
 - Nothing listens on a network port. Project Hub is reached over loopback from the main process.
 
+## ⚖️ Licence
+
+GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+The browser's Chrome extension support comes from [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell), which is available under GPL-3.0 or a paid licence. This project uses the GPL terms, so the app is GPL too: you can use, change and share it, and anything you distribute that's built from it has to ship its source under the same licence. The reasoning is in [ADR-001](docs/decisions/adr-001-electron-shell.md#consequences).
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ---
 
 <p align="center">
-  Incubating in <a href="https://github.com/ai-automation-tools">ai-automation-tools</a>, private until its release gates are done · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> (GPL-3.0) · <a href="docs/README.md">Docs</a>
+  Incubating in <a href="https://github.com/ai-automation-tools">ai-automation-tools</a>, private until its release gates are done · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> · <a href="LICENSE">GPL-3.0-or-later</a> · <a href="docs/README.md">Docs</a>
 </p>
