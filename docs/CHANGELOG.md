@@ -24,6 +24,8 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 **Fixed**
 
+- A second launch while the app was running started its own MCP server and overwrote `mcp.json` with a port that died a moment later. It now exits before doing anything else.
+- `Start-AICommandCenter.ps1` no longer prints Electron's log output into the terminal it was run from; it goes to `%APPDATA%\ai-command-center\logs\launch.out.log` and `launch.err.log`.
 - Closing the window or a tab no longer pops up "A JavaScript error occurred in the main process: Object has been destroyed". electron-chrome-extensions closes a tab again from its `destroyed` event, after the window is destroyed and the view's `webContents` is already undefined; `Tabs.close()` now skips whatever is gone.
 
 ## 0.1.0 — 2026-09-29

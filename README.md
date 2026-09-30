@@ -112,7 +112,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | [**🧪 tests/**](tests/README.md) | 26 unit tests, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
-| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window. |
+| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
 
 ## 🔒 Security model
 
