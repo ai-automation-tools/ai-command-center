@@ -15,6 +15,8 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
+Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. Next up: the read-only MCP tools.
+
 **Added**
 
 - Control Center MCP server: the main process starts it on `127.0.0.1` with a random port and a fresh token each launch, writes both to `%APPDATA%\ai-command-center\mcp.json`, and removes the file on quit. Calls without the token get 401, and a non-loopback Host header gets 403. Built on `node:http` with no new dependency; no tools yet. *(roadmap: Phase 2)*
