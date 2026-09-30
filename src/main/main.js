@@ -33,8 +33,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'acc', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
 
-// One instance: a second launch focuses the first.
-if (!app.requestSingleInstanceLock()) app.quit();
+// One instance: a second launch focuses the first. exit(), not quit(): quit() is async,
+// so whenReady would still run and start a second MCP server over the first's mcp.json.
+if (!app.requestSingleInstanceLock()) app.exit(0);
 
 /** @type {BaseWindow | null} */
 let win = null;
