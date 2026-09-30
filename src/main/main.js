@@ -7,12 +7,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hub } from './hub.js';
+import { startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
 import { toUrl } from '../shared/url.js';
+import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -38,6 +40,8 @@ if (!app.requestSingleInstanceLock()) app.quit();
 let win = null;
 /** @type {WebContentsView | null} */
 let shellView = null;
+/** @type {Awaited<ReturnType<typeof startMcp>> | null} */
+let mcp = null;
 
 /** @param {string} channel @param {...unknown} args */
 function send(channel, ...args) {
@@ -180,6 +184,16 @@ async function createWindow() {
   handle('tabs:command', (action) => tabs.command(action));
   on('tabs:bounds', (rect) => tabs.setBounds(rect));
   on('tabs:hidden', (hidden) => tabs.setHidden(Boolean(hidden)));
+  // The shell asks once its tab listeners are wired. The smoke run neither restores
+  // nor saves, so it can't disturb the real profile's tabs.
+  let restored = Boolean(process.env.ACC_SMOKE_DIR);
+  handle('tabs:restore', () => {
+    if (restored) return;
+    restored = true;
+    const created = layout.tabs.map((url) => tabs.create(url, { activate: false }));
+    const i = savedActiveIndex(layout.activeTab, created.length);
+    if (i >= 0) tabs.activate(created[i].id);
+  });
   handle('tabs:openExternal', (url) => {
     const u = String(url);
     if (/^https?:/i.test(u)) return shell.openExternal(u);
@@ -199,6 +213,13 @@ async function createWindow() {
 
   handle('ext:list', () => listExtensions(browseSession));
 
+  win.on('close', () => {
+    if (process.env.ACC_SMOKE_DIR) return;
+    const { urls, active } = tabs.snapshot();
+    const kept = cleanSavedTabs(urls);
+    // Dropped entries (blank pages) shift the index; point it at the same URL if kept.
+    store.saveLayout({ tabs: kept, activeTab: active >= 0 ? kept.indexOf(urls[active]) : -1 });
+  });
   win.on('closed', () => {
     terminals.killAll();
     win = null;
@@ -264,6 +285,16 @@ function smoke(dir, tabs, browseSession) {
     console.log(`[smoke] tab url=${tab.view.webContents.getURL()} title=${tab.view.webContents.getTitle()}`);
     console.log(`[smoke] tab bounds=${JSON.stringify(tab.view.getBounds())}`);
     console.log(`[smoke] extensions=${JSON.stringify(listExtensions(browseSession))}`);
+    // The MCP server as a client would find it: no token must fail, the file's token must work.
+    try {
+      const { url, token } = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'mcp.json'), 'utf8'));
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' });
+      const without = (await fetch(url, { method: 'POST', body })).status;
+      const withToken = (await fetch(url, { method: 'POST', body, headers: { Authorization: `Bearer ${token}` } })).status;
+      console.log(`[smoke] mcp ${url} without-token=${without} with-token=${withToken}`);
+    } catch (err) {
+      console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
+    }
     console.log(`[smoke] screenshots in ${dir}`);
     app.quit();
   });
@@ -278,6 +309,10 @@ app.on('second-instance', () => {
 app.whenReady().then(() => {
   serveShell();
   buildMenu();
+  // Tools arrive with the next Phase 2 items; the server and its auth come first.
+  startMcp(new Map())
+    .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
+    .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
   return createWindow();
 }).catch((err) => {
   console.error('[startup] failed:', err);
@@ -289,4 +324,7 @@ app.on('window-all-closed', () => app.quit());
 // node-pty's ConPTY output reader runs on a worker thread that outlives its session, so
 // the process reaches 'quit' and then never exits. Every window is closed and every
 // terminal killed by this point (win 'closed'), so exit explicitly.
-app.on('quit', () => setImmediate(() => app.exit(0)));
+app.on('quit', () => {
+  mcp?.close();
+  setImmediate(() => app.exit(0));
+});

@@ -31,12 +31,12 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Recent list and one search box across files, bookmarks and recent — 2026-09-29
 - [x] `npm test`, `npm run smoke`, `npm run spike:extensions` — 2026-09-29
 - [x] `npm run lint` (`node --check` over every JS file) and `CLAUDE.md` for the weekly routine — 2026-09-29
-- [ ] Tabs that were open reopen after a restart (store the URLs in `layout.json`; unit-test the list handling in `src/shared/`)
-- [ ] `Start-AICommandCenter.ps1` in `scripts/` that starts the app hidden-window-free, so launching doesn't need a terminal
+- [x] Tabs that were open reopen after a restart (store the URLs in `layout.json`; unit-test the list handling in `src/shared/`) — 2026-09-30
+- [x] `Start-AICommandCenter.ps1` in `scripts/` that starts the app hidden-window-free, so launching doesn't need a terminal — 2026-09-30
 
 ## 🤖 Phase 2: harness
 
-- [ ] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token
+- [x] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token — 2026-09-30
 - [ ] Read-only tools first: `list_tabs`, `sidebar_search`, `recent`
 - [ ] Navigation tools: `open_tab`, `open_file` (through Hub's `/api/open`)
 - [ ] `terminal_run`: shows the command in the app and waits for a click before running it

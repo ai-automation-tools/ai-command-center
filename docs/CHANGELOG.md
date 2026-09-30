@@ -17,7 +17,14 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 **Added**
 
+- Control Center MCP server: the main process starts it on `127.0.0.1` with a random port and a fresh token each launch, writes both to `%APPDATA%\ai-command-center\mcp.json`, and removes the file on quit. Calls without the token get 401, and a non-loopback Host header gets 403. Built on `node:http` with no new dependency; no tools yet. *(roadmap: Phase 2)*
+- `scripts/Start-AICommandCenter.ps1` starts the app through the repo's own `electron.exe` with no console window left open; the README has the shortcut target line. *(roadmap: Phase 1)*
+- Browser tabs reopen after a restart: the URLs and the active tab are saved to `layout.json` when the window closes and restored once the shell is ready. Blank pages and disallowed schemes are dropped, and `src/shared/session.js` has 4 tests. *(roadmap: Phase 1)*
 - Licensed GPL-3.0-or-later: `LICENSE` with the unmodified GPL-3.0 text, `package.json` updated, and a Licence section in the README explaining the GPL dependency. *(roadmap: Public release)*
+
+**Fixed**
+
+- Closing the window or a tab no longer pops up "A JavaScript error occurred in the main process: Object has been destroyed". electron-chrome-extensions closes a tab again from its `destroyed` event, after the window is destroyed and the view's `webContents` is already undefined; `Tabs.close()` now skips whatever is gone.
 
 ## 0.1.0 — 2026-09-29
 

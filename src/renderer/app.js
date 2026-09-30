@@ -262,5 +262,6 @@ api.onShortcut((/** @type {string} */ action) => {
 // ---- start -------------------------------------------------------------------
 
 reportBounds();
+api.tabs.restore();
 if (layout.terminalOpen) openTerminal();
 sidebar.load();

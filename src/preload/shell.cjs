@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('acc', {
     navigate: invoke('tabs:navigate'),
     command: invoke('tabs:command'),
     openExternal: invoke('tabs:openExternal'),
+    restore: invoke('tabs:restore'),
     /** @param {{ x: number, y: number, width: number, height: number }} rect */
     setBounds: (rect) => ipcRenderer.send('tabs:bounds', rect),
     /** @param {boolean} hidden */

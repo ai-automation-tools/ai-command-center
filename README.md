@@ -64,11 +64,17 @@ Invoke-RestMethod http://127.0.0.1:4273/api/health
 # 2. Install. node-pty ships prebuilt binaries, so no compiler is needed
 npm install
 
-# 3. Run the app
+# 3. Run the app (or .\scripts\Start-AICommandCenter.ps1, which leaves no console behind)
 npm start
 
 # 4. Check it: lint and unit tests, then a scripted launch that saves screenshots to .smoke/
 npm run lint; npm test; npm run smoke
+```
+
+To start it from a shortcut or the Start menu without a terminal, point the shortcut at:
+
+```text
+pwsh -NoProfile -WindowStyle Hidden -File <repo>\scripts\Start-AICommandCenter.ps1
 ```
 
 `npm install` on npm 11 asks before running install scripts; `node-pty` is already approved in `package.json`. If Electron's binary didn't download, run `node node_modules/electron/install.js`.
@@ -103,17 +109,17 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | Folder | What's inside |
 |:---|:---|
 | [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
-| [**🧪 tests/**](tests/README.md) | 18 unit tests, plus how the smoke run and the extension spike check the real app. |
+| [**🧪 tests/**](tests/README.md) | 26 unit tests, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
-| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`. |
+| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window. |
 
 ## 🔒 Security model
 
 - Browser tabs are sandboxed, get no preload from this app, and can't navigate to `javascript:`, `data:` or custom protocol URLs.
 - Every IPC channel checks that the sender is the shell UI.
 - The terminal's executable and arguments are fixed in the main process; the UI can only choose a starting folder.
-- Nothing listens on a network port. Project Hub is reached over loopback from the main process.
+- The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Project Hub is reached over loopback from the main process.
 
 ## ⚖️ Licence
 

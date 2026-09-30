@@ -5,6 +5,7 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
+import { cleanSavedTabs } from '../shared/session.js';
 
 /** @param {string} name */
 const file = (name) => path.join(app.getPath('userData'), name);
@@ -44,7 +45,7 @@ export const store = {
     return next;
   },
 
-  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, bookmarkSource: string }} */
+  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, bookmarkSource: string, tabs: string[], activeTab: number }} */
   layout() {
     const d = readJson('layout.json', {});
     return {
@@ -52,6 +53,8 @@ export const store = {
       terminalHeight: Number.isFinite(d.terminalHeight) ? d.terminalHeight : 280,
       terminalOpen: d.terminalOpen !== false,
       bookmarkSource: typeof d.bookmarkSource === 'string' ? d.bookmarkSource : '',
+      tabs: cleanSavedTabs(d.tabs),
+      activeTab: Number.isInteger(d.activeTab) ? d.activeTab : -1,
     };
   },
 
