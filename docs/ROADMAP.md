@@ -31,12 +31,12 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Recent list and one search box across files, bookmarks and recent — 2026-09-29
 - [x] `npm test`, `npm run smoke`, `npm run spike:extensions` — 2026-09-29
 - [x] `npm run lint` (`node --check` over every JS file) and `CLAUDE.md` for the weekly routine — 2026-09-29
-- [ ] Tabs that were open reopen after a restart (store the URLs in `layout.json`; unit-test the list handling in `src/shared/`)
-- [ ] `Start-AICommandCenter.ps1` in `scripts/` that starts the app hidden-window-free, so launching doesn't need a terminal
+- [x] Tabs that were open reopen after a restart (store the URLs in `layout.json`; unit-test the list handling in `src/shared/`) — 2026-09-30
+- [x] `Start-AICommandCenter.ps1` in `scripts/` that starts the app hidden-window-free, so launching doesn't need a terminal — 2026-09-30
 
 ## 🤖 Phase 2: harness
 
-- [ ] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token
+- [x] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token — 2026-09-30
 - [ ] Read-only tools first: `list_tabs`, `sidebar_search`, `recent`
 - [ ] Navigation tools: `open_tab`, `open_file` (through Hub's `/api/open`)
 - [ ] `terminal_run`: shows the command in the app and waits for a click before running it
@@ -52,7 +52,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [ ] README usage section rewritten for someone who isn't Mike, and verified against the real code
 - [ ] `SECURITY.md`, plus a full-history secret scan (gitleaks) that comes back clean
 - [ ] Live demo on GitHub Pages at `https://ai-automation-tools.dev/ai-command-center/`, served from this repo: the shell UI running in a browser with a mocked `window.acc` and fabricated files, bookmarks and terminal output; carries the org source bar; makes no network calls that need secrets
-- [ ] 🔒 Needs Mike: licence. electron-chrome-extensions is GPL-3.0 (or a paid patron licence), so a public repo needs a GPL-3.0-compatible `LICENSE` or the patron licence. Pick one and add `LICENSE`.
+- [x] Licence: GPL-3.0-or-later, chosen by Mike because electron-chrome-extensions is GPL-3.0; `LICENSE` added and `package.json` updated — 2026-09-29
 
 ## After public release
 

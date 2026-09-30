@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-18_passing-2ea44f?style=for-the-badge" alt="18 tests passing">
+  <img src="https://img.shields.io/badge/tests-26_passing-2ea44f?style=for-the-badge" alt="26 tests passing">
   <img src="https://img.shields.io/badge/runner-node_--test-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="node --test">
   <a href="../README.md"><img src="https://img.shields.io/badge/↩-repository_root-6B7280?style=for-the-badge" alt="Repository root"></a>
 </p>
@@ -19,16 +19,18 @@ The unit tests use Node's built-in runner, so there's nothing to install beyond 
 | [**tree.test.js**](tree.test.js) | Hub id to path (base, home, virtual), click actions, terminal folders, a 20,000-deep tree flattening without a stack overflow, search ranking and limits, bookmark flattening. |
 | [**url.test.js**](url.test.js) | Address-bar input: URLs kept, Windows paths to `file://`, loopback to `http`, hosts to `https`, everything else to a search; `javascript:` and `data:` refused. |
 | [**recent.test.js**](recent.test.js) | Newest first, de-duplicated by type and target, capped at 50, and a hand-edited file can't inject bad entries. |
+| [**mcp.test.js**](mcp.test.js) | MCP server: exact-token and loopback-host checks, protocol negotiation, tool listing and calls, JSON-RPC errors, and a real HTTP server refusing a missing or wrong token (401), GET (405) and bad JSON (400). |
+| [**session.test.js**](session.test.js) | Saved tabs: only allowed schemes, no blank pages, order kept, capped at 30; a bad active index falls back to the last tab. |
 
 ## Checking the real app
 
 | Command | What it does | Takes |
 |:---|:---|:---|
-| `npm run smoke` | Launches the app, opens example.com and a terminal, expands the first folder, searches "README", logs the counts, saves `shell.png` and `tab.png` to `.smoke/`, and quits. Fails with a timeout if the app doesn't exit. | 30 to 80 s |
+| `npm run smoke` | Launches the app, opens example.com and a terminal, expands the first folder, searches "README", logs the counts, calls the MCP server without and with the token from `mcp.json` (expects 401 then 200), saves `shell.png` and `tab.png` to `.smoke/`, and quits. Fails with a timeout if the app doesn't exit. | 30 to 80 s |
 | `npm run spike:extensions` | Installs LastPass and Rakuten from the Web Store, loads a shop page, and logs each extension's errors. Rerun on every Electron upgrade. | about 60 s |
 
 > [!NOTE]
-> Both commands open a real window and use the real profile in `%APPDATA%\ai-command-center`, so extensions they install stay installed.
+> Both commands open a real window and use the real profile in `%APPDATA%\ai-command-center`, so extensions they install stay installed. They don't restore or save the open tabs, so your saved tabs survive a smoke run.
 
 ---
 

@@ -20,8 +20,8 @@ Start with the roadmap if you want to know what to do next, or the decisions fol
 
 | Document | What's inside |
 |:---|:---|
-| [**🗺️ ROADMAP.md**](ROADMAP.md) | The release gates: two Phase 1 items left, then the Phase 2 harness and the public-release checklist. LastPass, Mike's daily-use log and Phase 3 sit below `After public release`. |
-| [**📋 CHANGELOG.md**](CHANGELOG.md) | 0.1.0: the Phase 1 slice, two shutdown and layout fixes, and the extension known issue. |
+| [**🗺️ ROADMAP.md**](ROADMAP.md) | The release gates: Phase 1 is done, the Phase 2 harness is under way (the MCP server is up, its tools come next), then the public-release checklist. LastPass, Mike's daily-use log and Phase 3 sit below `After public release`. |
+| [**📋 CHANGELOG.md**](CHANGELOG.md) | Unreleased: tabs that reopen after a restart, the no-console launcher, the MCP server, and a fix for the "Object has been destroyed" popup. 0.1.0: the Phase 1 slice, two shutdown and layout fixes, and the extension known issue. |
 
 ## ⚖️ Design
 

@@ -30,7 +30,7 @@ The runtime is the costly thing to change. Moving off Electron later means rewri
 ## Consequences
 
 - **Upkeep.** Electron ships a major every 8 weeks and supports three, so the app has to take a new Electron at least every 24 weeks to keep security fixes. Budget one short session per major: bump, run `npm test`, `npm run smoke`, `npm run spike:extensions`.
-- **Licence.** electron-chrome-extensions is dual-licensed GPL-3.0 or a paid patron licence; the app passes `license: 'GPL-3.0'`. That's fine for a private tool. Publishing the app means either licensing this repo GPL-3.0-compatible or buying the patron licence.
+- **Licence.** electron-chrome-extensions is dual-licensed GPL-3.0 or a paid patron licence, and the app passes `license: 'GPL-3.0'`. **Decided 2026-09-29: the repo is GPL-3.0-or-later** (`LICENSE`, `package.json`). Every other runtime dependency is MIT or BSD-3-Clause, both GPL-compatible. The cost: forks and anything distributed from this code stay GPL, and a closed-source build would need the patron licence.
 - **Known vulnerability.** `npm audit` reports two high-severity advisories in `adm-zip`, used by electron-chrome-web-store to unpack extensions. There's no fixed version. The zips come from Google's Web Store over HTTPS, which limits the exposure; recheck on every dependency bump.
 - **The shell's preload isn't sandboxed.** It needs `require()` for `<browser-action-list>`, which a sandboxed preload can't do. The shell loads only this repo's files, never a remote page, and navigation away from it is blocked. Browser tabs stay fully sandboxed with no preload from this app.
 

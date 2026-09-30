@@ -98,7 +98,7 @@ export class Tabs {
   /** @param {Tab} tab */
   describe(tab) {
     const wc = tab.view.webContents;
-    if (wc.isDestroyed()) return { id: tab.id, url: '', title: '', loading: false, canGoBack: false, canGoForward: false };
+    if (!wc || wc.isDestroyed()) return { id: tab.id, url: '', title: '', loading: false, canGoBack: false, canGoForward: false };
     return {
       id: tab.id,
       url: wc.getURL(),
@@ -124,8 +124,12 @@ export class Tabs {
   close(id) {
     const tab = this.tabs.get(id);
     if (!tab) return;
-    this.window.contentView.removeChildView(tab.view);
-    tab.view.webContents.close();
+    // electron-chrome-extensions calls this from the page's 'destroyed' event too,
+    // e.g. while the window is closing, when the window is gone and the view's
+    // webContents is already undefined.
+    if (!this.window.isDestroyed()) this.window.contentView.removeChildView(tab.view);
+    const wc = tab.view.webContents;
+    if (wc && !wc.isDestroyed()) wc.close();
     this.forget(id);
   }
 
@@ -136,7 +140,7 @@ export class Tabs {
     if (this.activeId === id) {
       const next = [...this.tabs.keys()].pop();
       this.activeId = null;
-      if (next !== undefined) this.activate(next);
+      if (next !== undefined && !this.window.isDestroyed()) this.activate(next);
     }
   }
 
@@ -156,6 +160,15 @@ export class Tabs {
   setHidden(hidden) {
     const tab = this.activeId !== null ? this.tabs.get(this.activeId) : null;
     tab?.view.setVisible(!hidden);
+  }
+
+  /** URLs of the open tabs in creation order, and the index of the active one. */
+  snapshot() {
+    const tabs = [...this.tabs.values()];
+    return {
+      urls: tabs.map((t) => (t.view.webContents && !t.view.webContents.isDestroyed() ? t.view.webContents.getURL() : '')),
+      active: tabs.findIndex((t) => t.id === this.activeId),
+    };
   }
 
   active() {
