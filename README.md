@@ -54,6 +54,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 | **📁 Files** | Every workspace from Project Hub. Click a file to open it in VS Code, or an HTML file to open it in a tab; hover for Terminal here, VS Code, and Reveal in Explorer. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
+| **🤖 MCP server** | A local MCP server for agents, with three read-only tools so far: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. |
 
 ## 🚀 Quick start
 
@@ -109,7 +110,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | Folder | What's inside |
 |:---|:---|
 | [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
-| [**🧪 tests/**](tests/README.md) | 26 unit tests, plus how the smoke run and the extension spike check the real app. |
+| [**🧪 tests/**](tests/README.md) | 34 unit tests, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
 | [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |

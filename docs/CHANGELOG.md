@@ -15,11 +15,12 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
-Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. Next up: the read-only MCP tools.
+Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. The read-only MCP tools followed in the weekly roadmap PR the same day. Next up: the navigation tools.
 
 **Added**
 
-- Control Center MCP server: the main process starts it on `127.0.0.1` with a random port and a fresh token each launch, writes both to `%APPDATA%\ai-command-center\mcp.json`, and removes the file on quit. Calls without the token get 401, and a non-loopback Host header gets 403. Built on `node:http` with no new dependency; no tools yet. *(roadmap: Phase 2)*
+- Read-only MCP tools: `list_tabs` (id, URL, title, loading, active), `sidebar_search` (the sidebar's search over Hub's files, the chosen bookmarks source and Recent, with absolute paths and an `errors` list when Hub is down) and `recent` (filter by type, limit). They live in `src/shared/tools.js` with 8 tests; the sidebar and `sidebar_search` now share one `searchAll` in `src/shared/tree.js`, and `npm run smoke` calls all three against the running app. *(roadmap: Phase 2)*
+- Control Center MCP server: the main process starts it on `127.0.0.1` with a random port and a fresh token each launch, writes both to `%APPDATA%\ai-command-center\mcp.json`, and removes the file on quit. Calls without the token get 401, and a non-loopback Host header gets 403. Built on `node:http` with no new dependency. *(roadmap: Phase 2)*
 - `scripts/Start-AICommandCenter.ps1` starts the app through the repo's own `electron.exe` with no console window left open; the README has the shortcut target line. *(roadmap: Phase 1)*
 - Browser tabs reopen after a restart: the URLs and the active tab are saved to `layout.json` when the window closes and restored once the shell is ready. Blank pages and disallowed schemes are dropped, and `src/shared/session.js` has 4 tests. *(roadmap: Phase 1)*
 - Licensed GPL-3.0-or-later: `LICENSE` with the unmodified GPL-3.0 text, `package.json` updated, and a Licence section in the README explaining the GPL dependency. *(roadmap: Public release)*

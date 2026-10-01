@@ -1,7 +1,7 @@
 // The left sidebar: Files (Project Hub's tree), Bookmarks (browser profiles Hub reads,
 // plus Hub's own favorites), Recent, and one search box across all three.
 
-import { absPath, defaultAction, flatten, flattenBookmarks, isContainer, search, terminalDir } from '/shared/tree.js';
+import { HUB_FAVORITES, absPath, defaultAction, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
 
 const ICONS = {
   projects: '🗂️', root: '📦', section: '📁', cli: '🤖', folder: '📁', repo: '📘', group: '🗃️', draft: '🧪',
@@ -9,7 +9,6 @@ const ICONS = {
   skill: '🧩', agent: '🧠', command: '⌘', hook: '🪝', routine: '⏱️', style: '🎨',
 };
 const RECENT_ICONS = { url: '🌐', file: '📄', folder: '📁', terminal: '💻' };
-const HUB_FAVORITES = '@hub-favorites';
 
 /** @typedef {import('/shared/tree.js').HubNode} HubNode */
 
@@ -315,12 +314,7 @@ export class Sidebar {
     res.hidden = false;
     res.innerHTML = '';
 
-    const words = query.toLowerCase().split(/\s+/);
-    const match = (/** @type {string} */ s) => words.every((w) => s.toLowerCase().includes(w));
-
-    const files = search(this.fileIndex, query, 40);
-    const marks = this.bookmarkIndex.filter((b) => match(`${b.name} ${b.url} ${b.path}`)).slice(0, 25);
-    const recent = this.recent.filter((r) => match(`${r.label} ${r.target}`)).slice(0, 15);
+    const { files, bookmarks: marks, recent } = searchAll({ files: this.fileIndex, bookmarks: this.bookmarkIndex, recent: this.recent }, query);
 
     if (!files.length && !marks.length && !recent.length) { res.append(note(`Nothing matches "${query}".`)); return; }
 

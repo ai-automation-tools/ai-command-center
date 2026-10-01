@@ -18,12 +18,12 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 
 | File | What it does |
 |:---|:---|
-| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), saves the open tabs on close and restores them when the shell asks, starts the MCP server, builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
+| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), saves the open tabs on close and restores them when the shell asks, starts the MCP server once the tabs exist and hands its tools the tabs, Hub and the Recent list, builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
 | [**tabs.js**](main/tabs.js) | Browser tabs: one sandboxed `WebContentsView` each, sized to the rectangle the shell reports. Blocks `javascript:` and other schemes, turns pop-ups into tabs, owns the page context menu. |
 | [**extensions.js**](main/extensions.js) | electron-chrome-extensions and the Web Store installer on the browse session. See [ADR-001](../docs/decisions/adr-001-electron-shell.md). |
 | [**terminal.js**](main/terminal.js) | PowerShell sessions through node-pty. The renderer picks a folder; the executable and arguments are fixed here. See [ADR-003](../docs/decisions/adr-003-terminal-in-main.md). |
 | [**hub.js**](main/hub.js) | The Project Hub client: health, scan, bookmarks, favorites, open. See [ADR-002](../docs/decisions/adr-002-hub-over-http.md). |
-| [**mcp.js**](main/mcp.js) | Starts the Control Center MCP server on `127.0.0.1` with a random port and a per-launch token, writes both to `mcp.json` in `%APPDATA%\ai-command-center`, and removes the file on quit. |
+| [**mcp.js**](main/mcp.js) | Starts the Control Center MCP server, with the tools from `shared/tools.js`, on `127.0.0.1` with a random port and a per-launch token, writes both to `mcp.json` in `%APPDATA%\ai-command-center`, and removes the file on quit. |
 | [**store.js**](main/store.js) | `recent.json` and `layout.json` (splitter sizes, terminal state, bookmark source, and the tabs open at the last close) in `%APPDATA%\ai-command-center`, written atomically. |
 
 ## 🔌 preload/
@@ -46,10 +46,11 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 
 | File | What it does |
 |:---|:---|
-| [**tree.js**](shared/tree.js) | Hub node ids to paths, what a click on a node does, flattening a 35k-node tree without recursion, and ranked search. |
+| [**tree.js**](shared/tree.js) | Hub node ids to paths, what a click on a node does, flattening a 35k-node tree without recursion, ranked search, and `searchAll`, the one search across files, bookmarks and recent that the sidebar and `sidebar_search` share. |
 | [**url.js**](shared/url.js) | Address-bar text to a URL (paths, loopback, hosts, search) and the allowed navigation schemes. |
 | [**recent.js**](shared/recent.js) | Adding to and cleaning the Recent list. |
 | [**mcp.js**](shared/mcp.js) | The MCP server itself: JSON-RPC over Streamable HTTP with plain JSON replies, bearer-token and loopback-Host checks, `initialize`, `ping`, `tools/list` and `tools/call`. No Electron, so the tests run it for real. |
+| [**tools.js**](shared/tools.js) | The MCP tools: `list_tabs`, `sidebar_search` and `recent`, all read-only, with their argument checks. The main process passes in the data sources. |
 | [**session.js**](shared/session.js) | Cleaning the saved tab list in `layout.json` and picking which restored tab to activate. |
 
 ---

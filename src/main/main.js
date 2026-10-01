@@ -15,6 +15,8 @@ import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
+import { readOnlyTools } from '../shared/tools.js';
+import { HUB_FAVORITES } from '../shared/tree.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -160,6 +162,19 @@ async function createWindow() {
   });
   const terminals = new Terminals(send);
 
+  // The MCP server starts once there are tabs for its tools to look at.
+  startMcp(readOnlyTools({
+    listTabs: () => tabs.list(),
+    scan: () => hub.scan(),
+    bookmarks: () => {
+      const source = store.layout().bookmarkSource;
+      return source === HUB_FAVORITES ? hub.favorites() : hub.webmarks(source || undefined);
+    },
+    recent: () => store.recent(),
+  }))
+    .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
+    .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
+
   handle('app:info', () => ({
     hubUrl: hub.url,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
@@ -293,6 +308,17 @@ function smoke(dir, tabs, browseSession) {
       const without = (await fetch(url, { method: 'POST', body })).status;
       const withToken = (await fetch(url, { method: 'POST', body, headers: { Authorization: `Bearer ${token}` } })).status;
       console.log(`[smoke] mcp ${url} without-token=${without} with-token=${withToken}`);
+      const call = (/** @type {string} */ name, /** @type {object} */ args) => fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }),
+      }).then((r) => r.json()).then((r) => r.result?.structuredContent ?? r);
+      const listed = await call('list_tabs', {});
+      const found = await call('sidebar_search', { query: 'README', limit: 5 });
+      const recent = await call('recent', { limit: 3 });
+      console.log(`[smoke] mcp list_tabs=${JSON.stringify(listed)}`);
+      console.log(`[smoke] mcp sidebar_search files=${found.files?.length} bookmarks=${found.bookmarks?.length} recent=${found.recent?.length} errors=${JSON.stringify(found.errors)}`);
+      console.log(`[smoke] mcp recent items=${recent.items?.length}`);
     } catch (err) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }
@@ -310,10 +336,6 @@ app.on('second-instance', () => {
 app.whenReady().then(() => {
   serveShell();
   buildMenu();
-  // Tools arrive with the next Phase 2 items; the server and its auth come first.
-  startMcp(new Map())
-    .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
-    .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
   return createWindow();
 }).catch((err) => {
   console.error('[startup] failed:', err);
