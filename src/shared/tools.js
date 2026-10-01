@@ -1,12 +1,19 @@
-// The Control Center's MCP tools. The read-only ones so far: they look at the open
-// tabs, the sidebar's search and the Recent list, and change nothing. Pure: main.js
-// hands in the data sources, so the tests run every tool against fakes.
+// The Control Center's MCP tools. The read-only ones look at the open tabs, the
+// sidebar's search and the Recent list; the navigation ones open a tab or a file.
+// Pure: main.js hands in the data sources and actions, so the tests run every tool
+// against fakes.
 
 import { absPath, flatten, flattenBookmarks, searchAll } from './tree.js';
+import { toUrl } from './url.js';
 
 const MAX_LIMIT = 100;
 const MAX_QUERY = 500;
+const MAX_URL = 8192;
+const MAX_ID = 1024;
 const RECENT_TYPES = ['file', 'folder', 'url', 'terminal'];
+// Not 'default': opening a file with its default app would run a .ps1 or .exe
+// without the click that terminal_run asks for.
+const OPEN_IN = ['code', 'reveal'];
 
 /**
  * @typedef {import('./mcp.js').Tool} Tool
@@ -17,6 +24,8 @@ const RECENT_TYPES = ['file', 'folder', 'url', 'terminal'];
  *   scan: () => Promise<{ base: string, home: string, tree: import('./tree.js').HubNode[] }>,
  *   bookmarks: () => Promise<{ roots?: any[] }>,
  *   recent: () => RecentItem[],
+ *   openTab: (url: string, activate: boolean) => { id: number },
+ *   openFile: (id: string, how: 'code' | 'reveal') => Promise<void>,
  * }} Sources
  */
 
@@ -31,6 +40,34 @@ export function limitArg(value, fallback) {
     throw new Error(`limit must be a whole number from 1 to ${MAX_LIMIT}`);
   }
   return /** @type {number} */ (value);
+}
+
+/**
+ * Address-bar text for an agent's new tab, as a URL. Only web pages and local files:
+ * extension pages and about: pages stay the user's to open.
+ * @param {unknown} value
+ */
+export function tabUrlArg(value) {
+  if (typeof value !== 'string' || !value.trim() || value.length > MAX_URL) {
+    throw new Error(`url must be a non-empty string of at most ${MAX_URL} characters`);
+  }
+  const url = toUrl(value);
+  if (!/^(https?|file):/i.test(url)) throw new Error('open_tab opens http, https and file URLs only');
+  return url;
+}
+
+/**
+ * A Project Hub node id as sidebar_search returns it. Hub resolves ids against its own
+ * roots and refuses the rest; this refuses the obvious escapes before they get there.
+ * @param {unknown} value
+ */
+export function hubIdArg(value) {
+  if (typeof value !== 'string' || !value || value.length > MAX_ID
+    || /\p{Cc}/u.test(value) || value.startsWith('@') || /^([a-z]:|[\\/])/i.test(value)
+    || value.split(/[\\/]/).includes('..')) {
+    throw new Error('id must be a Project Hub node id from sidebar_search, such as "app/docs/guide.md"');
+  }
+  return value;
 }
 
 /** @param {unknown} err */
@@ -93,6 +130,51 @@ export function readOnlyTools(src) {
         if (args.type !== undefined && !RECENT_TYPES.includes(args.type)) throw new Error(`type must be one of ${RECENT_TYPES.join(', ')}`);
         const limit = limitArg(args.limit, 20);
         return { items: src.recent().filter((r) => !args.type || r.type === args.type).slice(0, limit) };
+      },
+    }],
+  ]);
+}
+
+/**
+ * @param {Sources} src
+ * @returns {Map<string, Tool>}
+ */
+export function navigationTools(src) {
+  return new Map([
+    ['open_tab', {
+      description: 'Open a browser tab in AI Command Center. Takes what the address bar takes: a URL, a Windows path, localhost:<port>, a host name, or words to search for. http, https and file pages only.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', minLength: 1, maxLength: MAX_URL },
+          background: { type: 'boolean', description: 'Open without switching to it (default false)' },
+        },
+        required: ['url'],
+        additionalProperties: false,
+      },
+      run: (/** @type {any} */ args) => {
+        const url = tabUrlArg(args.url);
+        if (args.background !== undefined && typeof args.background !== 'boolean') throw new Error('background must be true or false');
+        return { id: src.openTab(url, !args.background).id, url };
+      },
+    }],
+    ['open_file', {
+      description: "Open a file or folder from Project Hub's tree in VS Code, or reveal it in Explorer. Takes the node id that sidebar_search returns, not a path. To view an HTML file in the app, use open_tab with its path instead.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', minLength: 1, maxLength: MAX_ID, description: 'Node id from sidebar_search' },
+          in: { type: 'string', enum: OPEN_IN, description: 'code (default) or reveal' },
+        },
+        required: ['id'],
+        additionalProperties: false,
+      },
+      run: async (/** @type {any} */ args) => {
+        const id = hubIdArg(args.id);
+        const how = args.in ?? 'code';
+        if (!OPEN_IN.includes(how)) throw new Error(`in must be one of ${OPEN_IN.join(', ')}`);
+        await src.openFile(id, how);
+        return { opened: id, in: how };
       },
     }],
   ]);
