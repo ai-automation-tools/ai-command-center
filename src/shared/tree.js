@@ -114,3 +114,25 @@ export function flattenBookmarks(roots) {
   }
   return out;
 }
+
+/** Bookmark source id for Project Hub's own favorites rather than a browser profile. */
+export const HUB_FAVORITES = '@hub-favorites';
+
+/**
+ * The sidebar's one search box, and the `sidebar_search` MCP tool: every word must
+ * appear in a file's name or trail, a bookmark's name, URL or folder, or a recent
+ * item's label or target.
+ * @template {{ label: string, target: string }} R
+ * @param {{ files: ReturnType<typeof flatten>, bookmarks: ReturnType<typeof flattenBookmarks>, recent: R[] }} index
+ * @param {string} query
+ * @param {{ files: number, bookmarks: number, recent: number }} [limits]
+ */
+export function searchAll(index, query, limits = { files: 40, bookmarks: 25, recent: 15 }) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const match = (/** @type {string} */ s) => words.length > 0 && words.every((w) => s.toLowerCase().includes(w));
+  return {
+    files: search(index.files, query, limits.files),
+    bookmarks: index.bookmarks.filter((b) => match(`${b.name} ${b.url} ${b.path}`)).slice(0, limits.bookmarks),
+    recent: index.recent.filter((r) => match(`${r.label} ${r.target}`)).slice(0, limits.recent),
+  };
+}

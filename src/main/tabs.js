@@ -109,6 +109,14 @@ export class Tabs {
     };
   }
 
+  /** Every open tab, oldest first, for the `list_tabs` MCP tool. */
+  list() {
+    return [...this.tabs.values()].map((t) => {
+      const { id, url, title, loading } = this.describe(t);
+      return { id, url, title, loading, active: t.id === this.activeId };
+    });
+  }
+
   /** @param {number} id */
   activate(id) {
     const tab = this.tabs.get(id);

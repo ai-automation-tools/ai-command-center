@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-09-30.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, but has no tools yet. **Next:** the read-only tools `list_tabs`, `sidebar_search` and `recent`. Everything up to here is merged to `main` (PRs #1 and #2).
+> **Where we are, 2026-09-30.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` (the weekly roadmap PR of 2026-09-30). **Next:** the navigation tools `open_tab` and `open_file`.
 
 ## 🧭 Phase 0: decide
 
@@ -40,7 +40,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 ## 🤖 Phase 2: harness
 
 - [x] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token — 2026-09-30, live server checked by hand (401 without the token, `ping` answered with it)
-- [ ] Read-only tools first: `list_tabs`, `sidebar_search`, `recent`
+- [x] Read-only tools first: `list_tabs`, `sidebar_search`, `recent` — 2026-09-30, weekly roadmap run; unit-tested and called against the live app by `npm run smoke`
 - [ ] Navigation tools: `open_tab`, `open_file` (through Hub's `/api/open`)
 - [ ] `terminal_run`: shows the command in the app and waits for a click before running it
 - [ ] Every MCP call written to an in-app log panel and to `%APPDATA%\ai-command-center\logs\mcp.log`
