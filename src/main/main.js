@@ -15,7 +15,7 @@ import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
-import { readOnlyTools } from '../shared/tools.js';
+import { navigationTools, readOnlyTools } from '../shared/tools.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -162,8 +162,15 @@ async function createWindow() {
   });
   const terminals = new Terminals(send);
 
+  /** @param {string} id @param {'code' | 'reveal' | 'default'} how @param {string} label */
+  const openInHub = async (id, how, label) => {
+    await hub.open(id, how);
+    send('recent:changed', store.addRecent({ type: 'file', target: id, label }));
+  };
+
   // The MCP server starts once there are tabs for its tools to look at.
-  startMcp(readOnlyTools({
+  /** @type {import('../shared/tools.js').Sources} */
+  const sources = {
     listTabs: () => tabs.list(),
     scan: () => hub.scan(),
     bookmarks: () => {
@@ -171,7 +178,10 @@ async function createWindow() {
       return source === HUB_FAVORITES ? hub.favorites() : hub.webmarks(source || undefined);
     },
     recent: () => store.recent(),
-  }))
+    openTab: (url, activate) => tabs.create(url, { activate }),
+    openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
+  };
+  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources)]))
     .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
@@ -188,10 +198,7 @@ async function createWindow() {
   handle('hub:scan', (fresh) => hub.scan(Boolean(fresh)));
   handle('hub:webmarks', (source) => hub.webmarks(typeof source === 'string' ? source : undefined));
   handle('hub:favorites', () => hub.favorites());
-  handle('hub:open', async (id, how, label) => {
-    await hub.open(String(id), how === 'reveal' ? 'reveal' : how === 'default' ? 'default' : 'code');
-    send('recent:changed', store.addRecent({ type: 'file', target: String(id), label: String(label || id) }));
-  });
+  handle('hub:open', (id, how, label) => openInHub(String(id), how === 'reveal' ? 'reveal' : how === 'default' ? 'default' : 'code', String(label || id)));
 
   handle('tabs:create', (input) => tabs.create(toUrl(String(input || 'about:blank'))).id);
   handle('tabs:activate', (id) => tabs.activate(Number(id)));
@@ -313,6 +320,8 @@ function smoke(dir, tabs, browseSession) {
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }),
       }).then((r) => r.json()).then((r) => r.result?.structuredContent ?? r);
+      const opened = await call('open_tab', { url: 'example.org', background: true });
+      console.log(`[smoke] mcp open_tab=${JSON.stringify(opened)}`);
       const listed = await call('list_tabs', {});
       const found = await call('sidebar_search', { query: 'README', limit: 5 });
       const recent = await call('recent', { limit: 3 });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleMessage } from '../src/shared/mcp.js';
-import { limitArg, readOnlyTools } from '../src/shared/tools.js';
+import { hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg } from '../src/shared/tools.js';
 import { searchAll } from '../src/shared/tree.js';
 
 const scan = {
@@ -92,6 +92,80 @@ test('recent filters by type, limits, and refuses an unknown type', async () => 
   assert.equal((await call(tools(), 'recent', { type: 'tab' })).isError, true);
   assert.equal((await call(tools(), 'recent', { limit: 101 })).isError, true);
   assert.deepEqual((await call(tools({ recent: () => [] }), 'recent')).structuredContent.items, []);
+});
+
+/** @param {Partial<import('../src/shared/tools.js').Sources>} [over] */
+function nav(over = {}) {
+  /** @type {any[]} */
+  const calls = [];
+  const t = navigationTools(/** @type {any} */ ({
+    openTab: (/** @type {string} */ url, /** @type {boolean} */ activate) => { calls.push(['tab', url, activate]); return { id: 7 }; },
+    openFile: async (/** @type {string} */ id, /** @type {string} */ how) => { calls.push(['file', id, how]); },
+    ...over,
+  }));
+  return { t, calls };
+}
+
+test('tools/list on the navigation tools offers open_tab and open_file', async () => {
+  const res = /** @type {any} */ (await handleMessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, nav().t, ''));
+  assert.deepEqual(res.result.tools.map((/** @type {any} */ t) => t.name), ['open_tab', 'open_file']);
+  assert.deepEqual(res.result.tools[1].inputSchema.properties.in.enum, ['code', 'reveal']);
+});
+
+test('open_tab takes address-bar text, activates unless background, and returns the tab id', async () => {
+  const { t, calls } = nav();
+  assert.deepEqual((await call(t, 'open_tab', { url: 'example.com' })).structuredContent, { id: 7, url: 'https://example.com' });
+  await call(t, 'open_tab', { url: 'D:\\work\\app\\index.html', background: true });
+  await call(t, 'open_tab', { url: 'localhost:3000' });
+  await call(t, 'open_tab', { url: 'electron docs' });
+  assert.deepEqual(calls, [
+    ['tab', 'https://example.com', true],
+    ['tab', 'file:///D:/work/app/index.html', false],
+    ['tab', 'http://localhost:3000', true],
+    ['tab', 'https://www.google.com/search?q=electron%20docs', true],
+  ]);
+});
+
+test('open_tab refuses extension and about: pages, blank or huge input, and a bad background', async () => {
+  const { t, calls } = nav();
+  for (const args of [undefined, {}, { url: '' }, { url: '   ' }, { url: 42 }, { url: 'x'.repeat(8193) },
+    { url: 'about:blank' }, { url: 'chrome-extension://abc/options.html' }, { url: 'https://x.dev', background: 'yes' }]) {
+    assert.equal((await call(t, 'open_tab', args)).isError, true, JSON.stringify(args)?.slice(0, 80));
+  }
+  // javascript: isn't a scheme toUrl keeps, so it becomes a harmless search.
+  await call(t, 'open_tab', { url: 'javascript:alert(1)' });
+  assert.match(calls[0][1], /^https:\/\/www\.google\.com\/search\?q=javascript/);
+  assert.equal(calls.length, 1);
+});
+
+test('open_file passes a Hub node id to Hub, in VS Code by default or revealed', async () => {
+  const { t, calls } = nav();
+  assert.deepEqual((await call(t, 'open_file', { id: 'app/docs/guide.md' })).structuredContent, { opened: 'app/docs/guide.md', in: 'code' });
+  await call(t, 'open_file', { id: '~/notes', in: 'reveal' });
+  assert.deepEqual(calls, [['file', 'app/docs/guide.md', 'code'], ['file', '~/notes', 'reveal']]);
+});
+
+test('open_file refuses paths, escapes, virtual nodes, default-app opens and bad ids', async () => {
+  const { t, calls } = nav();
+  for (const args of [undefined, {}, { id: '' }, { id: 5 }, { id: 'x'.repeat(1025) }, { id: 'C:/Windows/notepad.exe' },
+    { id: '/etc/passwd' }, { id: '\\\\server\\share' }, { id: 'app/../../secret' }, { id: '..\\up' }, { id: '@favorites' },
+    { id: 'app/a\u0000b' }, { id: 'app/run.ps1', in: 'default' }, { id: 'app', in: 'explorer' }]) {
+    assert.equal((await call(t, 'open_file', args)).isError, true, JSON.stringify(args)?.slice(0, 80));
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('open_file reports Hub refusing or being down as a tool error', async () => {
+  const { t } = nav({ openFile: async () => { throw new Error('Project Hub /api/open returned 403'); } });
+  const res = await call(t, 'open_file', { id: 'app/README.md' });
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /403/);
+});
+
+test('tabUrlArg and hubIdArg return what they accept', () => {
+  assert.equal(tabUrlArg(' https://x.dev/a '), 'https://x.dev/a');
+  assert.equal(hubIdArg('~'), '~');
+  assert.equal(hubIdArg('app/v1..2/notes.md'), 'app/v1..2/notes.md');
 });
 
 test('limitArg defaults, accepts 1 to 100, refuses the rest', () => {

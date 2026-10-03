@@ -17,7 +17,7 @@ Each slice runs from the UI through to the main process and is usable when it la
 |:-:|:---|:---|:---|
 | 0 | **Decide.** Requirements, three architecture options, three ADRs. | Picking a runtime that can't carry the product | ✅ 2026-09-29 |
 | 1 | **One window.** Tabs, terminal, Hub sidebar, recent, search, extension spike. | Whether Electron can host a daily browser and a real terminal on this machine. Answer: yes, except MV3 extension workers. | ✅ 2026-09-30 |
-| 2 | **Harness.** MCP server on loopback with a token, a command log, confirmations, then the chat panel, then Cronsole. | Whether an agent can drive the window safely. The MCP server comes before the chat panel because it's the part other agents (Claude Code in the terminal) can use on day one. | in progress: MCP server up with read-only tools; navigation tools next |
+| 2 | **Harness.** MCP server on loopback with a token, a command log, confirmations, then the chat panel, then Cronsole. | Whether an agent can drive the window safely. The MCP server comes before the chat panel because it's the part other agents (Claude Code in the terminal) can use on day one. | in progress: MCP server up with read-only and navigation tools; `terminal_run` next |
 | 3 | **Public release.** CI, a browser demo of the shell with fabricated data, configurable Hub URL and quick links, SECURITY.md, secret scan, licence. | Whether a stranger can install it and trust it | after 2 |
 | 4 | **The rest.** IDE pane, docs view, news and bookmark feeds, phone channel. | None that blocks release; these are the "should" and "later" rows | after public release |
 
