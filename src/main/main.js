@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hub } from './hub.js';
+import { chat } from './chat.js';
 import { mcpLog, startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
@@ -214,6 +215,12 @@ async function createWindow() {
     })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
+  // The chat panel: Claude with this app's MCP server as its tools.
+  const conversation = chat({ mcp: () => mcp, send });
+  handle('chat:info', () => conversation.info());
+  handle('chat:send', (text) => conversation.send(text));
+  handle('chat:reset', () => conversation.reset());
+
   handle('app:info', () => ({
     hubUrl: hub.url,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
@@ -409,6 +416,16 @@ function smoke(dir, tabs, browseSession) {
     const logged = fs.readFileSync(path.join(app.getPath('userData'), 'logs', 'mcp.log'), 'utf8').trim().split('\n').slice(-8)
       .map((l) => { const e = JSON.parse(l); return `${e.tool || e.method}:${e.ok ? 'ok' : e.status || 'err'}`; });
     console.log(`[smoke] mcp log panel=${JSON.stringify(panel)} file=${JSON.stringify(logged)}`);
+    // The Chat tab: what it tells the user (model and missing variables only; the key never leaves main).
+    const chatPanel = await wc.executeJavaScript(`(async () => {
+      const s = document.getElementById('search');
+      s.value = '';
+      s.dispatchEvent(new Event('input'));
+      await new Promise((r) => setTimeout(r, 300));
+      document.querySelector('.side-tabs [data-panel="chat"]').click();
+      return { info: await window.acc.chat.info(), shown: document.getElementById('chat-log').textContent.slice(0, 160) };
+    })()`);
+    console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());

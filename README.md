@@ -55,6 +55,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
 | **🤖 MCP server** | A local MCP server for agents. Read-only tools: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. Every call, including refused ones, shows in the sidebar's **MCP** tab and is appended to `%APPDATA%\ai-command-center\logs\mcp.log`. |
+| **💬 Chat** | A **Chat** tab in the sidebar: Claude with the app's MCP server as its tools, so a message can open a tab, find or open a file, or put a command on the terminal's Run bar. The key and model come from your environment (see [Chat in the app](#-chat-in-the-app)); its tool calls show in the MCP tab like any other client's. |
 
 ## 🚀 Quick start
 
@@ -99,6 +100,19 @@ $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 
 Every call shows in the sidebar's **MCP** tab. Each time Claude Code connects you'll also see two ✗ rows there: `server/discover`, a method this server doesn't offer, and a `405` for the event stream it doesn't serve. Both are expected.
 
+## 💬 Chat in the app
+
+The sidebar's **Chat** tab talks to Claude through the Anthropic API with your own key, and gives it the same MCP tools Claude Code gets. Set the key and the model as user environment variables, then restart the app:
+
+```powershell
+setx ACC_CHAT_API_KEY "<your Anthropic API key>"
+setx ACC_CHAT_MODEL "<a Claude model ID>"
+```
+
+`ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` work too, but `ACC_CHAT_API_KEY` keeps the key out of Claude Code's way: with `ANTHROPIC_API_KEY` set, `claude` in a terminal bills that key instead of your subscription. There is no default model, so the app never picks what you pay for. The key stays in the main process; the panel only ever sees the model name.
+
+Enter sends, Shift+Enter starts a new line, Clear starts a new conversation. Each tool call shows in the conversation as it happens, and `terminal_run` still waits for your click on the terminal's Run bar; a denial goes back to Claude as an error.
+
 ## 🌿 Branches
 
 Work on `mike_desktop`, push it, and open a pull request against `main`:
@@ -129,7 +143,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | Folder | What's inside |
 |:---|:---|
 | [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
-| [**🧪 tests/**](tests/README.md) | 34 unit tests, plus how the smoke run and the extension spike check the real app. |
+| [**🧪 tests/**](tests/README.md) | 74 unit tests, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
 | [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
@@ -141,6 +155,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 - Document pages (`acc://doc/…`) are served to the sandboxed tabs only, run no scripts (a `default-src 'none'` policy), can't be framed, and can't be reached from a web page. Only files in Project Hub's index are served, so a crafted address can't read anything else.
 - Each terminal shell is a fixed executable with fixed arguments; the UI can only choose a starting folder and a shell by name. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
 - The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Every call, answered or refused, is logged to the sidebar's MCP tab and `%APPDATA%\ai-command-center\logs\mcp.log` (one JSON line each, arguments clipped to 300 characters, rotated at 5 MB). Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. Project Hub is reached over loopback from the main process.
+- The chat panel's API key is read from the environment by the main process and goes only to `api.anthropic.com`; it's never sent to the shell UI or written to disk. The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's, and Claude's replies are shown as plain text, never HTML.
 
 ## ⚖️ Licence
 

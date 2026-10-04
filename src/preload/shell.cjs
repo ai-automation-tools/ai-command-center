@@ -74,6 +74,13 @@ contextBridge.exposeInMainWorld('acc', {
     onLogged: listen('mcp:logged'),
   },
 
+  chat: {
+    info: invoke('chat:info'),
+    send: invoke('chat:send'),
+    reset: invoke('chat:reset'),
+    onEvent: listen('chat:event'),
+  },
+
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
   menu: invoke('menu:popup'),
 

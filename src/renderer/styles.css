@@ -71,6 +71,23 @@ button, input, select { font: inherit; color: inherit; }
 .row:hover .acts, .row:focus-within .acts { display: flex; }
 .row .acts button { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; height: 20px; cursor: pointer; color: var(--text-2); font-size: 11px; }
 .row .acts button:hover { color: var(--text); border-color: var(--line-2); }
+#panel-chat:not([hidden]) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+#chat-log { flex: 1; overflow: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.chat-msg { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.chat-msg.user { align-self: flex-end; max-width: 90%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; }
+.chat-msg.note { color: var(--text-3); }
+.chat-msg.error { color: var(--bad); }
+.chat-msg.tool { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--text-2); max-height: 4.5em; overflow: hidden; }
+.chat-msg.tool.ok { color: var(--ok); }
+.chat-msg.tool.failed { color: var(--bad); }
+#chat-form { border-top: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+#chat-input { resize: vertical; min-height: 44px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; outline: none; }
+#chat-input:focus { border-color: var(--accent); }
+.chat-actions { display: flex; align-items: center; gap: 6px; }
+#chat-model { flex: 1; color: var(--text-3); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-actions button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 5px; padding: 3px 12px; cursor: pointer; }
+.chat-actions button:disabled { opacity: .5; cursor: default; }
+#chat-send { border-color: var(--accent); }
 
 /* ---- splitters -------------------------------------------------------- */
 .splitter { background: var(--line); }
