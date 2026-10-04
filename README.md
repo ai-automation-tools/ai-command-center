@@ -3,7 +3,7 @@
 <h1 align="center">🧭 AI Command Center</h1>
 
 <p align="center">
-  <em>One window for Mike's browser, PowerShell, project files and bookmarks,<br>with an agent harness coming next.</em>
+  <em>One window for Mike's browser, PowerShell, project files and bookmarks,<br>with an MCP server that lets an agent drive it.</em>
 </p>
 
 <p align="center">
@@ -79,6 +79,25 @@ pwsh -NoProfile -WindowStyle Hidden -File <repo>\scripts\Start-AICommandCenter.p
 ```
 
 `npm install` on npm 11 asks before running install scripts; `node-pty` is already approved in `package.json`. If Electron's binary didn't download, run `node node_modules/electron/install.js`.
+
+## 🤖 Drive the app from Claude Code
+
+Every terminal the app opens has `ACC_MCP_URL` and `ACC_MCP_TOKEN` set to this launch's MCP address and token. Register the server once, using the variable names rather than their values, so it keeps working when a restart picks a new port and token:
+
+```powershell
+claude mcp add --scope user --transport http ai-command-center '${ACC_MCP_URL}' --header 'Authorization: Bearer ${ACC_MCP_TOKEN}'
+```
+
+The single quotes matter: they stop PowerShell expanding the variables, so Claude Code stores the names and fills them in each time it starts. Then run `claude` in one of the app's terminals and ask it to, say, "open this repo's README in a tab" or "run npm test". `/mcp` shows the connection, and commands sent through `terminal_run` still wait for you to click Run.
+
+`--scope user` makes the server available in every folder. Claude Code started outside the app has no variables, so it lists `ai-command-center` as failed with a "Missing environment variables" warning, which is harmless. To use the app from another terminal while it runs, set the variables from `mcp.json` first:
+
+```powershell
+$m = Get-Content "$env:APPDATA\ai-command-center\mcp.json" | ConvertFrom-Json
+$env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
+```
+
+Every call shows in the sidebar's **MCP** tab. Each time Claude Code connects you'll also see two ✗ rows there: `server/discover`, a method this server doesn't offer, and a `405` for the event stream it doesn't serve. Both are expected.
 
 ## 🌿 Branches
 

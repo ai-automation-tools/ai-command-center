@@ -43,7 +43,7 @@ export function mcpLog(send) {
 /**
  * @param {Map<string, import('../shared/mcp.js').Tool>} tools
  * @param {(entry: import('../shared/mcplog.js').LogEntry) => void} onCall
- * @returns {Promise<{ url: string, close: () => void }>}
+ * @returns {Promise<{ url: string, token: string, close: () => void }>}
  */
 export async function startMcp(tools, onCall) {
   const token = randomBytes(32).toString('hex');
@@ -61,6 +61,7 @@ export async function startMcp(tools, onCall) {
 
   return {
     url,
+    token,
     close() {
       server.close();
       fs.rmSync(file, { force: true });

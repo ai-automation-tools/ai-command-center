@@ -204,8 +204,14 @@ async function createWindow() {
   };
   const callLog = mcpLog(send);
   handle('mcp:log', () => callLog.entries);
-  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]), (e) => callLog.add(e))
-    .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
+  // Terminals get the address and token, so `claude` in one can reach the app (README,
+  // "Drive the app from Claude Code"). The shell loads after this, so even the first has them.
+  const mcpReady = startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]), (e) => callLog.add(e))
+    .then((m) => {
+      mcp = m;
+      terminals.env = { ACC_MCP_URL: m.url, ACC_MCP_TOKEN: m.token };
+      console.log(`[mcp] listening on ${m.url}`);
+    })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
   handle('app:info', () => ({
@@ -293,6 +299,7 @@ async function createWindow() {
   }
 
   if (process.env.ACC_SMOKE_DIR) smoke(process.env.ACC_SMOKE_DIR, tabs, browseSession);
+  await mcpReady;
   await shellView.webContents.loadURL('acc://shell/index.html');
 }
 
@@ -364,7 +371,8 @@ function smoke(dir, tabs, browseSession) {
       console.log(`[smoke] mcp sidebar_search files=${found.files?.length} bookmarks=${found.bookmarks?.length} recent=${found.recent?.length} errors=${JSON.stringify(found.errors)}`);
       console.log(`[smoke] mcp recent items=${recent.items?.length}`);
       // terminal_run waits on the confirm bar; click Run the way a person would.
-      const ran = call('terminal_run', { command: 'Write-Output acc-smoke' });
+      // Prints the URL the terminal was given, so shell.png shows ACC_MCP_URL arrived.
+      const ran = call('terminal_run', { command: 'Write-Output "acc-smoke $env:ACC_MCP_URL"' });
       await wait(500);
       const shown = await wc.executeJavaScript(`(() => {
         const bar = document.getElementById('confirm-bar');
