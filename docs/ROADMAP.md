@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). **Next:** the MCP call log.
+> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day: a Files right-click menu, documents shown under the app's own sidebar, and a shell menu. **Next:** the MCP call log.
 
 ## 🧭 Phase 0: decide
 

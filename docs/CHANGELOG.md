@@ -15,7 +15,7 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
-Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. The read-only and navigation MCP tools followed in weekly roadmap PRs the same day, and `terminal_run` on 2026-10-04. Next up: the MCP call log.
+Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. The read-only and navigation MCP tools followed in weekly roadmap PRs the same day, and `terminal_run` on 2026-10-04, along with the daily-use gates (Files right-click menu, documents under the app's own sidebar, shell menu) and a fix to the page context menu's open-externally item. Next up: the MCP call log.
 
 **Added**
 
