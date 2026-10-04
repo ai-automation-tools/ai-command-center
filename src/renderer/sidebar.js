@@ -1,6 +1,8 @@
 // The left sidebar: Files (Project Hub's tree), Bookmarks (browser profiles Hub reads,
-// plus Hub's own favorites), Recent, and one search box across all three.
+// plus Hub's own favorites), Recent, and one search box across all three; plus MCP,
+// the log of calls agents made to the app's MCP server.
 
+import { pushEntry } from '/shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
 
 const ICONS = {
@@ -46,6 +48,7 @@ export class Sidebar {
       bookmarkTree: /** @type {HTMLElement} */ (document.getElementById('bookmark-tree')),
       source: /** @type {HTMLSelectElement} */ (document.getElementById('bookmark-source')),
       recent: /** @type {HTMLElement} */ (document.getElementById('panel-recent')),
+      mcp: /** @type {HTMLElement} */ (document.getElementById('panel-mcp')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
       search: /** @type {HTMLInputElement} */ (document.getElementById('search')),
       status: /** @type {HTMLElement} */ (document.getElementById('hub-status')),
@@ -70,6 +73,12 @@ export class Sidebar {
       this.loadBookmarks();
     });
     api.recent.onChanged((/** @type {any[]} */ list) => { this.recent = list; this.renderRecent(); });
+    /** @type {import('/shared/mcplog.js').LogEntry[]} */
+    this.calls = [];
+    api.mcp.onLogged((/** @type {import('/shared/mcplog.js').LogEntry} */ entry) => {
+      pushEntry(this.calls, entry);
+      this.renderCalls();
+    });
   }
 
   async load() {
@@ -77,6 +86,8 @@ export class Sidebar {
     window.setInterval(() => this.checkHub(), 60_000);
     this.recent = await this.api.recent.list();
     this.renderRecent();
+    this.calls = await this.api.mcp.log();
+    this.renderCalls();
     await Promise.all([this.loadFiles(), this.loadBookmarks()]);
   }
 
@@ -299,6 +310,27 @@ export class Sidebar {
     return row;
   }
 
+  renderCalls() {
+    const host = this.el.mcp;
+    host.innerHTML = '';
+    if (!this.calls.length) {
+      host.append(note("Calls agents make to the app's MCP server show up here, newest first. The full log is in %APPDATA%\\ai-command-center\\logs\\mcp.log."));
+      return;
+    }
+    for (const c of this.calls) {
+      const row = document.createElement('div');
+      row.className = `row call${c.ok ? '' : ' failed'}`;
+      row.tabIndex = 0;
+      row.style.paddingLeft = '10px';
+      row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span>';
+      q(row, '.icon').textContent = c.ok ? '✓' : '✗';
+      q(row, '.name').textContent = c.tool ? `${c.tool}${c.args && c.args !== '{}' ? ` ${c.args}` : ''}` : c.method;
+      q(row, '.sub').textContent = c.status ? String(c.status) : `${c.ms} ms`;
+      row.title = [new Date(c.at).toLocaleString(), c.tool ? `tools/call ${c.tool}` : c.method, c.args, c.error].filter(Boolean).join('\n');
+      host.append(row);
+    }
+  }
+
   /** @param {string} name */
   show(name) {
     this.current = name;
@@ -309,6 +341,7 @@ export class Sidebar {
     this.el.files.hidden = name !== 'files';
     this.el.bookmarks.hidden = name !== 'bookmarks';
     this.el.recent.hidden = name !== 'recent';
+    this.el.mcp.hidden = name !== 'mcp';
   }
 
   focusSearch() {
@@ -324,7 +357,7 @@ export class Sidebar {
       this.show(this.current);
       return;
     }
-    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = true;
+    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = true;
     res.hidden = false;
     res.innerHTML = '';
 

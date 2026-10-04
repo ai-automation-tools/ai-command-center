@@ -25,7 +25,7 @@ private today, public when every release gate in `docs/ROADMAP.md` is ticked.
 
 ```powershell
 npm run lint     # node --check on every .js/.cjs/.mjs in src, scripts, tests
-npm test         # 54+ unit tests
+npm test         # 65+ unit tests
 npm run smoke    # launches the real app, opens a page and a terminal, screenshots to .smoke/, quits (needs a desktop session)
 ```
 

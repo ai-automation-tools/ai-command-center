@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day: a Files right-click menu, documents shown under the app's own sidebar, and a shell menu. **Next:** the MCP call log.
+> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day (a Files right-click menu, documents shown under the app's own sidebar, and a shell menu), then the MCP call log. **Next:** the README's `claude mcp add` section.
 
 ## 🧭 Phase 0: decide
 
@@ -43,7 +43,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Read-only tools first: `list_tabs`, `sidebar_search`, `recent` — 2026-09-30, weekly roadmap run; unit-tested and called against the live app by `npm run smoke`
 - [x] Navigation tools: `open_tab`, `open_file` (through Hub's `/api/open`) — 2026-09-30, weekly roadmap run; unit-tested, and `npm run smoke` calls `open_tab` against the live app
 - [x] `terminal_run`: shows the command in the app and waits for a click before running it — 2026-10-04; unit-tested, and `npm run smoke` calls it and clicks Run
-- [ ] Every MCP call written to an in-app log panel and to `%APPDATA%\ai-command-center\logs\mcp.log`
+- [x] Every MCP call written to an in-app log panel and to `%APPDATA%\ai-command-center\logs\mcp.log` — 2026-10-04; the sidebar's MCP tab and a JSON-lines file, refused calls included; unit-tested, and `npm run smoke` compares the panel with the file
 - [ ] README section with the `claude mcp add` line, so Claude Code in the app's terminal can drive the app
 - [ ] Chat panel wired to the MCP server (Claude first; model and key read from the user environment, never stored in the repo)
 - [ ] Cronsole: its task list in the sidebar through the Cronsole MCP server, and its UI in a pinned tab

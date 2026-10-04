@@ -24,7 +24,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**terminal.js**](main/terminal.js) | Shell sessions through node-pty. The renderer picks a folder and a profile from `shared/shells.js`, where executables and arguments are fixed. Tracks which sessions are PowerShell, the only ones `terminal_run` types into. See [ADR-003](../docs/decisions/adr-003-terminal-in-main.md). |
 | [**docs.js**](main/docs.js) | Serves `acc://doc/<Hub id>` on the browse session: Hub's `/api/file` HTML wrapped in a script-free page, folder listings, and images read from disk for document pages only. Only ids in Hub's index. |
 | [**hub.js**](main/hub.js) | The Project Hub client: health, scan, bookmarks, favorites, file, open. See [ADR-002](../docs/decisions/adr-002-hub-over-http.md). |
-| [**mcp.js**](main/mcp.js) | Starts the Control Center MCP server, with the tools from `shared/tools.js`, on `127.0.0.1` with a random port and a per-launch token, writes both to `mcp.json` in `%APPDATA%\ai-command-center`, and removes the file on quit. |
+| [**mcp.js**](main/mcp.js) | Starts the Control Center MCP server, with the tools from `shared/tools.js`, on `127.0.0.1` with a random port and a per-launch token, writes both to `mcp.json` in `%APPDATA%\ai-command-center`, and removes the file on quit. `mcpLog()` keeps the newest 200 calls for the sidebar and appends every call to `logs\mcp.log`, rotating at 5 MB. |
 | [**store.js**](main/store.js) | `recent.json` and `layout.json` (splitter sizes, terminal state, bookmark source, and the tabs open at the last close) in `%APPDATA%\ai-command-center`, written atomically. |
 
 ## 🔌 preload/
@@ -39,7 +39,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 |:---|:---|
 | [**index.html**](renderer/index.html) | The layout: sidebar, splitters, tab strip, address bar, content area, terminal panel. Strict CSP. |
 | [**app.js**](renderer/app.js) | Wires everything together: tab strip and address bar, splitter drags, shortcuts, the `terminal_run` confirm bar (one ask at a time; Deny has focus), the shell menu on the terminal strip, opening documents in a tab (reusing one already showing a document; Ctrl+click for another), and reporting the content rectangle so the active tab sits exactly over it. |
-| [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them. Clicks, hover buttons and the right-click menu on Files rows all go through one `fileAction()`. |
+| [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them, plus the MCP panel of calls agents made. Clicks, hover buttons and the right-click menu on Files rows all go through one `fileAction()`. |
 | [**terminal.js**](renderer/terminal.js) | One xterm.js instance per shell session, with copy and paste keys. |
 | [**styles.css**](renderer/styles.css) | Dark theme and the grid layout. |
 
@@ -50,7 +50,8 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**tree.js**](shared/tree.js) | Hub node ids to paths, what a click on a node does, the right-click menu items, flattening a 35k-node tree without recursion, ranked search, and `searchAll`, the one search across files, bookmarks and recent that the sidebar and `sidebar_search` share. |
 | [**url.js**](shared/url.js) | Address-bar text to a URL (paths, loopback, hosts, search) and the allowed navigation schemes, with `acc://doc` allowed only from the app or another document. |
 | [**recent.js**](shared/recent.js) | Adding to and cleaning the Recent list. |
-| [**mcp.js**](shared/mcp.js) | The MCP server itself: JSON-RPC over Streamable HTTP with plain JSON replies, bearer-token and loopback-Host checks, `initialize`, `ping`, `tools/list` and `tools/call`. No Electron, so the tests run it for real. |
+| [**mcp.js**](shared/mcp.js) | The MCP server itself: JSON-RPC over Streamable HTTP with plain JSON replies, bearer-token and loopback-Host checks, `initialize`, `ping`, `tools/list` and `tools/call`. No Electron, so the tests run it for real. Reports every request, refused ones too, through an `onCall` hook. |
+| [**mcplog.js**](shared/mcplog.js) | The MCP call log's entries: method, tool, clipped arguments, success, time, error or refusal status; the JSON line written to `mcp.log`; and the capped newest-first list. |
 | [**tools.js**](shared/tools.js) | The MCP tools: read-only `list_tabs`, `sidebar_search` and `recent`; navigation `open_tab` (address-bar text, http, https and file only) and `open_file` (Hub node ids only, VS Code or reveal, never default-app); `terminal_run` (one line, no control or invisible characters, run only after a click). The main process passes in the data sources and actions. |
 | [**confirm.js**](shared/confirm.js) | Pending questions to the user: each ask gets an id, settles once with the answer, or with null after a timeout, when the UI is told to drop it. |
 | [**shells.js**](shared/shells.js) | The shell profiles (PowerShell 7, Windows PowerShell, Command Prompt, Git Bash): fixed executables and arguments, only those installed, picked by id. |
