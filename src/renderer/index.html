@@ -24,6 +24,7 @@
         <button role="tab" data-panel="bookmarks" aria-selected="false">Bookmarks</button>
         <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
         <button role="tab" data-panel="mcp" aria-selected="false" title="Calls agents made to the app's MCP server">MCP</button>
+        <button role="tab" data-panel="chat" aria-selected="false" title="Chat with Claude, which can drive the app">Chat</button>
       </nav>
       <section id="panel-files" class="panel" role="tabpanel"></section>
       <section id="panel-bookmarks" class="panel" role="tabpanel" hidden>
@@ -34,6 +35,17 @@
       </section>
       <section id="panel-recent" class="panel" role="tabpanel" hidden></section>
       <section id="panel-mcp" class="panel" role="tabpanel" aria-live="polite" hidden></section>
+      <section id="panel-chat" class="panel" role="tabpanel" hidden>
+        <div id="chat-log" aria-live="polite"></div>
+        <form id="chat-form">
+          <textarea id="chat-input" rows="3" placeholder="Ask Claude to open a tab, find a file, run a command…  (Enter sends, Shift+Enter for a new line)" aria-label="Chat message" spellcheck="true"></textarea>
+          <div class="chat-actions">
+            <span id="chat-model"></span>
+            <button type="button" id="chat-clear">Clear</button>
+            <button type="submit" id="chat-send">Send</button>
+          </div>
+        </form>
+      </section>
       <section id="panel-search" class="panel" role="region" aria-label="Search results" hidden></section>
     </aside>
 

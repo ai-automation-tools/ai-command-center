@@ -2,6 +2,7 @@
 // the terminal panel, and keeps the main process told where the browser pane sits.
 
 import { Sidebar, toast } from '/sidebar.js';
+import { startChat } from '/chat.js';
 import { TerminalPanel } from '/terminal.js';
 import { docUrl, isDocUrl } from '/shared/docs.js';
 
@@ -328,3 +329,4 @@ reportBounds();
 api.tabs.restore();
 if (layout.terminalOpen) openTerminal();
 sidebar.load();
+startChat(api);

@@ -7,7 +7,7 @@ Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before chan
 
 A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over the
 user's project folders into one Electron window, with an agent harness (an MCP server
-the app exposes, plus a chat panel) as the next phase. The sidebar reads Project Hub's
+the app exposes, plus a chat panel) as Phase 2. The sidebar reads Project Hub's
 HTTP API rather than scanning disk. It's an incubating `ai-automation-tools` project:
 private today, public when every release gate in `docs/ROADMAP.md` is ticked.
 
@@ -42,6 +42,7 @@ touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop sess
   - `terminal_run` types into a running PowerShell session only after the user clicks Run on the confirm bar. The command stays in the main process (the click only names a terminal), and `commandArg()` refuses newlines, control and invisible characters. Don't add a way around the click.
   - `acc://shell/` serves mapped folders only, with a path-escape check. Don't widen the map.
   - `acc://doc/` is served on the browse session only (`src/main/docs.js`): ids from Hub's index only, `DOC_HEADERS` on every response (no scripts, no framing), image bytes only to a document referrer, and `isAllowedNavigation()` refuses it from any page that isn't itself a document.
+  - The chat panel's API key and model are read from the environment by the main process (`src/main/chat.js`). The key never goes to the renderer, to disk or into the repo, and there is no default model ID. The chat's tools go through the MCP server with its token, never around it.
   - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu.

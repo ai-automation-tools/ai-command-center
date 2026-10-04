@@ -49,6 +49,7 @@ export class Sidebar {
       source: /** @type {HTMLSelectElement} */ (document.getElementById('bookmark-source')),
       recent: /** @type {HTMLElement} */ (document.getElementById('panel-recent')),
       mcp: /** @type {HTMLElement} */ (document.getElementById('panel-mcp')),
+      chat: /** @type {HTMLElement} */ (document.getElementById('panel-chat')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
       search: /** @type {HTMLInputElement} */ (document.getElementById('search')),
       status: /** @type {HTMLElement} */ (document.getElementById('hub-status')),
@@ -342,6 +343,7 @@ export class Sidebar {
     this.el.bookmarks.hidden = name !== 'bookmarks';
     this.el.recent.hidden = name !== 'recent';
     this.el.mcp.hidden = name !== 'mcp';
+    this.el.chat.hidden = name !== 'chat';
   }
 
   focusSearch() {
@@ -357,7 +359,7 @@ export class Sidebar {
       this.show(this.current);
       return;
     }
-    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = true;
+    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.chat.hidden = true;
     res.hidden = false;
     res.innerHTML = '';
 
