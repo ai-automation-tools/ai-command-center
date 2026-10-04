@@ -1,0 +1,83 @@
+// Serves acc://doc/<Hub node id> on the browse session, so documents open in ordinary
+// sandboxed tabs under Command Center's own sidebar. The shell's acc://shell lives on
+// the shell's session; tabs can't reach it. See src/shared/docs.js for the page.
+//
+// Only ids in Project Hub's own index are served. Text comes from Hub's /api/file
+// (Hub renders Markdown and refuses paths outside its roots); images are read here,
+// and only for a request from a document page, so a web page can't probe for them.
+
+import fs from 'node:fs/promises';
+import { hub } from './hub.js';
+import { DOC_HEADERS, docIdFromUrl, docPage, escapeHtml, folderBody, imageType } from '../shared/docs.js';
+import { absPath, flatten, isContainer } from '../shared/tree.js';
+
+const INDEX_TTL_MS = 30_000;
+
+/** @type {{ at: number, scan: Awaited<ReturnType<typeof hub.scan>>, byId: Map<string, { node: import('../shared/tree.js').HubNode, path: string }> } | null} */
+let index = null;
+
+async function lookup() {
+  if (!index || Date.now() - index.at > INDEX_TTL_MS) {
+    const scan = await hub.scan();
+    index = { at: Date.now(), scan, byId: new Map(flatten(scan.tree).map((e) => [e.node.id, e])) };
+  }
+  return index;
+}
+
+/**
+ * @param {number} status
+ * @param {string} title
+ * @param {string} text
+ */
+const notePage = (status, title, text) => new Response(
+  docPage({ title, trail: title, body: `<p class="note">${escapeHtml(text)}</p>` }),
+  { status, headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' } },
+);
+
+/** @param {Electron.Session} session */
+export function serveDocs(session) {
+  session.protocol.handle('acc', async (req) => {
+    let id;
+    try {
+      id = docIdFromUrl(req.url);
+    } catch {
+      return notePage(400, 'Not a document', 'This address doesn\'t name a Project Hub file or folder.');
+    }
+    let found;
+    try {
+      const { scan, byId } = await lookup();
+      const entry = byId.get(id);
+      if (!entry) return notePage(404, 'Not found', 'Project Hub has no file or folder at this address. It may have moved, or Hub hasn\'t rescanned yet.');
+      found = { scan, ...entry };
+    } catch (err) {
+      return notePage(502, 'Project Hub unavailable', err instanceof Error ? err.message : String(err));
+    }
+    const { node, path: trail, scan } = found;
+    const html = (/** @type {string} */ body) => new Response(docPage({ title: node.name, trail, body }), {
+      headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' },
+    });
+
+    if (isContainer(node)) return html(folderBody(node, isContainer));
+
+    const type = imageType(node.name);
+    if (type) {
+      // An <img> in a document gets the bytes; opening the image itself gets a page
+      // around it, whose <img> comes back here with a document referrer.
+      const referrer = req.headers.get('referer') || req.referrer || '';
+      if (!/^acc:\/\/doc\//i.test(referrer)) return html(`<img src="${escapeHtml(req.url)}" alt="${escapeHtml(node.name)}">`);
+      const file = absPath(node.id, scan);
+      try {
+        return new Response(await fs.readFile(/** @type {string} */ (file)), { headers: { ...DOC_HEADERS, 'content-type': type } });
+      } catch {
+        return new Response(null, { status: 404, headers: DOC_HEADERS });
+      }
+    }
+
+    try {
+      const { html: body } = await hub.file(id);
+      return html(body);
+    } catch (err) {
+      return notePage(502, node.name, err instanceof Error ? err.message : String(err));
+    }
+  });
+}

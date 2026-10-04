@@ -1,0 +1,63 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { DOC_HEADERS, docIdFromUrl, docPage, docUrl, escapeHtml, folderBody, imageType, isDocUrl } from '../src/shared/docs.js';
+import { isContainer } from '../src/shared/tree.js';
+import { isAllowedNavigation, toUrl } from '../src/shared/url.js';
+
+test('docUrl mirrors the Hub id as a path, so relative links resolve beside the file', () => {
+  const url = docUrl('Projects/Lab/README.md');
+  assert.equal(url, 'acc://doc/Projects/Lab/README.md');
+  assert.equal(new URL('docs/guide.md', url).href, 'acc://doc/Projects/Lab/docs/guide.md');
+  assert.equal(docIdFromUrl(new URL('img/logo.png', url).href), 'Projects/Lab/img/logo.png');
+});
+
+test('docUrl and docIdFromUrl round-trip ids with spaces, #, ? and home ids', () => {
+  for (const id of ['Projects/My Lab/a#b?.md', '~/notes/todo.md', '~', 'app']) assert.equal(docIdFromUrl(docUrl(id)), id);
+  assert.equal(docIdFromUrl('acc://doc/Projects/Lab/'), 'Projects/Lab');
+});
+
+test('docIdFromUrl refuses other hosts, schemes, virtual ids and bad encoding', () => {
+  for (const bad of ['acc://shell/index.html', 'https://doc/x', 'acc://doc/@favorites', 'acc://doc/', 'acc://doc/a%ZZb', 'acc://doc/a%00b']) {
+    assert.throws(() => docIdFromUrl(bad), undefined, bad);
+  }
+  // The URL parser collapses .. before the id is read, so it can't climb above the root.
+  assert.equal(docIdFromUrl('acc://doc/Projects/../../secret.md'), 'secret.md');
+});
+
+test('isAllowedNavigation: documents open from the app or a document, never from a web page', () => {
+  assert.equal(isAllowedNavigation('acc://doc/a.md'), true);
+  assert.equal(isAllowedNavigation('acc://doc/a.md', 'acc://doc/b.md'), true);
+  assert.equal(isAllowedNavigation('acc://doc/a.md', 'https://evil.example/'), false);
+  assert.equal(isAllowedNavigation('acc://shell/index.html'), false);
+  assert.equal(isAllowedNavigation('https://example.com', 'acc://doc/a.md'), true);
+  assert.equal(toUrl('acc://doc/Projects/Lab/README.md'), 'acc://doc/Projects/Lab/README.md');
+  assert.equal(isDocUrl('ACC://doc/x'), true);
+});
+
+test('imageType knows common images and nothing else', () => {
+  assert.equal(imageType('logo.PNG'), 'image/png');
+  assert.equal(imageType('a.svg'), 'image/svg+xml');
+  for (const n of ['README.md', 'run.ps1', 'png', 'x.png.exe']) assert.equal(imageType(n), null, n);
+});
+
+test('folderBody lists folders first, links each child, and escapes names', () => {
+  const body = folderBody({ id: 'p', name: 'p', kind: 'folder', children: [
+    { id: 'p/z.md', name: 'z.md', kind: 'md' },
+    { id: 'p/<b>', name: '<b>', kind: 'folder', children: [] },
+  ] }, isContainer);
+  assert.ok(body.indexOf('&lt;b&gt;') < body.indexOf('z.md'));
+  assert.match(body, /href="acc:\/\/doc\/p\/%3Cb%3E"/);
+  assert.match(folderBody({ id: 'e', name: 'e', kind: 'folder', children: [] }, isContainer), /empty/);
+});
+
+test('docPage escapes the title and trail; headers forbid scripts, frames and forms', () => {
+  const page = docPage({ title: '</title><script>x()</script>', trail: 'a & b', body: '<p>hi</p>' });
+  assert.doesNotMatch(page, /<script>/);
+  assert.match(page, /a &amp; b/);
+  assert.match(page, /<p>hi<\/p>/);
+  const csp = DOC_HEADERS['content-security-policy'];
+  assert.match(csp, /default-src 'none'/);
+  assert.doesNotMatch(csp, /script-src/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.equal(escapeHtml(`"'&`), '&quot;&#39;&amp;');
+});

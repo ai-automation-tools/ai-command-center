@@ -53,7 +53,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Found using the app on 2026-10-04 and made release gates the same day.
 
 - [x] Right-click menu on Files rows: the hover actions (Terminal here, VS Code, Reveal in Explorer, open in tab) plus copy path and copy Hub id — 2026-10-04; native menu, items unit-tested
-- [x] Open a folder or file in the content area the way Project Hub's explorer shows it (folder listing, rendered Markdown, code view): load Hub's own page at that node's `#` route in a tab rather than rebuilding the viewer — 2026-10-04; a file click now opens it there, reusing a tab already on Hub; `npm run smoke` clicks a Markdown file and checks the tab lands on Hub's route
+- [x] Open a folder or file in the content area under the app's own sidebar, not Project Hub's whole page: Hub renders the file (`/api/file`), the app shows it as a script-free `acc://doc` page in a tab, folders as a listing — 2026-10-04; `npm run smoke` clicks a Markdown file and checks the page (no second sidebar, images load)
 - [x] New-terminal button with a menu of shells: PowerShell 7, Windows PowerShell, Command Prompt, and Git Bash when installed. Each is a fixed profile in `src/shared/shells.js`; the renderer sends a profile id, never a path or arguments — 2026-10-04; unit-tested, `npm run smoke` starts a Command Prompt session
 
 ## 🚦 Public release

@@ -60,12 +60,16 @@ export class Tabs {
     this.window.contentView.addChildView(view);
     this.extensions?.addTab(wc, /** @type {any} */ (this.window));
 
+    // Page-initiated, so the page's own URL goes along: a web page can't open acc://doc.
     wc.setWindowOpenHandler(({ url: target }) => {
-      if (isAllowedNavigation(target)) this.create(target);
+      if (isAllowedNavigation(target, wc.getURL())) this.create(target);
       return { action: 'deny' };
     });
     wc.on('will-navigate', (e, target) => {
-      if (!isAllowedNavigation(target)) e.preventDefault();
+      if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
+    });
+    wc.on('will-redirect', (e, target) => {
+      if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
     });
 
     const report = () => this.send('tab:update', this.describe(tab));
@@ -212,8 +216,9 @@ export class Tabs {
     const items = [];
     if (params.linkURL) {
       items.push(
-        { label: 'Open link in new tab', click: () => this.create(params.linkURL, { activate: false }) },
-        { label: 'Open link in default browser', click: () => shell.openExternal(params.linkURL) },
+        { label: 'Open link in new tab', enabled: isAllowedNavigation(params.linkURL, wc.getURL()), click: () => this.create(params.linkURL, { activate: false }) },
+        // http and https only: openExternal on file: or ms-*: links would launch programs.
+        { label: 'Open link in default browser', enabled: /^https?:/i.test(params.linkURL), click: () => shell.openExternal(params.linkURL) },
         { label: 'Copy link address', click: () => clipboard.writeText(params.linkURL) },
         { type: 'separator' },
       );

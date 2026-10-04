@@ -1,0 +1,99 @@
+// Command Center's own document view: acc://doc/<Hub node id> in an ordinary sandboxed
+// tab. Project Hub renders the file (its /api/file); this wraps the result in a plain
+// page with no scripts, or lists a folder's children. URL paths mirror Hub ids, so a
+// README's relative links and images resolve the way they do on disk.
+
+import { hubIdArg } from './tools.js';
+
+export const DOC_PREFIX = 'acc://doc/';
+
+/** Image types served as bytes, by extension. */
+export const IMAGE_TYPES = /** @type {Record<string, string>} */ ({
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+  avif: 'image/avif', bmp: 'image/bmp', ico: 'image/x-icon', svg: 'image/svg+xml',
+});
+
+/** No scripts, frames or forms; images from documents and the web (README badges). */
+export const DOC_HEADERS = {
+  'content-security-policy': "default-src 'none'; img-src acc: https: data:; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+  'x-content-type-options': 'nosniff',
+  'cache-control': 'no-store',
+};
+
+/** @param {string} id */
+export function docUrl(id) {
+  return DOC_PREFIX + id.split('/').map(encodeURIComponent).join('/');
+}
+
+/**
+ * The Hub node id an acc://doc URL names. Throws for anything that isn't one.
+ * @param {string} url
+ */
+export function docIdFromUrl(url) {
+  const u = new URL(url);
+  if (u.protocol !== 'acc:' || u.host !== 'doc') throw new Error('not a document URL');
+  let id;
+  try {
+    id = u.pathname.slice(1).replace(/\/+$/, '').split('/').map(decodeURIComponent).join('/');
+  } catch {
+    throw new Error('badly encoded document URL');
+  }
+  return hubIdArg(id);
+}
+
+/** @param {string} url */
+export const isDocUrl = (url) => url.toLowerCase().startsWith(DOC_PREFIX);
+
+/** @param {string} name */
+export function imageType(name) {
+  const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? '';
+  return IMAGE_TYPES[ext] ?? null;
+}
+
+/** @param {string} s */
+export function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+}
+
+/**
+ * A folder's children: folders first, then by name.
+ * @param {import('./tree.js').HubNode} node
+ * @param {(n: import('./tree.js').HubNode) => boolean} isFolder
+ */
+export function folderBody(node, isFolder) {
+  const kids = [...(node.children || [])].sort((a, b) => Number(isFolder(b)) - Number(isFolder(a)) || a.name.localeCompare(b.name));
+  if (!kids.length) return '<p class="note">This folder is empty.</p>';
+  const rows = kids.map((k) => `<li><a href="${escapeHtml(docUrl(k.id))}">${isFolder(k) ? '📁' : '📄'} ${escapeHtml(k.name)}</a></li>`);
+  return `<ul class="listing">${rows.join('')}</ul>`;
+}
+
+/**
+ * The whole page. `body` is Hub's rendered HTML or a body built here; the title and
+ * trail are escaped.
+ * @param {{ title: string, trail: string, body: string }} doc
+ */
+export function docPage({ title, trail, body }) {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="dark light">
+<title>${escapeHtml(title)}</title><style>${CSS}</style></head>
+<body><header class="trail">${escapeHtml(trail)}</header><main class="doc">${body}</main></body></html>`;
+}
+
+const CSS = `
+:root { --bg: #0b0d10; --panel: #111418; --line: #262b33; --text: #e4e4e7; --text-2: #a1a1aa; --accent: #38bdf8; }
+@media (prefers-color-scheme: light) { :root { --bg: #ffffff; --panel: #f4f4f5; --line: #e4e4e7; --text: #18181b; --text-2: #52525b; --accent: #0369a1; } }
+html { background: var(--bg); color: var(--text); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; }
+body { margin: 0; }
+.trail { position: sticky; top: 0; padding: 8px 24px; background: var(--panel); border-bottom: 1px solid var(--line); color: var(--text-2); font-size: 12px; }
+.doc { max-width: 920px; margin: 0 auto; padding: 24px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+img { max-width: 100%; }
+h1, h2 { border-bottom: 1px solid var(--line); padding-bottom: .3em; }
+pre, code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 13px; }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+:not(pre) > code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+table { border-collapse: collapse; } th, td { border: 1px solid var(--line); padding: 4px 10px; }
+blockquote { margin: 0; padding: 0 1em; border-left: 3px solid var(--line); color: var(--text-2); }
+.listing { list-style: none; padding: 0; } .listing li { padding: 3px 0; } .listing a { text-decoration: none; }
+.note { color: var(--text-2); }
+`;

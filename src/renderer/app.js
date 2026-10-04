@@ -3,7 +3,7 @@
 
 import { Sidebar, toast } from '/sidebar.js';
 import { TerminalPanel } from '/terminal.js';
-import { hubViewUrl } from '/shared/tree.js';
+import { docUrl, isDocUrl } from '/shared/docs.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
@@ -171,16 +171,16 @@ async function openUrl(url, opts = {}) {
 }
 
 /**
- * Show a Hub node in Project Hub's own viewer. Reuses a tab already on Hub, so
- * clicking through files moves one tab along instead of opening one per file.
+ * Show a Hub file or folder as a document page (acc://doc). Reuses a tab already
+ * showing one, so clicking through files moves one tab along; Ctrl+click opens another.
  * @param {string} id
+ * @param {{ newTab?: boolean }} [opts]
  */
-async function viewInHub(id) {
-  const url = hubViewUrl(info.hubUrl, id);
-  const origin = new URL(url).origin;
-  const hubTab = [...tabState].find(([, t]) => t.url && URL.canParse(t.url) && new URL(t.url).origin === origin)?.[0];
-  if (hubTab === undefined) return openUrl(url);
-  await api.tabs.activate(hubTab);
+async function viewDoc(id, opts = {}) {
+  const url = docUrl(id);
+  const docTab = opts.newTab ? undefined : [...tabState].find(([, t]) => t.url && isDocUrl(t.url))?.[0];
+  if (docTab === undefined) return openUrl(url);
+  await api.tabs.activate(docTab);
   await api.tabs.navigate(url);
 }
 
@@ -295,7 +295,7 @@ for (const [label, url] of QUICK_LINKS) {
 
 // ---- sidebar -----------------------------------------------------------------
 
-const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewInHub });
+const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc });
 
 // ---- shortcuts ---------------------------------------------------------------
 

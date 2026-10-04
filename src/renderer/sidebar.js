@@ -22,14 +22,14 @@ export class Sidebar {
    *   layout: { bookmarkSource: string },
    *   openUrl: (url: string, opts?: { background?: boolean }) => void,
    *   openTerminal: (cwd: string) => void,
-   *   viewInHub: (id: string) => void,
+   *   viewDoc: (id: string, opts?: { newTab?: boolean }) => void,
    * }} opts
    */
-  constructor({ api, layout, openUrl, openTerminal, viewInHub }) {
+  constructor({ api, layout, openUrl, openTerminal, viewDoc }) {
     this.api = api;
     this.openUrl = openUrl;
     this.openTerminal = openTerminal;
-    this.viewInHub = viewInHub;
+    this.viewDoc = viewDoc;
     /** @type {{ base: string, home: string, tree: HubNode[] } | null} */
     this.scan = null;
     /** @type {ReturnType<typeof flatten>} */
@@ -143,7 +143,7 @@ export class Sidebar {
       if (/** @type {HTMLElement} */ (e.target).closest('.acts')) return;
       const action = defaultAction(node);
       if (action === 'expand') toggle();
-      else this.fileAction(node, action);
+      else this.fileAction(node, action, e.ctrlKey);
     });
     row.addEventListener('contextmenu', async (e) => {
       e.preventDefault();
@@ -167,7 +167,7 @@ export class Sidebar {
     if (!this.scan || node.id.startsWith('@')) return;
     host.append(
       button('>_', 'Terminal here', () => this.fileAction(node, 'terminal')),
-      button('👁', 'Open in Project Hub view', () => this.fileAction(node, 'view')),
+      button('👁', 'View here', () => this.fileAction(node, 'view')),
       button('code', 'Open in VS Code', () => this.fileAction(node, 'code')),
       button('📂', 'Reveal in Explorer', () => this.fileAction(node, 'reveal')),
     );
@@ -178,11 +178,12 @@ export class Sidebar {
    * Everything a click, a hover button or the right-click menu can do to a Files row.
    * @param {HubNode} node
    * @param {FileAction} action
+   * @param {boolean} [newTab] Ctrl+click: view in a new tab instead of the document tab
    */
-  fileAction(node, action) {
+  fileAction(node, action, newTab = false) {
     if (!this.scan) return;
     const path = absPath(node.id, this.scan);
-    if (action === 'view') this.viewInHub(node.id);
+    if (action === 'view') this.viewDoc(node.id, { newTab });
     if (action === 'browse' && path) this.openUrl(`file:///${path}`);
     if (action === 'code' || action === 'reveal') this.openInHub(node, action);
     if (action === 'terminal') {

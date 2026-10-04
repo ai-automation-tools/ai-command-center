@@ -13,6 +13,7 @@ import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
+import { serveDocs } from './docs.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
@@ -157,6 +158,7 @@ async function createWindow() {
   });
 
   const browseSession = session.fromPartition(BROWSE_PARTITION);
+  serveDocs(browseSession);
   const tabs = new Tabs({
     window: win,
     session: browseSession,
@@ -373,7 +375,7 @@ function smoke(dir, tabs, browseSession) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }
     // The shell menu's profiles, a non-PowerShell session, and a Files click landing
-    // in Hub's viewer (the right-click menu itself is native and needs a person).
+    // on a document page (the right-click menu itself is native and needs a person).
     const shellChecks = await wc.executeJavaScript(`(async () => {
       const shells = (await window.acc.info()).shells.map((s) => s.id);
       const cmd = await window.acc.term.create({ shell: 'cmd' });
@@ -384,6 +386,14 @@ function smoke(dir, tabs, browseSession) {
     })()`);
     await wait(3000);
     console.log(`[smoke] shells=${JSON.stringify(shellChecks)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
+    const doc = tabs.list().find((t) => t.url.startsWith('acc://doc/'));
+    const docTab = doc && tabs.tabs.get(doc.id);
+    if (docTab) {
+      const page = await docTab.view.webContents.executeJavaScript(
+        `({ title: document.title, headings: document.querySelectorAll('h1, h2').length, images: [...document.images].map((i) => [i.src.slice(0, 60), i.naturalWidth]).slice(0, 3), sidebar: Boolean(document.querySelector('aside, nav#sidebar')) })`);
+      console.log(`[smoke] doc page=${JSON.stringify(page)}`);
+      fs.writeFileSync(path.join(dir, 'doc.png'), (await docTab.view.webContents.capturePage()).toPNG());
+    }
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());

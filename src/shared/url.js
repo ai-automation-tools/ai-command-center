@@ -11,7 +11,7 @@ export function toUrl(input) {
   if (!text) return 'about:blank';
 
   // Already a URL with a scheme we allow.
-  if (/^(https?|file|chrome-extension):\/\//i.test(text) || /^about:/i.test(text)) return text;
+  if (/^(https?|file|chrome-extension):\/\//i.test(text) || /^about:/i.test(text) || /^acc:\/\/doc\//i.test(text)) return text;
 
   // A Windows path: D:\x\y.html or D:/x/y.html
   if (/^[a-z]:[\\/]/i.test(text)) return `file:///${text.replace(/\\/g, '/')}`;
@@ -26,10 +26,14 @@ export function toUrl(input) {
 }
 
 /**
- * Schemes a page may navigate a tab to. Everything else (javascript:, data:, custom
- * protocol handlers) is refused before it reaches the browser pane.
+ * Schemes a tab may be sent to. Everything else (javascript:, data:, custom protocol
+ * handlers, the shell's acc://shell) is refused before it reaches the browser pane.
+ * Command Center's document pages (acc://doc) open from the app itself, with no `from`,
+ * or from another document page; a web page can't navigate to one.
  * @param {string} url
+ * @param {string} [from] URL of the page asking, when a page asks
  */
-export function isAllowedNavigation(url) {
+export function isAllowedNavigation(url, from = '') {
+  if (/^acc:\/\/doc\//i.test(url)) return !from || /^acc:\/\/doc\//i.test(from);
   return /^(https?|file|chrome-extension|about):/i.test(url);
 }

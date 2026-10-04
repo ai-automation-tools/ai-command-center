@@ -35,7 +35,7 @@ const isHtml = (node) => node.kind === 'html' || /\.html?$/i.test(node.name);
 
 /**
  * What a click on a node should do. Folders expand; HTML opens in a browser tab;
- * everything else opens in Project Hub's own viewer in a tab.
+ * everything else opens as a document page (acc://doc, src/shared/docs.js) in a tab.
  * @param {HubNode} node
  * @returns {'expand' | 'browse' | 'view'}
  */
@@ -43,16 +43,6 @@ export function defaultAction(node) {
   if (isContainer(node)) return 'expand';
   if (isHtml(node)) return 'browse';
   return 'view';
-}
-
-/**
- * Project Hub's page showing a node: folder listing, rendered Markdown or file view.
- * Hub routes on `#<encoded id>`, the same ids /api/scan returns.
- * @param {string} hubUrl
- * @param {string} id
- */
-export function hubViewUrl(hubUrl, id) {
-  return `${hubUrl.replace(/\/+$/, '')}/#${encodeURIComponent(id)}`;
 }
 
 /** @typedef {'view' | 'browse' | 'code' | 'reveal' | 'terminal' | 'copy-path' | 'copy-id'} FileAction */
@@ -67,7 +57,7 @@ export function fileMenu(node) {
   if (!node.id || node.id.startsWith('@')) return [];
   const folder = isContainer(node);
   return [
-    { id: 'view', label: folder ? 'Open folder in Project Hub view' : 'Open in Project Hub view' },
+    { id: 'view', label: folder ? 'View folder here' : 'View here' },
     ...(folder ? [] : [{ id: /** @type {const} */ ('browse'), label: isHtml(node) ? 'Open page in a tab' : 'Open raw file in a tab' }]),
     { id: 'code', label: 'Open in VS Code' },
     { id: 'reveal', label: 'Reveal in Explorer' },
