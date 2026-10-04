@@ -63,6 +63,12 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 
 - [ ] LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass.
 
+**Daily-use fixes** (found using the app, 2026-10-04)
+
+- [ ] Right-click menu on Files rows: the hover actions (Terminal here, VS Code, Reveal in Explorer, open in tab) plus copy path and copy Hub id
+- [ ] Open a folder or file in the content area the way Project Hub's explorer shows it (folder listing, rendered Markdown, code view): load Hub's own page at that node's `#` route in a tab rather than rebuilding the viewer
+- [ ] New-terminal button with a menu of shells: PowerShell 7, Windows PowerShell, Command Prompt, and Git Bash when installed. Each is a fixed profile in `src/main/terminal.js`; the renderer sends a profile name, never a path or arguments
+
 **🔒 Mike's own checks** (not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop))
 
 - [ ] Use the app as the main window for 5 working days and fill in the log below
