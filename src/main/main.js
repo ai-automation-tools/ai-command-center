@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hub } from './hub.js';
-import { startMcp } from './mcp.js';
+import { mcpLog, startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
@@ -202,7 +202,9 @@ async function createWindow() {
       return { terminal };
     },
   };
-  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]))
+  const callLog = mcpLog(send);
+  handle('mcp:log', () => callLog.entries);
+  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]), (e) => callLog.add(e))
     .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
@@ -394,6 +396,11 @@ function smoke(dir, tabs, browseSession) {
       console.log(`[smoke] doc page=${JSON.stringify(page)}`);
       fs.writeFileSync(path.join(dir, 'doc.png'), (await docTab.view.webContents.capturePage()).toPNG());
     }
+    // The MCP calls above, in the sidebar's MCP panel and at the end of mcp.log.
+    const panel = await wc.executeJavaScript(`[...document.querySelectorAll('#panel-mcp .row .name')].map((n) => n.textContent.split(' ')[0]).slice(0, 8)`);
+    const logged = fs.readFileSync(path.join(app.getPath('userData'), 'logs', 'mcp.log'), 'utf8').trim().split('\n').slice(-8)
+      .map((l) => { const e = JSON.parse(l); return `${e.tool || e.method}:${e.ok ? 'ok' : e.status || 'err'}`; });
+    console.log(`[smoke] mcp log panel=${JSON.stringify(panel)} file=${JSON.stringify(logged)}`);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());

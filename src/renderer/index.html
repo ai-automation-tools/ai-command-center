@@ -23,6 +23,7 @@
         <button role="tab" data-panel="files" aria-selected="true">Files</button>
         <button role="tab" data-panel="bookmarks" aria-selected="false">Bookmarks</button>
         <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
+        <button role="tab" data-panel="mcp" aria-selected="false" title="Calls agents made to the app's MCP server">MCP</button>
       </nav>
       <section id="panel-files" class="panel" role="tabpanel"></section>
       <section id="panel-bookmarks" class="panel" role="tabpanel" hidden>
@@ -32,6 +33,7 @@
         <div id="bookmark-tree"></div>
       </section>
       <section id="panel-recent" class="panel" role="tabpanel" hidden></section>
+      <section id="panel-mcp" class="panel" role="tabpanel" aria-live="polite" hidden></section>
       <section id="panel-search" class="panel" role="region" aria-label="Search results" hidden></section>
     </aside>
 

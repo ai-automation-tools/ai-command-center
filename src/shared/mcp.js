@@ -7,6 +7,7 @@
 
 import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
+import { describeCall, refusedCall } from './mcplog.js';
 
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 const MAX_BODY = 1024 * 1024;
@@ -89,23 +90,29 @@ function rpcError(id, code, message) {
 }
 
 /**
- * @param {{ token: string, tools: Map<string, Tool>, version: string }} opts
+ * @param {{ token: string, tools: Map<string, Tool>, version: string, onCall?: (entry: import('./mcplog.js').LogEntry) => void }} opts
+ *   onCall hears about every request: answered, failed, or refused before it was read
  * @returns {http.Server} not yet listening
  */
-export function createMcpServer({ token, tools, version }) {
+export function createMcpServer({ token, tools, version, onCall = () => {} }) {
   return http.createServer((req, res) => {
     /** @param {number} status @param {unknown} [body] */
     const reply = (status, body) => {
       res.writeHead(status, body === undefined ? {} : { 'Content-Type': 'application/json' });
       res.end(body === undefined ? undefined : JSON.stringify(body));
     };
-    if (!isLoopbackHost(req.headers.host)) return reply(403, { error: 'Forbidden host' });
-    if (!bearerMatches(req.headers.authorization, token)) return reply(401, { error: 'Missing or wrong token' });
-    if (new URL(req.url || '/', 'http://x').pathname !== '/mcp') return reply(404, { error: 'Not found' });
+    /** @param {number} status @param {string} reason */
+    const refuse = (status, reason) => {
+      onCall(refusedCall(status, reason));
+      reply(status, { error: reason });
+    };
+    if (!isLoopbackHost(req.headers.host)) return refuse(403, 'Forbidden host');
+    if (!bearerMatches(req.headers.authorization, token)) return refuse(401, 'Missing or wrong token');
+    if (new URL(req.url || '/', 'http://x').pathname !== '/mcp') return refuse(404, 'Not found');
     // No server-to-client stream (GET) and no sessions to end (DELETE).
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST');
-      return reply(405, { error: 'Method not allowed' });
+      return refuse(405, 'Method not allowed');
     }
 
     /** @type {Buffer[]} */
@@ -114,7 +121,7 @@ export function createMcpServer({ token, tools, version }) {
     req.on('data', (c) => {
       size += c.length;
       if (size > MAX_BODY) {
-        reply(413, { error: 'Body too large' });
+        refuse(413, 'Body too large');
         req.destroy();
       } else chunks.push(c);
     });
@@ -124,9 +131,13 @@ export function createMcpServer({ token, tools, version }) {
       try {
         msg = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       } catch {
+        onCall(refusedCall(400, 'Parse error'));
         return reply(400, rpcError(null, -32700, 'Parse error'));
       }
+      const started = Date.now();
       const out = await handleMessage(msg, tools, version);
+      // Notifications get no answer but still happened.
+      onCall(describeCall({ msg, out, ms: Date.now() - started }));
       if (out === null) return reply(202);
       reply(200, out);
     });

@@ -59,6 +59,9 @@ button, input, select { font: inherit; color: inherit; }
   border-left: 2px solid transparent;
 }
 .row:hover { background: var(--panel-2); }
+.row.call .icon { color: var(--ok); }
+.row.call.failed .icon, .row.call.failed .sub { color: var(--bad); }
+.row.call .name { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
 .row:focus-visible { outline: none; border-left-color: var(--accent); background: var(--panel-2); }
 .row .caret { width: 12px; color: var(--text-3); flex: none; text-align: center; font-size: 10px; }
 .row .icon { width: 16px; flex: none; text-align: center; }

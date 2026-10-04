@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('acc', {
     answer: invoke('mcp:answer'),
     onConfirm: listen('mcp:confirm'),
     onCancel: listen('mcp:cancel'),
+    log: invoke('mcp:log'),
+    onLogged: listen('mcp:logged'),
   },
 
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
