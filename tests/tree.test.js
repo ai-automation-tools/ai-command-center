@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { absPath, defaultAction, flatten, flattenBookmarks, isContainer, search, terminalDir } from '../src/shared/tree.js';
+import { absPath, defaultAction, fileMenu, flatten, flattenBookmarks, hubViewUrl, isContainer, search, terminalDir } from '../src/shared/tree.js';
 
 const scan = { base: 'D:/work', home: 'C:/Users/dev' };
 
@@ -32,11 +32,25 @@ test('isContainer treats childless folders as containers', () => {
   assert.equal(isContainer({ id: 'x', name: 'a.md', kind: 'md' }), false);
 });
 
-test('defaultAction: folders expand, html browses, the rest opens in code', () => {
+test('defaultAction: folders expand, html browses, the rest opens in the Hub view', () => {
   assert.equal(defaultAction(tree[0]), 'expand');
   assert.equal(defaultAction({ id: 'a', name: 'index.html', kind: 'html' }), 'browse');
   assert.equal(defaultAction({ id: 'a', name: 'page.HTM', kind: 'file' }), 'browse');
-  assert.equal(defaultAction({ id: 'a', name: 'README.md', kind: 'md' }), 'code');
+  assert.equal(defaultAction({ id: 'a', name: 'README.md', kind: 'md' }), 'view');
+});
+
+test('hubViewUrl puts the encoded node id in Hub\'s hash route', () => {
+  assert.equal(hubViewUrl('http://127.0.0.1:4273', 'Projects/Lab/README.md'), 'http://127.0.0.1:4273/#Projects%2FLab%2FREADME.md');
+  assert.equal(hubViewUrl('http://127.0.0.1:4273/', '~/a b#c?d'), 'http://127.0.0.1:4273/#~%2Fa%20b%23c%3Fd');
+});
+
+test('fileMenu: folders and files get their own items, virtual nodes get none', () => {
+  const ids = (/** @type {ReturnType<typeof fileMenu>} */ m) => m.map((i) => (i === '-' ? '-' : i.id));
+  assert.deepEqual(ids(fileMenu({ id: 'Projects/Lab', name: 'Lab', kind: 'root', children: [] })),
+    ['view', 'code', 'reveal', 'terminal', '-', 'copy-path', 'copy-id']);
+  assert.deepEqual(ids(fileMenu({ id: 'Projects/Lab/README.md', name: 'README.md', kind: 'md' })),
+    ['view', 'browse', 'code', 'reveal', 'terminal', '-', 'copy-path', 'copy-id']);
+  assert.deepEqual(fileMenu(tree[0]), []);
 });
 
 test('terminalDir uses the folder itself, or a file\'s parent', () => {

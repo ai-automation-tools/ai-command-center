@@ -1,7 +1,7 @@
 // The left sidebar: Files (Project Hub's tree), Bookmarks (browser profiles Hub reads,
 // plus Hub's own favorites), Recent, and one search box across all three.
 
-import { HUB_FAVORITES, absPath, defaultAction, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
+import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
 
 const ICONS = {
   projects: '🗂️', root: '📦', section: '📁', cli: '🤖', folder: '📁', repo: '📘', group: '🗃️', draft: '🧪',
@@ -10,7 +10,10 @@ const ICONS = {
 };
 const RECENT_ICONS = { url: '🌐', file: '📄', folder: '📁', terminal: '💻' };
 
-/** @typedef {import('/shared/tree.js').HubNode} HubNode */
+/**
+ * @typedef {import('/shared/tree.js').HubNode} HubNode
+ * @typedef {import('/shared/tree.js').FileAction} FileAction
+ */
 
 export class Sidebar {
   /**
@@ -19,12 +22,14 @@ export class Sidebar {
    *   layout: { bookmarkSource: string },
    *   openUrl: (url: string, opts?: { background?: boolean }) => void,
    *   openTerminal: (cwd: string) => void,
+   *   viewInHub: (id: string) => void,
    * }} opts
    */
-  constructor({ api, layout, openUrl, openTerminal }) {
+  constructor({ api, layout, openUrl, openTerminal, viewInHub }) {
     this.api = api;
     this.openUrl = openUrl;
     this.openTerminal = openTerminal;
+    this.viewInHub = viewInHub;
     /** @type {{ base: string, home: string, tree: HubNode[] } | null} */
     this.scan = null;
     /** @type {ReturnType<typeof flatten>} */
@@ -136,8 +141,16 @@ export class Sidebar {
     };
     row.addEventListener('click', (e) => {
       if (/** @type {HTMLElement} */ (e.target).closest('.acts')) return;
-      if (defaultAction(node) === 'expand') toggle();
-      else this.activateFile(node);
+      const action = defaultAction(node);
+      if (action === 'expand') toggle();
+      else this.fileAction(node, action);
+    });
+    row.addEventListener('contextmenu', async (e) => {
+      e.preventDefault();
+      const items = fileMenu(node);
+      if (!items.length) return;
+      const picked = await this.api.menu(items);
+      if (picked) this.fileAction(node, /** @type {FileAction} */ (picked));
     });
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') row.click();
@@ -152,32 +165,32 @@ export class Sidebar {
   /** @param {HTMLElement} host @param {HubNode} node */
   addFileActions(host, node) {
     if (!this.scan || node.id.startsWith('@')) return;
-    const scan = this.scan;
     host.append(
-      button('>_', 'Terminal here', () => {
-        const dir = terminalDir(node, scan);
-        if (dir) this.openTerminal(dir);
-      }),
-      button('code', 'Open in VS Code', () => this.openInHub(node, 'code')),
-      button('📂', 'Reveal in Explorer', () => this.openInHub(node, 'reveal')),
+      button('>_', 'Terminal here', () => this.fileAction(node, 'terminal')),
+      button('👁', 'Open in Project Hub view', () => this.fileAction(node, 'view')),
+      button('code', 'Open in VS Code', () => this.fileAction(node, 'code')),
+      button('📂', 'Reveal in Explorer', () => this.fileAction(node, 'reveal')),
     );
-    if (!isContainer(node)) {
-      host.append(button('🌐', 'Open in a browser tab', () => {
-        const p = absPath(node.id, scan);
-        if (p) this.openUrl(`file:///${p}`);
-      }));
-    }
+    if (!isContainer(node)) host.append(button('🌐', 'Open in a browser tab', () => this.fileAction(node, 'browse')));
   }
 
-  /** @param {HubNode} node */
-  activateFile(node) {
+  /**
+   * Everything a click, a hover button or the right-click menu can do to a Files row.
+   * @param {HubNode} node
+   * @param {FileAction} action
+   */
+  fileAction(node, action) {
     if (!this.scan) return;
-    if (defaultAction(node) === 'browse') {
-      const p = absPath(node.id, this.scan);
-      if (p) this.openUrl(`file:///${p}`);
-    } else {
-      this.openInHub(node, 'code');
+    const path = absPath(node.id, this.scan);
+    if (action === 'view') this.viewInHub(node.id);
+    if (action === 'browse' && path) this.openUrl(`file:///${path}`);
+    if (action === 'code' || action === 'reveal') this.openInHub(node, action);
+    if (action === 'terminal') {
+      const dir = terminalDir(node, this.scan);
+      if (dir) this.openTerminal(dir);
     }
+    if (action === 'copy-path' && path) copy(path.replaceAll('/', '\\'));
+    if (action === 'copy-id') copy(node.id);
   }
 
   /** @param {HubNode} node @param {'code' | 'reveal'} how */
@@ -369,6 +382,11 @@ function button(label, title, fn) {
   b.setAttribute('aria-label', title);
   b.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
   return b;
+}
+
+/** @param {string} text */
+function copy(text) {
+  navigator.clipboard.writeText(text).then(() => toast(`Copied ${text}`), () => toast("Couldn't copy to the clipboard"));
 }
 
 /** @param {HTMLElement} row @param {1 | -1} dir */

@@ -17,6 +17,7 @@ import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
 import { Confirmations } from '../shared/confirm.js';
+import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -193,7 +194,7 @@ async function createWindow() {
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
     runCommand: async (command) => {
       const terminal = await confirmations.ask({ command });
-      if (terminal === null || !terminals.has(terminal)) return null;
+      if (terminal === null || !terminals.isPowerShell(terminal)) return null;
       // \r is Enter; PSReadLine takes \n as a continuation line.
       terminals.write(terminal, `${command}\r`);
       return { terminal };
@@ -207,6 +208,7 @@ async function createWindow() {
     hubUrl: hub.url,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
     shell: terminals.shell,
+    shells: terminals.list(),
     layout,
     browsePartition: BROWSE_PARTITION,
   }));
@@ -250,6 +252,16 @@ async function createWindow() {
   handle('term:kill', (id) => terminals.kill(Number(id)));
 
   handle('mcp:answer', (id, terminal) => confirmations.settle(Number(id), Number.isInteger(terminal) ? terminal : null));
+
+  // A native menu, so it draws over the browser view instead of under it.
+  handle('menu:popup', (items) => new Promise((resolve) => {
+    const template = menuItems(items).map((i) => (i === '-'
+      ? { type: /** @type {const} */ ('separator') }
+      : { label: i.label, click: () => resolve(i.id) }));
+    // ponytail: on Windows the close callback can fire before the click, so give the
+    // click a moment to win; a picked item always resolves first if it fires at all.
+    Menu.buildFromTemplate(template).popup({ callback: () => setTimeout(() => resolve(null), 100) });
+  }));
 
   handle('recent:list', () => store.recent());
   handle('recent:add', (item) => store.addRecent(item));
@@ -360,6 +372,18 @@ function smoke(dir, tabs, browseSession) {
     } catch (err) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }
+    // The shell menu's profiles, a non-PowerShell session, and a Files click landing
+    // in Hub's viewer (the right-click menu itself is native and needs a person).
+    const shellChecks = await wc.executeJavaScript(`(async () => {
+      const shells = (await window.acc.info()).shells.map((s) => s.id);
+      const cmd = await window.acc.term.create({ shell: 'cmd' });
+      await window.acc.term.kill(cmd.id);
+      const md = [...document.querySelectorAll('#panel-search .row')].find((r) => /\\.md$/i.test(r.querySelector('.name')?.textContent || ''));
+      md?.click();
+      return { shells, cmd: [cmd.shell, cmd.powershell], clicked: md?.querySelector('.name')?.textContent ?? null };
+    })()`);
+    await wait(3000);
+    console.log(`[smoke] shells=${JSON.stringify(shellChecks)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());

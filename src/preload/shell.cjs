@@ -72,6 +72,9 @@ contextBridge.exposeInMainWorld('acc', {
     onCancel: listen('mcp:cancel'),
   },
 
+  /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
+  menu: invoke('menu:popup'),
+
   extensions: { list: invoke('ext:list') },
   onShortcut: listen('shortcut'),
 });
