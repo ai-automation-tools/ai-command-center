@@ -1,25 +1,13 @@
-// PowerShell sessions behind the xterm.js panel. The renderer can pick a starting
-// folder and nothing else: the executable and its arguments are fixed here, so no
-// message from a page can start a shell with chosen arguments (the rule from the
-// Project Control Center's ADR-004).
+// Shell sessions behind the xterm.js panel. The renderer can pick a starting folder
+// and a profile from shared/shells.js by id, and nothing else: each profile's
+// executable and arguments are fixed, so no message from a page can start a shell
+// with chosen arguments (the rule from the Project Control Center's ADR-004).
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import pty from 'node-pty';
-
-const PWSH_CANDIDATES = [
-  path.join(process.env.ProgramFiles || 'C:/Program Files', 'PowerShell', '7', 'pwsh.exe'),
-  'pwsh.exe',
-  'powershell.exe',
-];
-
-function shellPath() {
-  for (const p of PWSH_CANDIDATES) {
-    if (!path.isAbsolute(p) || fs.existsSync(p)) return p;
-  }
-  return 'powershell.exe';
-}
+import { pickShell, shellProfiles } from '../shared/shells.js';
 
 /** @param {unknown} dir */
 function safeCwd(dir) {
@@ -37,18 +25,27 @@ export class Terminals {
     this.send = send;
     /** @type {Map<number, import('node-pty').IPty>} */
     this.sessions = new Map();
+    /** Session ids running PowerShell, the only ones terminal_run types into. */
+    this.powershell = new Set();
     this.nextId = 1;
-    this.shell = shellPath();
+    this.profiles = shellProfiles(process.env, (f) => fs.existsSync(f));
+    this.shell = this.profiles[0].file;
+  }
+
+  /** The installed shells, for the new-terminal menu. */
+  list() {
+    return this.profiles.map(({ id, label, powershell }) => ({ id, label, powershell }));
   }
 
   /**
-   * @param {{ cwd?: string, cols?: number, rows?: number }} opts
-   * @returns {{ id: number, cwd: string, shell: string }}
+   * @param {{ cwd?: string, cols?: number, rows?: number, shell?: string }} opts
+   * @returns {{ id: number, cwd: string, shell: string, profile: string, powershell: boolean }}
    */
   create(opts = {}) {
     const cwd = safeCwd(opts.cwd);
     const id = this.nextId++;
-    const p = pty.spawn(this.shell, ['-NoLogo'], {
+    const profile = pickShell(this.profiles, opts.shell);
+    const p = pty.spawn(profile.file, profile.args, {
       name: 'xterm-256color',
       cols: clamp(opts.cols, 20, 500, 100),
       rows: clamp(opts.rows, 5, 200, 30),
@@ -62,15 +59,17 @@ export class Terminals {
     p.onData((data) => this.send('term:data', id, data));
     p.onExit(({ exitCode }) => {
       this.sessions.delete(id);
+      this.powershell.delete(id);
       this.send('term:exit', id, exitCode);
     });
     this.sessions.set(id, p);
-    return { id, cwd, shell: path.basename(this.shell) };
+    if (profile.powershell) this.powershell.add(id);
+    return { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell };
   }
 
   /** @param {number} id */
-  has(id) {
-    return this.sessions.has(id);
+  isPowerShell(id) {
+    return this.powershell.has(id);
   }
 
   /** @param {number} id @param {string} data */
@@ -90,6 +89,7 @@ export class Terminals {
     const p = this.sessions.get(id);
     if (!p) return;
     this.sessions.delete(id);
+    this.powershell.delete(id);
     try { p.kill(); } catch { /* already gone */ }
   }
 

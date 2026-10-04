@@ -59,6 +59,17 @@ export const hub = {
   },
 
   /**
+   * A file as HTML, the way Hub's own viewer shows it: Markdown rendered and sanitized
+   * by Hub, anything else as an escaped code block. Hub refuses ids outside its roots.
+   * @param {string} id
+   * @returns {Promise<{ html: string }>}
+   */
+  async file(id) {
+    const res = await hubFetch(`/api/file?${new URLSearchParams({ path: id })}`);
+    return await res.json();
+  },
+
+  /**
    * Open a node in VS Code, reveal it in Explorer, or open it with its default app.
    * Hub resolves the id against its roots and refuses anything outside them.
    * @param {string} id

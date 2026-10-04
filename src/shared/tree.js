@@ -30,16 +30,42 @@ export function absPath(id, scan) {
   return `${scan.base}/${id}`;
 }
 
+/** @param {HubNode} node */
+const isHtml = (node) => node.kind === 'html' || /\.html?$/i.test(node.name);
+
 /**
  * What a click on a node should do. Folders expand; HTML opens in a browser tab;
- * everything else opens in VS Code through Hub's /api/open.
+ * everything else opens as a document page (acc://doc, src/shared/docs.js) in a tab.
  * @param {HubNode} node
- * @returns {'expand' | 'browse' | 'code'}
+ * @returns {'expand' | 'browse' | 'view'}
  */
 export function defaultAction(node) {
   if (isContainer(node)) return 'expand';
-  if (node.kind === 'html' || /\.html?$/i.test(node.name)) return 'browse';
-  return 'code';
+  if (isHtml(node)) return 'browse';
+  return 'view';
+}
+
+/** @typedef {'view' | 'browse' | 'code' | 'reveal' | 'terminal' | 'copy-path' | 'copy-id'} FileAction */
+
+/**
+ * The right-click menu for a Files row, as `{ id, label }` items and '-' separators.
+ * Virtual `@` nodes have no path, so they get nothing.
+ * @param {HubNode} node
+ * @returns {({ id: FileAction, label: string } | '-')[]}
+ */
+export function fileMenu(node) {
+  if (!node.id || node.id.startsWith('@')) return [];
+  const folder = isContainer(node);
+  return [
+    { id: 'view', label: folder ? 'View folder here' : 'View here' },
+    ...(folder ? [] : [{ id: /** @type {const} */ ('browse'), label: isHtml(node) ? 'Open page in a tab' : 'Open raw file in a tab' }]),
+    { id: 'code', label: 'Open in VS Code' },
+    { id: 'reveal', label: 'Reveal in Explorer' },
+    { id: 'terminal', label: folder ? 'Terminal here' : 'Terminal in this folder' },
+    '-',
+    { id: 'copy-path', label: 'Copy path' },
+    { id: 'copy-id', label: 'Copy Project Hub id' },
+  ];
 }
 
 /**

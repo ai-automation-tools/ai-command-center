@@ -1,4 +1,4 @@
-// The terminal panel: one xterm.js instance per PowerShell session in main.
+// The terminal panel: one xterm.js instance per shell session in main.
 
 import { Terminal } from '/vendor/xterm/lib/xterm.mjs';
 import { FitAddon } from '/vendor/addon-fit/lib/addon-fit.mjs';
@@ -9,7 +9,7 @@ const THEME = {
   brightBlack: '#52525b', brightRed: '#fca5a5', brightGreen: '#6ee7b7', brightYellow: '#fde68a', brightBlue: '#93c5fd', brightMagenta: '#d8b4fe', brightCyan: '#67e8f9', brightWhite: '#fafafa',
 };
 
-/** @typedef {{ id: number, term: Terminal, fit: FitAddon, pane: HTMLElement, tab: HTMLElement, exited: boolean }} Session */
+/** @typedef {{ id: number, term: Terminal, fit: FitAddon, pane: HTMLElement, tab: HTMLElement, exited: boolean, powershell: boolean }} Session */
 
 export class TerminalPanel {
   /** @param {{ host: HTMLElement, tabs: HTMLElement, api: any }} opts */
@@ -34,8 +34,8 @@ export class TerminalPanel {
     new ResizeObserver(() => this.fitActive()).observe(host);
   }
 
-  /** @param {string} [cwd] */
-  async open(cwd) {
+  /** @param {string} [cwd] @param {string} [shell] profile id from app:info's shells; the default when left out */
+  async open(cwd, shell) {
     const term = new Terminal({
       fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace',
       fontSize: 13,
@@ -53,7 +53,7 @@ export class TerminalPanel {
     term.open(pane);
     fit.fit();
 
-    const info = await this.api.term.create({ cwd, cols: term.cols, rows: term.rows });
+    const info = await this.api.term.create({ cwd, shell, cols: term.cols, rows: term.rows });
     const id = /** @type {number} */ (info.id);
 
     const tab = document.createElement('div');
@@ -75,7 +75,7 @@ export class TerminalPanel {
     });
     term.attachCustomKeyEventHandler((e) => clipboardKeys(e, term, (text) => this.api.term.write(id, text)));
 
-    this.sessions.set(id, { id, term, fit, pane, tab, exited: false });
+    this.sessions.set(id, { id, term, fit, pane, tab, exited: false, powershell: Boolean(info.powershell) });
     this.activate(id);
     return id;
   }
@@ -115,10 +115,10 @@ export class TerminalPanel {
     try { s.fit.fit(); } catch { /* hidden panel */ }
   }
 
-  /** The terminal a confirmed command goes to: the active one, if it's still running. */
+  /** The terminal a confirmed command goes to: the active one, if it's PowerShell and still running. */
   runTarget() {
     const s = this.activeId !== null ? this.sessions.get(this.activeId) : null;
-    if (!s || s.exited) return null;
+    if (!s || s.exited || !s.powershell) return null;
     return { id: s.id, label: /** @type {HTMLElement} */ (s.tab.querySelector('.title')).textContent || `terminal ${s.id}` };
   }
 

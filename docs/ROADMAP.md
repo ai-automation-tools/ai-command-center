@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). **Next:** the MCP call log.
+> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day: a Files right-click menu, documents shown under the app's own sidebar, and a shell menu. **Next:** the MCP call log.
 
 ## 🧭 Phase 0: decide
 
@@ -48,6 +48,14 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [ ] Chat panel wired to the MCP server (Claude first; model and key read from the user environment, never stored in the repo)
 - [ ] Cronsole: its task list in the sidebar through the Cronsole MCP server, and its UI in a pinned tab
 
+## 🧰 Daily use
+
+Found using the app on 2026-10-04 and made release gates the same day.
+
+- [x] Right-click menu on Files rows: the hover actions (Terminal here, VS Code, Reveal in Explorer, open in tab) plus copy path and copy Hub id — 2026-10-04; native menu, items unit-tested
+- [x] Open a folder or file in the content area under the app's own sidebar, not Project Hub's whole page: Hub renders the file (`/api/file`), the app shows it as a script-free `acc://doc` page in a tab, folders as a listing — 2026-10-04; `npm run smoke` clicks a Markdown file and checks the page (no second sidebar, images load)
+- [x] New-terminal button with a menu of shells: PowerShell 7, Windows PowerShell, Command Prompt, and Git Bash when installed. Each is a fixed profile in `src/shared/shells.js`; the renderer sends a profile id, never a path or arguments — 2026-10-04; unit-tested, `npm run smoke` starts a Command Prompt session
+
 ## 🚦 Public release
 
 - [ ] CI workflow (`.github/workflows/ci.yml`) running `npm run lint` and `npm test` on push and PR, and passing
@@ -62,12 +70,6 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 **Upstream blocker**
 
 - [ ] LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass.
-
-**Daily-use fixes** (found using the app, 2026-10-04)
-
-- [ ] Right-click menu on Files rows: the hover actions (Terminal here, VS Code, Reveal in Explorer, open in tab) plus copy path and copy Hub id
-- [ ] Open a folder or file in the content area the way Project Hub's explorer shows it (folder listing, rendered Markdown, code view): load Hub's own page at that node's `#` route in a tab rather than rebuilding the viewer
-- [ ] New-terminal button with a menu of shells: PowerShell 7, Windows PowerShell, Command Prompt, and Git Bash when installed. Each is a fixed profile in `src/main/terminal.js`; the renderer sends a profile name, never a path or arguments
 
 **🔒 Mike's own checks** (not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop))
 

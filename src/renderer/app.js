@@ -3,6 +3,7 @@
 
 import { Sidebar, toast } from '/sidebar.js';
 import { TerminalPanel } from '/terminal.js';
+import { docUrl, isDocUrl } from '/shared/docs.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
@@ -81,11 +82,11 @@ function setTerminalOpen(open) {
   requestAnimationFrame(() => { reportBounds(); terminals.fitActive(); });
 }
 
-/** @param {string} [cwd] */
-async function openTerminal(cwd) {
+/** @param {string} [cwd] @param {string} [shell] */
+async function openTerminal(cwd, shell) {
   setTerminalOpen(true);
   try {
-    return await terminals.open(cwd);
+    return await terminals.open(cwd, shell);
   } catch (err) {
     toast(`Couldn't start a terminal: ${err instanceof Error ? err.message : err}`);
     return null;
@@ -93,6 +94,10 @@ async function openTerminal(cwd) {
 }
 
 $('term-new').addEventListener('click', () => openTerminal());
+$('term-shells').addEventListener('click', async () => {
+  const picked = await api.menu(info.shells.map((/** @type {{ id: string, label: string }} */ s) => ({ id: s.id, label: s.label })));
+  if (picked) openTerminal(undefined, picked);
+});
 
 // ---- terminal_run confirmations ----------------------------------------------
 // One bar at a time over the terminal; the rest wait their turn. Main holds the
@@ -117,7 +122,8 @@ async function answerAsk(run) {
   const ask = asks.shift();
   if (!ask) return;
   $('confirm-bar').hidden = true;
-  const id = run ? (terminals.runTarget()?.id ?? await openTerminal()) : null;
+  const pwsh = info.shells.find((/** @type {{ powershell: boolean }} */ s) => s.powershell)?.id;
+  const id = run ? (terminals.runTarget()?.id ?? await openTerminal(undefined, pwsh)) : null;
   await api.mcp.answer(ask.id, id);
   if (id !== null) terminals.activate(id);
   showAsk();
@@ -162,6 +168,20 @@ async function openUrl(url, opts = {}) {
   const id = await api.tabs.create(url);
   if (opts.background && prev !== null) api.tabs.activate(prev);
   return id;
+}
+
+/**
+ * Show a Hub file or folder as a document page (acc://doc). Reuses a tab already
+ * showing one, so clicking through files moves one tab along; Ctrl+click opens another.
+ * @param {string} id
+ * @param {{ newTab?: boolean }} [opts]
+ */
+async function viewDoc(id, opts = {}) {
+  const url = docUrl(id);
+  const docTab = opts.newTab ? undefined : [...tabState].find(([, t]) => t.url && isDocUrl(t.url))?.[0];
+  if (docTab === undefined) return openUrl(url);
+  await api.tabs.activate(docTab);
+  await api.tabs.navigate(url);
 }
 
 api.tabs.onCreated((/** @type {any} */ t) => {
@@ -275,7 +295,7 @@ for (const [label, url] of QUICK_LINKS) {
 
 // ---- sidebar -----------------------------------------------------------------
 
-const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd) });
+const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc });
 
 // ---- shortcuts ---------------------------------------------------------------
 
