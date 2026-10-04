@@ -28,6 +28,8 @@ export class Terminals {
     /** Session ids running PowerShell, the only ones terminal_run types into. */
     this.powershell = new Set();
     this.nextId = 1;
+    /** @type {Record<string, string>} set once the MCP server is up: ACC_MCP_URL and ACC_MCP_TOKEN */
+    this.env = {};
     this.profiles = shellProfiles(process.env, (f) => fs.existsSync(f));
     this.shell = this.profiles[0].file;
   }
@@ -50,7 +52,7 @@ export class Terminals {
       cols: clamp(opts.cols, 20, 500, 100),
       rows: clamp(opts.rows, 5, 200, 30),
       cwd,
-      env: { ...process.env, TERM_PROGRAM: 'ai-command-center' },
+      env: { ...process.env, TERM_PROGRAM: 'ai-command-center', ...this.env },
       useConpty: true,
       // The bundled conpty.dll path kills without forking node-pty's console-list helper,
       // which crashes (AttachConsole failed) and keeps the app alive when it quits.
