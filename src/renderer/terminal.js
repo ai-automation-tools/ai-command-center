@@ -115,6 +115,13 @@ export class TerminalPanel {
     try { s.fit.fit(); } catch { /* hidden panel */ }
   }
 
+  /** The terminal a confirmed command goes to: the active one, if it's still running. */
+  runTarget() {
+    const s = this.activeId !== null ? this.sessions.get(this.activeId) : null;
+    if (!s || s.exited) return null;
+    return { id: s.id, label: /** @type {HTMLElement} */ (s.tab.querySelector('.title')).textContent || `terminal ${s.id}` };
+  }
+
   focus() {
     const s = this.activeId !== null ? this.sessions.get(this.activeId) : null;
     s?.term.focus();

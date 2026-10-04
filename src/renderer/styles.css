@@ -118,3 +118,10 @@ button, input, select { font: inherit; color: inherit; }
 .term-tab .close { background: none; border: 0; color: var(--text-3); cursor: pointer; }
 #term-host { position: relative; flex: 1; min-height: 0; }
 .term-pane { position: absolute; inset: 4px 0 0 8px; }
+#confirm-bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--panel-2); border-bottom: 1px solid var(--warn); }
+#confirm-bar[hidden] { display: none; }
+#confirm-label { color: var(--text-2); white-space: nowrap; }
+#confirm-cmd { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: "Cascadia Mono", Consolas, monospace; color: var(--text); }
+#confirm-bar button { background: var(--panel); border: 1px solid var(--line-2); border-radius: 5px; padding: 3px 12px; cursor: pointer; }
+#confirm-run { border-color: var(--warn) !important; color: var(--warn); }
+#confirm-bar button:focus-visible { outline: 2px solid var(--accent); }

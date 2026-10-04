@@ -68,6 +68,11 @@ export class Terminals {
     return { id, cwd, shell: path.basename(this.shell) };
   }
 
+  /** @param {number} id */
+  has(id) {
+    return this.sessions.has(id);
+  }
+
   /** @param {number} id @param {string} data */
   write(id, data) {
     if (typeof data === 'string') this.sessions.get(id)?.write(data);

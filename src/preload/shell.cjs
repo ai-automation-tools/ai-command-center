@@ -66,6 +66,12 @@ contextBridge.exposeInMainWorld('acc', {
     onChanged: listen('recent:changed'),
   },
 
+  mcp: {
+    answer: invoke('mcp:answer'),
+    onConfirm: listen('mcp:confirm'),
+    onCancel: listen('mcp:cancel'),
+  },
+
   extensions: { list: invoke('ext:list') },
   onShortcut: listen('shortcut'),
 });
