@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleMessage } from '../src/shared/mcp.js';
-import { hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg } from '../src/shared/tools.js';
+import { commandArg, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
 import { searchAll } from '../src/shared/tree.js';
 
 const scan = {
@@ -162,10 +162,43 @@ test('open_file reports Hub refusing or being down as a tool error', async () =>
   assert.match(res.content[0].text, /403/);
 });
 
+/** @param {(command: string) => Promise<{ terminal: number } | null>} runCommand */
+function term(runCommand) {
+  /** @type {string[]} */
+  const asked = [];
+  const t = terminalTools(/** @type {any} */ ({ runCommand: (/** @type {string} */ c) => { asked.push(c); return runCommand(c); } }));
+  return { t, asked };
+}
+
+test('terminal_run asks with the trimmed command and reports the terminal it ran in', async () => {
+  const { t, asked } = term(async () => ({ terminal: 3 }));
+  const res = await call(t, 'terminal_run', { command: '  git status; npm test  ' });
+  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, command: 'git status; npm test' });
+  assert.deepEqual(asked, ['git status; npm test']);
+});
+
+test('terminal_run is a tool error when the user denies or does not answer', async () => {
+  const { t } = term(async () => null);
+  const res = await call(t, 'terminal_run', { command: 'Remove-Item x' });
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /denied/);
+});
+
+test('terminal_run refuses multi-line, hidden-character, oversized and non-string commands without asking', async () => {
+  const { t, asked } = term(async () => ({ terminal: 1 }));
+  for (const args of [undefined, {}, { command: '' }, { command: '   ' }, { command: 5 }, { command: 'x'.repeat(4097) },
+    { command: 'ls\nrm -r ~' }, { command: 'ls\rrm' }, { command: 'ls\tx' }, { command: 'echo \u001b[2Jhi' },
+    { command: 'echo safe \u202e;txt.exe' }, { command: 'ls\u200b' }]) {
+    assert.equal((await call(t, 'terminal_run', args)).isError, true, JSON.stringify(args)?.slice(0, 80));
+  }
+  assert.deepEqual(asked, []);
+});
+
 test('tabUrlArg and hubIdArg return what they accept', () => {
   assert.equal(tabUrlArg(' https://x.dev/a '), 'https://x.dev/a');
   assert.equal(hubIdArg('~'), '~');
   assert.equal(hubIdArg('app/v1..2/notes.md'), 'app/v1..2/notes.md');
+  assert.equal(commandArg("Get-ChildItem 'D:\work' | Select-Object -First 5"), "Get-ChildItem 'D:\work' | Select-Object -First 5");
 });
 
 test('limitArg defaults, accepts 1 to 100, refuses the rest', () => {

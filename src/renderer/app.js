@@ -85,13 +85,56 @@ function setTerminalOpen(open) {
 async function openTerminal(cwd) {
   setTerminalOpen(true);
   try {
-    await terminals.open(cwd);
+    return await terminals.open(cwd);
   } catch (err) {
     toast(`Couldn't start a terminal: ${err instanceof Error ? err.message : err}`);
+    return null;
   }
 }
 
 $('term-new').addEventListener('click', () => openTerminal());
+
+// ---- terminal_run confirmations ----------------------------------------------
+// One bar at a time over the terminal; the rest wait their turn. Main holds the
+// command and types it; this only says which terminal, or no.
+
+/** @type {{ id: number, command: string }[]} */
+const asks = [];
+
+function showAsk() {
+  const ask = asks[0];
+  $('confirm-bar').hidden = !ask;
+  if (!ask) return;
+  if (mainEl.classList.contains('no-terminal')) setTerminalOpen(true);
+  $('confirm-cmd').textContent = ask.command;
+  $('confirm-where').textContent = terminals.runTarget()?.label || 'a new terminal';
+  // Deny takes focus, so an Enter meant for the terminal can't run the command.
+  $('confirm-deny').focus();
+}
+
+/** @param {boolean} run */
+async function answerAsk(run) {
+  const ask = asks.shift();
+  if (!ask) return;
+  $('confirm-bar').hidden = true;
+  const id = run ? (terminals.runTarget()?.id ?? await openTerminal()) : null;
+  await api.mcp.answer(ask.id, id);
+  if (id !== null) terminals.activate(id);
+  showAsk();
+}
+
+$('confirm-run').addEventListener('click', () => answerAsk(true));
+$('confirm-deny').addEventListener('click', () => answerAsk(false));
+api.mcp.onConfirm((/** @type {{ id: number, command: string }} */ ask) => {
+  asks.push(ask);
+  if (asks.length === 1) showAsk();
+});
+api.mcp.onCancel((/** @type {number} */ id) => {
+  const i = asks.findIndex((a) => a.id === id);
+  if (i < 0) return;
+  asks.splice(i, 1);
+  if (i === 0) showAsk();
+});
 $('term-toggle').addEventListener('click', () => setTerminalOpen(false));
 
 // ---- browser tabs ------------------------------------------------------------

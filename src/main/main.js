@@ -15,12 +15,14 @@ import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
-import { navigationTools, readOnlyTools } from '../shared/tools.js';
+import { navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
+import { Confirmations } from '../shared/confirm.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 const BROWSE_PARTITION = 'persist:browse';
+const CONFIRM_TIMEOUT_MS = 5 * 60 * 1000;
 
 // acc://shell/... serves the shell UI. Mapped prefixes only, and every resolved path is
 // checked to stay under its folder, so a crafted URL can't read anything else on disk.
@@ -168,6 +170,15 @@ async function createWindow() {
     send('recent:changed', store.addRecent({ type: 'file', target: id, label }));
   };
 
+  // terminal_run: the shell shows the command and answers with the terminal to type it
+  // into, or null. The command stays here; the answer can't change what runs.
+  /** @type {Confirmations<number>} */
+  const confirmations = new Confirmations({
+    show: (ask) => send('mcp:confirm', ask),
+    cancel: (id) => send('mcp:cancel', id),
+    timeoutMs: CONFIRM_TIMEOUT_MS,
+  });
+
   // The MCP server starts once there are tabs for its tools to look at.
   /** @type {import('../shared/tools.js').Sources} */
   const sources = {
@@ -180,8 +191,15 @@ async function createWindow() {
     recent: () => store.recent(),
     openTab: (url, activate) => tabs.create(url, { activate }),
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
+    runCommand: async (command) => {
+      const terminal = await confirmations.ask({ command });
+      if (terminal === null || !terminals.has(terminal)) return null;
+      // \r is Enter; PSReadLine takes \n as a continuation line.
+      terminals.write(terminal, `${command}\r`);
+      return { terminal };
+    },
   };
-  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources)]))
+  startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]))
     .then((m) => { mcp = m; console.log(`[mcp] listening on ${m.url}`); })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
@@ -230,6 +248,8 @@ async function createWindow() {
   on('term:write', (id, data) => terminals.write(Number(id), data));
   on('term:resize', (id, cols, rows) => terminals.resize(Number(id), cols, rows));
   handle('term:kill', (id) => terminals.kill(Number(id)));
+
+  handle('mcp:answer', (id, terminal) => confirmations.settle(Number(id), Number.isInteger(terminal) ? terminal : null));
 
   handle('recent:list', () => store.recent());
   handle('recent:add', (item) => store.addRecent(item));
@@ -303,7 +323,6 @@ function smoke(dir, tabs, browseSession) {
     })()`);
     console.log(`[smoke] shell checks=${JSON.stringify(checks)}`);
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());
     fs.writeFileSync(path.join(dir, 'tab.png'), (await tab.view.webContents.capturePage()).toPNG());
     console.log(`[smoke] tab url=${tab.view.webContents.getURL()} title=${tab.view.webContents.getTitle()}`);
     console.log(`[smoke] tab bounds=${JSON.stringify(tab.view.getBounds())}`);
@@ -328,9 +347,22 @@ function smoke(dir, tabs, browseSession) {
       console.log(`[smoke] mcp list_tabs=${JSON.stringify(listed)}`);
       console.log(`[smoke] mcp sidebar_search files=${found.files?.length} bookmarks=${found.bookmarks?.length} recent=${found.recent?.length} errors=${JSON.stringify(found.errors)}`);
       console.log(`[smoke] mcp recent items=${recent.items?.length}`);
+      // terminal_run waits on the confirm bar; click Run the way a person would.
+      const ran = call('terminal_run', { command: 'Write-Output acc-smoke' });
+      await wait(500);
+      const shown = await wc.executeJavaScript(`(() => {
+        const bar = document.getElementById('confirm-bar');
+        const text = bar.hidden ? null : document.getElementById('confirm-cmd').textContent;
+        document.getElementById('confirm-run').click();
+        return text;
+      })()`);
+      console.log(`[smoke] mcp terminal_run bar=${JSON.stringify(shown)} result=${JSON.stringify(await ran)}`);
     } catch (err) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }
+    // Last, so it shows terminal_run's output in the terminal.
+    await wait(1500);
+    fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());
     console.log(`[smoke] screenshots in ${dir}`);
     app.quit();
   });

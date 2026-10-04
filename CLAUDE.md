@@ -39,6 +39,7 @@ touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop sess
   - Every IPC handler in `src/main/main.js` goes through `handle()` / `on()`, which refuse any sender but the shell view.
   - Tabs refuse navigation outside `isAllowedNavigation()` (`src/shared/url.js`).
   - The terminal's executable and arguments are fixed in `src/main/terminal.js`. The renderer only picks a starting folder. No IPC message, MCP call or URL may pass shell arguments.
+  - `terminal_run` types into a running session only after the user clicks Run on the confirm bar. The command stays in the main process (the click only names a terminal), and `commandArg()` refuses newlines, control and invisible characters. Don't add a way around the click.
   - `acc://shell/` serves mapped folders only, with a path-escape check. Don't widen the map.
   - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.

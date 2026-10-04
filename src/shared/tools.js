@@ -1,5 +1,6 @@
 // The Control Center's MCP tools. The read-only ones look at the open tabs, the
-// sidebar's search and the Recent list; the navigation ones open a tab or a file.
+// sidebar's search and the Recent list; the navigation ones open a tab or a file;
+// terminal_run types a command into a terminal once the user clicks Run.
 // Pure: main.js hands in the data sources and actions, so the tests run every tool
 // against fakes.
 
@@ -10,10 +11,14 @@ const MAX_LIMIT = 100;
 const MAX_QUERY = 500;
 const MAX_URL = 8192;
 const MAX_ID = 1024;
+const MAX_COMMAND = 4096;
 const RECENT_TYPES = ['file', 'folder', 'url', 'terminal'];
 // Not 'default': opening a file with its default app would run a .ps1 or .exe
 // without the click that terminal_run asks for.
 const OPEN_IN = ['code', 'reveal'];
+// Control characters (newlines, tabs, escapes) would run or edit more than the bar
+// shows; format characters (bidi overrides, zero-width) would make it read differently.
+const HIDDEN_CHARS = /[\p{Cc}\p{Cf}]/u;
 
 /**
  * @typedef {import('./mcp.js').Tool} Tool
@@ -26,6 +31,7 @@ const OPEN_IN = ['code', 'reveal'];
  *   recent: () => RecentItem[],
  *   openTab: (url: string, activate: boolean) => { id: number },
  *   openFile: (id: string, how: 'code' | 'reveal') => Promise<void>,
+ *   runCommand: (command: string) => Promise<{ terminal: number } | null>,
  * }} Sources
  */
 
@@ -68,6 +74,17 @@ export function hubIdArg(value) {
     throw new Error('id must be a Project Hub node id from sidebar_search, such as "app/docs/guide.md"');
   }
   return value;
+}
+
+/**
+ * One line of PowerShell for terminal_run, exactly as the confirm bar will show it.
+ * @param {unknown} value
+ */
+export function commandArg(value) {
+  const command = typeof value === 'string' ? value.trim() : '';
+  if (!command || command.length > MAX_COMMAND) throw new Error(`command must be a non-empty string of at most ${MAX_COMMAND} characters`);
+  if (HIDDEN_CHARS.test(command)) throw new Error('command must be one line with no control or invisible characters; join statements with ";"');
+  return command;
 }
 
 /** @param {unknown} err */
@@ -175,6 +192,30 @@ export function navigationTools(src) {
         if (!OPEN_IN.includes(how)) throw new Error(`in must be one of ${OPEN_IN.join(', ')}`);
         await src.openFile(id, how);
         return { opened: id, in: how };
+      },
+    }],
+  ]);
+}
+
+/**
+ * @param {Sources} src
+ * @returns {Map<string, Tool>}
+ */
+export function terminalTools(src) {
+  return new Map([
+    ['terminal_run', {
+      description: "Run one line of PowerShell in AI Command Center's active terminal, or a new one if none is open. The app shows the command and waits for the user to click Run, so this can take minutes; it fails if they deny it or don't answer in 5 minutes. Returns once the command is typed in, without its output. Join statements with ';'.",
+      inputSchema: {
+        type: 'object',
+        properties: { command: { type: 'string', minLength: 1, maxLength: MAX_COMMAND } },
+        required: ['command'],
+        additionalProperties: false,
+      },
+      run: async (/** @type {any} */ args) => {
+        const command = commandArg(args.command);
+        const ran = await src.runCommand(command);
+        if (!ran) throw new Error('Not run: the user denied the command or did not answer');
+        return { ran: true, terminal: ran.terminal, command };
       },
     }],
   ]);

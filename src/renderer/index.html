@@ -66,6 +66,12 @@
           <button id="term-new" class="icon-btn" title="New terminal (Ctrl+Shift+`)" aria-label="New terminal">＋</button>
           <button id="term-toggle" class="icon-btn" title="Hide terminal (Ctrl+`)" aria-label="Hide terminal">▾</button>
         </div>
+        <div id="confirm-bar" role="alertdialog" aria-labelledby="confirm-label" aria-describedby="confirm-cmd" hidden>
+          <span id="confirm-label">An agent wants to run this in <b id="confirm-where"></b>:</span>
+          <code id="confirm-cmd"></code>
+          <button id="confirm-run">Run</button>
+          <button id="confirm-deny">Deny</button>
+        </div>
         <div id="term-host"></div>
       </section>
     </main>

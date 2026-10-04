@@ -54,7 +54,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 | **📁 Files** | Every workspace from Project Hub. Click a file to open it in VS Code, or an HTML file to open it in a tab; hover for Terminal here, VS Code, and Reveal in Explorer. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
-| **🤖 MCP server** | A local MCP server for agents. Read-only tools: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. |
+| **🤖 MCP server** | A local MCP server for agents. Read-only tools: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. |
 
 ## 🚀 Quick start
 
@@ -119,7 +119,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 
 - Browser tabs are sandboxed, get no preload from this app, and can't navigate to `javascript:`, `data:` or custom protocol URLs.
 - Every IPC channel checks that the sender is the shell UI.
-- The terminal's executable and arguments are fixed in the main process; the UI can only choose a starting folder.
+- The terminal's executable and arguments are fixed in the main process; the UI can only choose a starting folder. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
 - The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. Project Hub is reached over loopback from the main process.
 
 ## ⚖️ Licence

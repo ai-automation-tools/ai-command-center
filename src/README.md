@@ -18,7 +18,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 
 | File | What it does |
 |:---|:---|
-| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), saves the open tabs on close and restores them when the shell asks, starts the MCP server once the tabs exist and hands its tools the tabs, Hub and the Recent list (open-in-Hub is one function shared by the sidebar and `open_file`), builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
+| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), saves the open tabs on close and restores them when the shell asks, starts the MCP server once the tabs exist and hands its tools the tabs, Hub and the Recent list (open-in-Hub is one function shared by the sidebar and `open_file`), holds `terminal_run`'s pending confirmations and types the command once the shell answers, builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
 | [**tabs.js**](main/tabs.js) | Browser tabs: one sandboxed `WebContentsView` each, sized to the rectangle the shell reports. Blocks `javascript:` and other schemes, turns pop-ups into tabs, owns the page context menu. |
 | [**extensions.js**](main/extensions.js) | electron-chrome-extensions and the Web Store installer on the browse session. See [ADR-001](../docs/decisions/adr-001-electron-shell.md). |
 | [**terminal.js**](main/terminal.js) | PowerShell sessions through node-pty. The renderer picks a folder; the executable and arguments are fixed here. See [ADR-003](../docs/decisions/adr-003-terminal-in-main.md). |
@@ -37,7 +37,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | File | What it does |
 |:---|:---|
 | [**index.html**](renderer/index.html) | The layout: sidebar, splitters, tab strip, address bar, content area, terminal panel. Strict CSP. |
-| [**app.js**](renderer/app.js) | Wires everything together: tab strip and address bar, splitter drags, shortcuts, and reporting the content rectangle so the active tab sits exactly over it. |
+| [**app.js**](renderer/app.js) | Wires everything together: tab strip and address bar, splitter drags, shortcuts, the `terminal_run` confirm bar (one ask at a time; Deny has focus), and reporting the content rectangle so the active tab sits exactly over it. |
 | [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them. |
 | [**terminal.js**](renderer/terminal.js) | One xterm.js instance per PowerShell session, with copy and paste keys. |
 | [**styles.css**](renderer/styles.css) | Dark theme and the grid layout. |
@@ -50,7 +50,8 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**url.js**](shared/url.js) | Address-bar text to a URL (paths, loopback, hosts, search) and the allowed navigation schemes. |
 | [**recent.js**](shared/recent.js) | Adding to and cleaning the Recent list. |
 | [**mcp.js**](shared/mcp.js) | The MCP server itself: JSON-RPC over Streamable HTTP with plain JSON replies, bearer-token and loopback-Host checks, `initialize`, `ping`, `tools/list` and `tools/call`. No Electron, so the tests run it for real. |
-| [**tools.js**](shared/tools.js) | The MCP tools: read-only `list_tabs`, `sidebar_search` and `recent`; navigation `open_tab` (address-bar text, http, https and file only) and `open_file` (Hub node ids only, VS Code or reveal, never default-app). The main process passes in the data sources and actions. |
+| [**tools.js**](shared/tools.js) | The MCP tools: read-only `list_tabs`, `sidebar_search` and `recent`; navigation `open_tab` (address-bar text, http, https and file only) and `open_file` (Hub node ids only, VS Code or reveal, never default-app); `terminal_run` (one line, no control or invisible characters, run only after a click). The main process passes in the data sources and actions. |
+| [**confirm.js**](shared/confirm.js) | Pending questions to the user: each ask gets an id, settles once with the answer, or with null after a timeout, when the UI is told to drop it. |
 | [**session.js**](shared/session.js) | Cleaning the saved tab list in `layout.json` and picking which restored tab to activate. |
 
 ---
