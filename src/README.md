@@ -18,7 +18,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 
 | File | What it does |
 |:---|:---|
-| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), saves the open tabs on close and restores them when the shell asks, starts the MCP server once the tabs exist and hands its tools the tabs, Hub and the Recent list (open-in-Hub is one function shared by the sidebar and `open_file`), holds `terminal_run`'s pending confirmations and types the command once the shell answers, registers the chat panel's `chat:` channels, pops up native context menus for the shell (`menu:popup`), builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
+| [**main.js**](main/main.js) | Creates the window and the shell view, serves `acc://shell/`, registers every IPC channel (each refuses any sender but the shell), registers the Cron tab's `cronsole:` channels, saves the open tabs on close and restores them when the shell asks, starts the MCP server once the tabs exist and hands its tools the tabs, Hub and the Recent list (open-in-Hub is one function shared by the sidebar and `open_file`), holds `terminal_run`'s pending confirmations and types the command once the shell answers, registers the chat panel's `chat:` channels, pops up native context menus for the shell (`menu:popup`), builds the menu of shortcuts, and runs `npm run smoke` when `ACC_SMOKE_DIR` is set. |
 | [**tabs.js**](main/tabs.js) | Browser tabs: one sandboxed `WebContentsView` each, sized to the rectangle the shell reports. Blocks `javascript:` and other schemes, turns pop-ups into tabs, owns the page context menu. |
 | [**extensions.js**](main/extensions.js) | electron-chrome-extensions and the Web Store installer on the browse session. See [ADR-001](../docs/decisions/adr-001-electron-shell.md). |
 | [**terminal.js**](main/terminal.js) | Shell sessions through node-pty. The renderer picks a folder and a profile from `shared/shells.js`, where executables and arguments are fixed. Tracks which sessions are PowerShell, the only ones `terminal_run` types into. See [ADR-003](../docs/decisions/adr-003-terminal-in-main.md). Every session gets `ACC_MCP_URL` and `ACC_MCP_TOKEN` once the MCP server is up, so `claude` in it can reach the app. |
@@ -26,6 +26,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**hub.js**](main/hub.js) | The Project Hub client: health, scan, bookmarks, favorites, file, open. See [ADR-002](../docs/decisions/adr-002-hub-over-http.md). |
 | [**chat.js**](main/chat.js) | The chat panel's one conversation: reads the key and model from the environment at each send, gets the tools from the MCP server, runs the turn from `shared/chat.js`, and sends each step to the shell. The key never leaves the main process. |
 | [**mcp.js**](main/mcp.js) | Starts the Control Center MCP server, with the tools from `shared/tools.js`, on `127.0.0.1` with a random port and a per-launch token, writes both to `mcp.json` in `%APPDATA%\ai-command-center`, and removes the file on quit. It hands back the URL and token for the terminals. `mcpLog()` keeps the newest 200 calls for the sidebar and appends every call to `logs\mcp.log`, rotating at 5 MB. |
+| [**cronsole.js**](main/cronsole.js) | Cronsole's MCP server as a child process: this app's Electron binary in Node mode running the script `ACC_CRONSOLE_MCP` names, started on the Cron tab's first ask, started again after it exits, killed on quit. Answers the sidebar with `list_tasks`. |
 | [**store.js**](main/store.js) | `recent.json` and `layout.json` (splitter sizes, terminal state, bookmark source, and the tabs open at the last close) in `%APPDATA%\ai-command-center`, written atomically. |
 
 ## 🔌 preload/
@@ -39,9 +40,9 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | File | What it does |
 |:---|:---|
 | [**index.html**](renderer/index.html) | The layout: sidebar, splitters, tab strip, address bar, content area, terminal panel. Strict CSP. |
-| [**app.js**](renderer/app.js) | Wires everything together: tab strip and address bar, splitter drags, shortcuts, the `terminal_run` confirm bar (one ask at a time; Deny has focus), the shell menu on the terminal strip, opening documents in a tab (reusing one already showing a document; Ctrl+click for another), and reporting the content rectangle so the active tab sits exactly over it. |
+| [**app.js**](renderer/app.js) | Wires everything together: tab strip and address bar, splitter drags, shortcuts, the `terminal_run` confirm bar (one ask at a time; Deny has focus), the shell menu on the terminal strip, opening documents in a tab (reusing one already showing a document; Ctrl+click for another), the pinned Cronsole tab (first in the strip, no close button, reused by Open Cronsole), and reporting the content rectangle so the active tab sits exactly over it. |
 | [**chat.js**](renderer/chat.js) | The sidebar's Chat tab: shows the conversation as plain text (messages, each tool call and its result), sends what you type, and says which variables to set when the key or model is missing. |
-| [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them, plus the MCP panel of calls agents made. Clicks, hover buttons and the right-click menu on Files rows all go through one `fileAction()`. |
+| [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them, plus the MCP panel of calls agents made and the Cron panel of Cronsole's tasks. Clicks, hover buttons and the right-click menu on Files rows all go through one `fileAction()`. |
 | [**terminal.js**](renderer/terminal.js) | One xterm.js instance per shell session, with copy and paste keys. |
 | [**styles.css**](renderer/styles.css) | Dark theme and the grid layout. |
 
@@ -60,6 +61,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**shells.js**](shared/shells.js) | The shell profiles (PowerShell 7, Windows PowerShell, Command Prompt, Git Bash): fixed executables and arguments, only those installed, picked by id. |
 | [**docs.js**](shared/docs.js) | Document pages: `acc://doc` URLs that mirror Hub ids (so relative links resolve), the page wrapper and its headers, folder listings, image types. |
 | [**menu.js**](shared/menu.js) | Checks the item list the shell sends for a native context menu. |
+| [**cronsole.js**](shared/cronsole.js) | Cronsole: the server path and UI origin from the environment, which tab URLs are the pinned Cronsole tab, a JSON-RPC client over stdio (newline-delimited, partial lines buffered, timeouts), the MCP handshake and `list_tasks`, its result cleaned into rows, and how a row reads in the sidebar. |
 | [**session.js**](shared/session.js) | Cleaning the saved tab list in `layout.json` and picking which restored tab to activate. |
 
 ---

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/now-Phase_2_·_harness-F59E0B?style=for-the-badge" alt="Now: Phase 2, harness">
+  <img src="https://img.shields.io/badge/now-public_release_checklist-F59E0B?style=for-the-badge" alt="Now: public release checklist">
   <img src="https://img.shields.io/badge/stage-incubating_(private)-8B5CF6?style=for-the-badge" alt="Stage: incubating, private">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-docs_home-6B7280?style=for-the-badge" alt="Back to docs"></a>
 </p>
@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day (a Files right-click menu, documents shown under the app's own sidebar, and a shell menu), then the MCP call log and the README's `claude mcp add` section, and the chat panel (weekly roadmap PR, 2026-10-04). **Next:** Cronsole in the sidebar, then the public-release checklist.
+> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day (a Files right-click menu, documents shown under the app's own sidebar, and a shell menu), then the MCP call log and the README's `claude mcp add` section, and the chat panel, then Cronsole's Cron tab with its pinned tab (weekly roadmap PRs, 2026-10-04), which finishes Phase 2. **Next:** the public-release checklist.
 
 ## 🧭 Phase 0: decide
 
@@ -46,7 +46,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Every MCP call written to an in-app log panel and to `%APPDATA%\ai-command-center\logs\mcp.log` — 2026-10-04; the sidebar's MCP tab and a JSON-lines file, refused calls included; unit-tested, and `npm run smoke` compares the panel with the file
 - [x] README section with the `claude mcp add` line, so Claude Code in the app's terminal can drive the app — 2026-10-04; the app's terminals carry `ACC_MCP_URL` and `ACC_MCP_TOKEN` and the line stores the variable names, so it survives restarts; checked by connecting `claude` to the running app with the README's command
 - [x] Chat panel wired to the MCP server (Claude first; model and key read from the user environment, never stored in the repo) — 2026-10-04, weekly roadmap run; a Chat tab in the sidebar, tools through the MCP server over HTTP with its token. Unit-tested against a real MCP server with a scripted model, and `npm run smoke` opens the tab; not yet run against the live API, which needs Mike's key
-- [ ] Cronsole: its task list in the sidebar through the Cronsole MCP server, and its UI in a pinned tab
+- [x] Cronsole: its task list in the sidebar through the Cronsole MCP server, and its UI in a pinned tab — 2026-10-04, weekly roadmap run; a Cron tab that starts Cronsole's stdio MCP server from `ACC_CRONSOLE_MCP` and lists `list_tasks`, and an Open Cronsole button that keeps one pinned tab. Unit-tested against a fake stdio server; `npm run smoke` listed 452 tasks from the live Cronsole and checked the pinned tab
 
 ## 🧰 Daily use
 

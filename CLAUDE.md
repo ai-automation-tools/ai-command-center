@@ -43,6 +43,7 @@ touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop sess
   - `acc://shell/` serves mapped folders only, with a path-escape check. Don't widen the map.
   - `acc://doc/` is served on the browse session only (`src/main/docs.js`): ids from Hub's index only, `DOC_HEADERS` on every response (no scripts, no framing), image bytes only to a document referrer, and `isAllowedNavigation()` refuses it from any page that isn't itself a document.
   - The chat panel's API key and model are read from the environment by the main process (`src/main/chat.js`). The key never goes to the renderer, to disk or into the repo, and there is no default model ID. The chat's tools go through the MCP server with its token, never around it.
+  - Cronsole's MCP server (`src/main/cronsole.js`) runs on the app's own Electron binary (`ELECTRON_RUN_AS_NODE`) with the script path from `ACC_CRONSOLE_MCP` in the environment. No IPC message, MCP call or URL may name that script or pass it arguments, and the app calls only its read-only `list_tasks`.
   - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu.

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { hub } from './hub.js';
 import { chat } from './chat.js';
+import { cronsole } from './cronsole.js';
 import { mcpLog, startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
@@ -50,6 +51,7 @@ let win = null;
 let shellView = null;
 /** @type {Awaited<ReturnType<typeof startMcp>> | null} */
 let mcp = null;
+const cron = cronsole();
 
 /** @param {string} channel @param {...unknown} args */
 function send(channel, ...args) {
@@ -220,6 +222,10 @@ async function createWindow() {
   handle('chat:info', () => conversation.info());
   handle('chat:send', (text) => conversation.send(text));
   handle('chat:reset', () => conversation.reset());
+
+  // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
+  handle('cronsole:info', () => cron.info());
+  handle('cronsole:tasks', () => cron.tasks());
 
   handle('app:info', () => ({
     hubUrl: hub.url,
@@ -426,6 +432,27 @@ function smoke(dir, tabs, browseSession) {
       return { info: await window.acc.chat.info(), shown: document.getElementById('chat-log').textContent.slice(0, 160) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
+    // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set),
+    // then Open Cronsole twice: one pinned tab, first in the strip, reused.
+    const cronPanel = await wc.executeJavaScript(`(async () => {
+      document.querySelector('.side-tabs [data-panel="cron"]').click();
+      for (let i = 0; i < 60 && /Asking/.test(document.getElementById('cron-list').textContent); i++) await new Promise((r) => setTimeout(r, 500));
+      const rows = [...document.querySelectorAll('#cron-list .row')];
+      document.getElementById('cron-open').click();
+      await new Promise((r) => setTimeout(r, 1500));
+      document.getElementById('cron-open').click();
+      await new Promise((r) => setTimeout(r, 500));
+      const pinned = document.querySelectorAll('#tab-list .tab.pinned');
+      return {
+        info: await window.acc.cronsole.info(),
+        tasks: rows.length,
+        first: rows.slice(0, 3).map((r) => r.querySelector('.name').textContent + ' · ' + r.querySelector('.sub').textContent),
+        note: rows.length ? null : document.getElementById('cron-list').textContent.slice(0, 200),
+        pinnedTabs: pinned.length,
+        pinnedFirst: document.querySelector('#tab-list .tab') === pinned[0],
+      };
+    })()`);
+    console.log(`[smoke] cronsole=${JSON.stringify(cronPanel)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());
@@ -456,5 +483,6 @@ app.on('window-all-closed', () => app.quit());
 // terminal killed by this point (win 'closed'), so exit explicitly.
 app.on('quit', () => {
   mcp?.close();
+  cron.close();
   setImmediate(() => app.exit(0));
 });

@@ -25,6 +25,7 @@
         <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
         <button role="tab" data-panel="mcp" aria-selected="false" title="Calls agents made to the app's MCP server">MCP</button>
         <button role="tab" data-panel="chat" aria-selected="false" title="Chat with Claude, which can drive the app">Chat</button>
+        <button role="tab" data-panel="cron" aria-selected="false" title="Cronsole's scheduled tasks">Cron</button>
       </nav>
       <section id="panel-files" class="panel" role="tabpanel"></section>
       <section id="panel-bookmarks" class="panel" role="tabpanel" hidden>
@@ -45,6 +46,13 @@
             <button type="submit" id="chat-send">Send</button>
           </div>
         </form>
+      </section>
+      <section id="panel-cron" class="panel" role="tabpanel" hidden>
+        <div class="panel-tools cron-tools">
+          <button id="cron-open" title="Cronsole's UI in the pinned tab">Open Cronsole</button>
+          <button id="cron-refresh" title="Ask Cronsole again">Refresh</button>
+        </div>
+        <div id="cron-list"></div>
       </section>
       <section id="panel-search" class="panel" role="region" aria-label="Search results" hidden></section>
     </aside>

@@ -56,6 +56,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
 | **🤖 MCP server** | A local MCP server for agents. Read-only tools: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. Every call, including refused ones, shows in the sidebar's **MCP** tab and is appended to `%APPDATA%\ai-command-center\logs\mcp.log`. |
 | **💬 Chat** | A **Chat** tab in the sidebar: Claude with the app's MCP server as its tools, so a message can open a tab, find or open a file, or put a command on the terminal's Run bar. The key and model come from your environment (see [Chat in the app](#-chat-in-the-app)); its tool calls show in the MCP tab like any other client's. |
+| **⏱️ Cron** | A **Cron** tab in the sidebar listing [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks, read through Cronsole's own MCP server: next run, paused, missing or failed at a glance, details on hover. **Open Cronsole**, or a click on a task, shows Cronsole's UI in a pinned tab at the left of the strip. Setup is under "Cronsole in the sidebar" below. |
 
 ## 🚀 Quick start
 
@@ -113,6 +114,16 @@ setx ACC_CHAT_MODEL "<a Claude model ID>"
 
 Enter sends, Shift+Enter starts a new line, Clear starts a new conversation. Each tool call shows in the conversation as it happens, and `terminal_run` still waits for your click on the terminal's Run bar; a denial goes back to Claude as an error.
 
+## ⏱️ Cronsole in the sidebar
+
+The **Cron** tab starts Cronsole's MCP server the first time you open it and calls its `list_tasks` tool. Point the app at the server's entry script in a Cronsole checkout, then restart the app:
+
+```powershell
+setx ACC_CRONSOLE_MCP "<cronsole>\mcp-server\dist\index.js"
+```
+
+The server runs on the app's own Electron binary in Node mode and gets the app's environment, so it finds `CRONSOLE_TOKEN` and `CRONSOLE_API_URL` the same way it does under Claude Code; Cronsole's backend has to be running. Cronsole's UI opens from `http://localhost:7373`; set `ACC_CRONSOLE_UI` if yours is elsewhere. A tab on that address is the pinned tab: it sits first in the strip with no close button (Ctrl+W still closes it), and **Open Cronsole** goes back to it instead of opening another. Refresh asks Cronsole again; the server stops when the app quits.
+
 ## 🌿 Branches
 
 Work on `mike_desktop`, push it, and open a pull request against `main`:
@@ -155,6 +166,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 - Document pages (`acc://doc/…`) are served to the sandboxed tabs only, run no scripts (a `default-src 'none'` policy), can't be framed, and can't be reached from a web page. Only files in Project Hub's index are served, so a crafted address can't read anything else.
 - Each terminal shell is a fixed executable with fixed arguments; the UI can only choose a starting folder and a shell by name. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
 - The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Every call, answered or refused, is logged to the sidebar's MCP tab and `%APPDATA%\ai-command-center\logs\mcp.log` (one JSON line each, arguments clipped to 300 characters, rotated at 5 MB). Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. Project Hub is reached over loopback from the main process.
+- Cronsole's MCP server is the only process the app starts besides the terminals: this app's own Electron binary running the script named by `ACC_CRONSOLE_MCP`, which only the user's environment can set. It talks over stdin and stdout and listens on nothing, and the app calls only its read-only `list_tasks`.
 - The chat panel's API key is read from the environment by the main process and goes only to `api.anthropic.com`; it's never sent to the shell UI or written to disk. The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's, and Claude's replies are shown as plain text, never HTML.
 
 ## ⚖️ Licence

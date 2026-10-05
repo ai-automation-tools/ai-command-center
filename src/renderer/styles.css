@@ -71,6 +71,9 @@ button, input, select { font: inherit; color: inherit; }
 .row:hover .acts, .row:focus-within .acts { display: flex; }
 .row .acts button { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; height: 20px; cursor: pointer; color: var(--text-2); font-size: 11px; }
 .row .acts button:hover { color: var(--text); border-color: var(--line-2); }
+.cron-tools { display: flex; gap: 6px; }
+.cron-tools button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 5px; padding: 3px 10px; cursor: pointer; }
+.row.task.failed .icon, .row.task.failed .sub { color: var(--bad); }
 #panel-chat:not([hidden]) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 #chat-log { flex: 1; overflow: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .chat-msg { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
@@ -111,6 +114,8 @@ button, input, select { font: inherit; color: inherit; }
 .tab .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .tab .close { background: none; border: 0; color: var(--text-3); cursor: pointer; padding: 0 2px; border-radius: 3px; }
 .tab .close:hover { color: var(--text); background: var(--line); }
+.tab.pinned { min-width: 0; max-width: 140px; border-top: 2px solid var(--accent); }
+.tab.pinned .close { display: none; }
 .tab.loading .title::before { content: "◌ "; color: var(--accent); }
 
 #navbar { display: flex; align-items: center; gap: 4px; padding: 5px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }

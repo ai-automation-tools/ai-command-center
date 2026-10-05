@@ -81,6 +81,11 @@ contextBridge.exposeInMainWorld('acc', {
     onEvent: listen('chat:event'),
   },
 
+  cronsole: {
+    info: invoke('cronsole:info'),
+    tasks: invoke('cronsole:tasks'),
+  },
+
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
   menu: invoke('menu:popup'),
 
