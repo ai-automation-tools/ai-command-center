@@ -1,7 +1,8 @@
 // The left sidebar: Files (Project Hub's tree), Bookmarks (browser profiles Hub reads,
 // plus Hub's own favorites), Recent, and one search box across all three; plus MCP,
-// the log of calls agents made to the app's MCP server.
+// the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
+import { taskSummary } from '/shared/cronsole.js';
 import { pushEntry } from '/shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
 
@@ -25,10 +26,13 @@ export class Sidebar {
    *   openUrl: (url: string, opts?: { background?: boolean }) => void,
    *   openTerminal: (cwd: string) => void,
    *   viewDoc: (id: string, opts?: { newTab?: boolean }) => void,
+   *   openCronsole: () => void,
    * }} opts
    */
-  constructor({ api, layout, openUrl, openTerminal, viewDoc }) {
+  constructor({ api, layout, openUrl, openTerminal, viewDoc, openCronsole }) {
     this.api = api;
+    this.openCronsole = openCronsole;
+    this.cronLoaded = false;
     this.openUrl = openUrl;
     this.openTerminal = openTerminal;
     this.viewDoc = viewDoc;
@@ -50,6 +54,8 @@ export class Sidebar {
       recent: /** @type {HTMLElement} */ (document.getElementById('panel-recent')),
       mcp: /** @type {HTMLElement} */ (document.getElementById('panel-mcp')),
       chat: /** @type {HTMLElement} */ (document.getElementById('panel-chat')),
+      cron: /** @type {HTMLElement} */ (document.getElementById('panel-cron')),
+      cronList: /** @type {HTMLElement} */ (document.getElementById('cron-list')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
       search: /** @type {HTMLInputElement} */ (document.getElementById('search')),
       status: /** @type {HTMLElement} */ (document.getElementById('hub-status')),
@@ -73,6 +79,8 @@ export class Sidebar {
       this.api.saveLayout({ bookmarkSource: this.bookmarkSource });
       this.loadBookmarks();
     });
+    document.getElementById('cron-open')?.addEventListener('click', () => this.openCronsole());
+    document.getElementById('cron-refresh')?.addEventListener('click', () => this.loadCron());
     api.recent.onChanged((/** @type {any[]} */ list) => { this.recent = list; this.renderRecent(); });
     /** @type {import('/shared/mcplog.js').LogEntry[]} */
     this.calls = [];
@@ -332,6 +340,38 @@ export class Sidebar {
     }
   }
 
+  // Cronsole's tasks, asked for when the tab is first opened: the first ask starts its MCP server.
+  async loadCron() {
+    this.cronLoaded = true;
+    const host = this.el.cronList;
+    host.innerHTML = '';
+    host.append(note('Asking Cronsole…'));
+    try {
+      const tasks = await this.api.cronsole.tasks();
+      host.innerHTML = '';
+      if (!tasks.length) host.append(note('Cronsole has no tasks.'));
+      const now = Date.now();
+      for (const t of tasks) {
+        const s = taskSummary(t, now);
+        const row = document.createElement('div');
+        row.className = `row task${s.failed ? ' failed' : ''}`;
+        row.tabIndex = 0;
+        row.style.paddingLeft = '10px';
+        row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span>';
+        q(row, '.icon').textContent = s.icon;
+        q(row, '.name').textContent = t.name;
+        q(row, '.sub').textContent = s.sub;
+        row.title = s.title;
+        row.addEventListener('click', () => this.openCronsole());
+        row.addEventListener('keydown', (e) => { if (e.key === 'Enter') row.click(); });
+        host.append(row);
+      }
+    } catch (err) {
+      host.innerHTML = '';
+      host.append(note(errText(err), true));
+    }
+  }
+
   /** @param {string} name */
   show(name) {
     this.current = name;
@@ -344,6 +384,8 @@ export class Sidebar {
     this.el.recent.hidden = name !== 'recent';
     this.el.mcp.hidden = name !== 'mcp';
     this.el.chat.hidden = name !== 'chat';
+    this.el.cron.hidden = name !== 'cron';
+    if (name === 'cron' && !this.cronLoaded) this.loadCron();
   }
 
   focusSearch() {
@@ -359,7 +401,7 @@ export class Sidebar {
       this.show(this.current);
       return;
     }
-    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.chat.hidden = true;
+    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.chat.hidden = this.el.cron.hidden = true;
     res.hidden = false;
     res.innerHTML = '';
 

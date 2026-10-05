@@ -5,6 +5,7 @@ import { Sidebar, toast } from '/sidebar.js';
 import { startChat } from '/chat.js';
 import { TerminalPanel } from '/terminal.js';
 import { docUrl, isDocUrl } from '/shared/docs.js';
+import { isCronsoleUrl } from '/shared/cronsole.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
@@ -18,6 +19,7 @@ const QUICK_LINKS = [
 ];
 
 const info = await api.info();
+const cron = await api.cronsole.info();
 const layout = info.layout;
 const appEl = $('app');
 const mainEl = $('main');
@@ -194,7 +196,7 @@ api.tabs.onCreated((/** @type {any} */ t) => {
     if (/** @type {HTMLElement} */ (e.target).closest('.close')) api.tabs.close(t.id);
     else api.tabs.activate(t.id);
   });
-  el.addEventListener('auxclick', (e) => { if (e.button === 1) api.tabs.close(t.id); });
+  el.addEventListener('auxclick', (e) => { if (e.button === 1 && !el.classList.contains('pinned')) api.tabs.close(t.id); });
   $('tab-list').append(el);
   tabEls.set(t.id, el);
   updateTab(t);
@@ -202,6 +204,13 @@ api.tabs.onCreated((/** @type {any} */ t) => {
 });
 
 api.tabs.onUpdate(updateTab);
+
+/** Cronsole's UI: the pinned tab if there is one, else a new tab that becomes it. */
+function openCronsole() {
+  const pinned = [...tabEls].find(([, el]) => el.classList.contains('pinned'))?.[0];
+  if (pinned === undefined) openUrl(cron.ui);
+  else api.tabs.activate(pinned);
+}
 
 /** @param {any} t */
 function updateTab(t) {
@@ -212,6 +221,10 @@ function updateTab(t) {
   /** @type {HTMLElement} */ (el.querySelector('.title')).textContent = title;
   el.title = `${title}\n${t.url}`;
   el.classList.toggle('loading', Boolean(t.loading));
+  // A tab showing Cronsole's UI is the pinned one: first in the strip, no close button.
+  const pinned = Boolean(t.url) && isCronsoleUrl(t.url, cron.ui);
+  el.classList.toggle('pinned', pinned);
+  if (pinned && el.parentElement?.firstElementChild !== el) $('tab-list').prepend(el);
   if (t.favicon !== undefined) {
     const img = /** @type {HTMLImageElement} */ (el.querySelector('img'));
     img.hidden = !t.favicon;
@@ -296,7 +309,7 @@ for (const [label, url] of QUICK_LINKS) {
 
 // ---- sidebar -----------------------------------------------------------------
 
-const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc });
+const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc, openCronsole });
 
 // ---- shortcuts ---------------------------------------------------------------
 
