@@ -19,7 +19,7 @@ import { listExtensions, setupExtensions } from './extensions.js';
 import { serveDocs } from './docs.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
-import { navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
+import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
 import { Confirmations } from '../shared/confirm.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
@@ -132,6 +132,7 @@ function buildMenu() {
         item('Toggle sidebar', 'CmdOrCtrl+B', 'toggle-sidebar'),
         { type: 'separator' },
         item('Reload page', 'F5', 'reload'),
+        item('Find in page', 'CmdOrCtrl+F', 'find'),
         item('Zoom in', 'CmdOrCtrl+=', 'zoom-in'),
         { ...item('Zoom in', 'CmdOrCtrl+Plus', 'zoom-in'), visible: false },
         item('Zoom out', 'CmdOrCtrl+-', 'zoom-out'),
@@ -195,8 +196,9 @@ async function createWindow() {
   };
 
   // terminal_run: the shell shows the command and answers with the terminal to type it
-  // into, or null. The command stays here; the answer can't change what runs.
-  /** @type {Confirmations<number>} */
+  // into, or null. cron_run: the shell shows the task's name and answers true or null.
+  // The command and the task id stay here; the answer can't change what runs.
+  /** @type {Confirmations<number | true>} */
   const confirmations = new Confirmations({
     show: (ask) => send('mcp:confirm', ask),
     cancel: (id) => send('mcp:cancel', id),
@@ -225,12 +227,19 @@ async function createWindow() {
       terminals.write(terminal, `${command}\r`);
       return { terminal };
     },
+    listCronTasks: () => cron.tasks(),
+    runCronTask: async (id) => {
+      const task = (await cron.tasks()).find((t) => t.id === id);
+      if (!task) throw new Error(`Cronsole has no task with id ${id}`);
+      if (await confirmations.ask({ task: task.name }) !== true) return null;
+      return cron.run(id);
+    },
   };
   const callLog = mcpLog(send);
   handle('mcp:log', () => callLog.entries);
   // Terminals get the address and token, so `claude` in one can reach the app (README,
   // "Drive the app from Claude Code"). The shell loads after this, so even the first has them.
-  const mcpReady = startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources)]), (e) => callLog.add(e))
+  const mcpReady = startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources), ...cronTools(sources)]), (e) => callLog.add(e))
     .then((m) => {
       mcp = m;
       terminals.env = { ACC_MCP_URL: m.url, ACC_MCP_TOKEN: m.token };
@@ -270,6 +279,9 @@ async function createWindow() {
   handle('tabs:close', (id) => tabs.close(Number(id)));
   handle('tabs:navigate', (input) => tabs.navigate(toUrl(String(input))));
   handle('tabs:command', (action) => tabs.command(action));
+  // Electron's findNext means "start a new session": true as the text changes, false to step.
+  handle('tabs:find', (text, forward, newSession) => tabs.find(String(text).slice(0, 1000), { forward: forward !== false, findNext: Boolean(newSession) }));
+  handle('tabs:stopFind', () => tabs.stopFind());
   on('tabs:bounds', (rect) => tabs.setBounds(rect));
   on('tabs:hidden', (hidden) => tabs.setHidden(Boolean(hidden)));
   // The shell asks once its tab listeners are wired. The smoke run neither restores
@@ -297,7 +309,7 @@ async function createWindow() {
   on('term:resize', (id, cols, rows) => terminals.resize(Number(id), cols, rows));
   handle('term:kill', (id) => terminals.kill(Number(id)));
 
-  handle('mcp:answer', (id, terminal) => confirmations.settle(Number(id), Number.isInteger(terminal) ? terminal : null));
+  handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true ? true : Number.isInteger(answer) ? answer : null));
 
   // A native menu, so it draws over the browser view instead of under it.
   handle('menu:popup', (items) => new Promise((resolve) => {
@@ -334,7 +346,7 @@ async function createWindow() {
     console.error('[extensions] setup failed; browsing still works without them:', err);
   }
 
-  if (process.env.ACC_SMOKE_DIR) smoke(process.env.ACC_SMOKE_DIR, tabs, browseSession);
+  if (process.env.ACC_SMOKE_DIR) smoke(process.env.ACC_SMOKE_DIR, tabs, terminals, browseSession);
   await mcpReady;
   await shellView.webContents.loadURL('acc://shell/index.html');
 }
@@ -344,9 +356,10 @@ async function createWindow() {
  * screenshots of the shell and the page, then quit. See scripts/smoke.js.
  * @param {string} dir
  * @param {Tabs} tabs
+ * @param {Terminals} terminals
  * @param {Electron.Session} browseSession
  */
-function smoke(dir, tabs, browseSession) {
+function smoke(dir, tabs, terminals, browseSession) {
   const wc = /** @type {WebContentsView} */ (shellView).webContents;
   wc.on('console-message', (e) => console.log(`[shell:${e.level}] ${e.message}`));
   wc.on('preload-error', (_e, p, err) => console.log(`[shell:preload-error] ${p}: ${err.message}`));
@@ -423,8 +436,29 @@ function smoke(dir, tabs, browseSession) {
       const output = await call('terminal_read', { lines: 5 });
       console.log(`[smoke] mcp list_terminals=${JSON.stringify(sessions)}`);
       console.log(`[smoke] mcp terminal_read terminal=${output.terminal} text=${JSON.stringify(output.text?.slice(-200))}`);
+      console.log(`[smoke] terminal raw tail=${JSON.stringify(terminals.read()?.raw?.slice(-400))}`);
       const page = await call('read_tab', { tab: tab.view.webContents.id });
       console.log(`[smoke] mcp read_tab title=${JSON.stringify(page.title)} chars=${page.text?.length} truncated=${page.truncated} start=${JSON.stringify(page.text?.slice(0, 60))}`);
+      // cron_tasks answers with the list, or says what to set when Cronsole isn't configured.
+      const cronOut = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'cron_tasks', arguments: {} } }),
+      }).then((r) => r.json());
+      console.log(`[smoke] mcp cron_tasks tasks=${cronOut.result?.structuredContent?.tasks?.length ?? null} error=${JSON.stringify(cronOut.result?.isError ? cronOut.result.content?.[0]?.text?.slice(0, 80) : null)}`);
+      // Find in page on example.com: type a word and read the match count.
+      tabs.activate(tab.id);
+      const finder = await wc.executeJavaScript(`(async () => {
+        document.getElementById('find-form').hidden = false;
+        const i = document.getElementById('find-input');
+        i.value = 'domain';
+        i.dispatchEvent(new Event('input'));
+        await new Promise((r) => setTimeout(r, 800));
+        const count = document.getElementById('find-count').textContent;
+        document.getElementById('find-close').click();
+        return { count, hidden: document.getElementById('find-form').hidden };
+      })()`);
+      console.log(`[smoke] find=${JSON.stringify(finder)}`);
     } catch (err) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }

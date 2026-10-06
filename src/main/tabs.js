@@ -90,6 +90,7 @@ export class Tabs {
     wc.on('did-navigate-in-page', report);
     wc.on('page-favicon-updated', (_e, favicons) => this.send('tab:update', { ...this.describe(tab), favicon: favicons[0] || '' }));
     wc.on('context-menu', (_e, params) => this.contextMenu(tab, params));
+    wc.on('found-in-page', (_e, r) => this.send('tab:found', tab.id, { active: r.activeMatchOrdinal, total: r.matches, done: r.finalUpdate }));
     // Browser shortcuts that the app menu can't own because the terminal needs them.
     wc.on('before-input-event', (e, input) => {
       if (input.type !== 'keyDown' || !input.control || input.alt || input.shift) return;
@@ -153,6 +154,20 @@ export class Tabs {
       wc.close();
     }
     this.forget(id);
+  }
+
+  /**
+   * Find in the active page; results arrive as 'tab:found' events.
+   * @param {string} text
+   * @param {{ forward: boolean, findNext: boolean }} opts
+   */
+  find(text, opts) {
+    const wc = this.active()?.view.webContents;
+    if (wc && text) wc.findInPage(text, opts);
+  }
+
+  stopFind() {
+    this.active()?.view.webContents.stopFindInPage('clearSelection');
   }
 
   /** Reopen the last tab the user closed, if any. */

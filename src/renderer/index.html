@@ -71,6 +71,13 @@
         <form id="address-form">
           <input id="address" type="text" placeholder="Search or enter address  (Alt+D)" autocomplete="off" spellcheck="false" aria-label="Address">
         </form>
+        <form id="find-form" role="search" aria-label="Find in page" hidden>
+          <input id="find-input" type="text" placeholder="Find in page" autocomplete="off" spellcheck="false" aria-label="Find in page">
+          <span id="find-count" aria-live="polite"></span>
+          <button type="button" id="find-prev" class="icon-btn" title="Previous match (Shift+Enter)" aria-label="Previous match">↑</button>
+          <button type="button" id="find-next" class="icon-btn" title="Next match (Enter)" aria-label="Next match">↓</button>
+          <button type="button" id="find-close" class="icon-btn" title="Close (Escape)" aria-label="Close find">×</button>
+        </form>
         <div id="actions-host"></div>
         <button id="open-external" class="icon-btn" title="Open in default browser" aria-label="Open in default browser">↗</button>
       </div>

@@ -120,6 +120,11 @@ button, input, select { font: inherit; color: inherit; }
 
 #navbar { display: flex; align-items: center; gap: 4px; padding: 5px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
 #address-form { flex: 1; }
+#find-form { display: flex; align-items: center; gap: 2px; padding-left: 6px; border-left: 1px solid var(--line); }
+#find-form[hidden] { display: none; }
+#find-input { width: 180px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; outline: none; }
+#find-input:focus { border-color: var(--accent); }
+#find-count { color: var(--text-3); font-size: 11px; min-width: 44px; text-align: center; }
 #actions-host { display: flex; align-items: center; min-height: 26px; }
 .icon-btn { background: none; border: 0; border-radius: 5px; width: 28px; height: 28px; cursor: pointer; color: var(--text-2); flex: none; }
 .icon-btn:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }

@@ -7,7 +7,7 @@
 import { app } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { cronsoleConfig, initialize, listTasks, stdioRpc } from '../shared/cronsole.js';
+import { cronsoleConfig, initialize, listTasks, runTask, stdioRpc } from '../shared/cronsole.js';
 
 export function cronsole() {
   /** @type {import('node:child_process').ChildProcess | null} */
@@ -39,6 +39,17 @@ export function cronsole() {
     return initialize(rpc, app.getVersion()).then(() => rpc);
   };
 
+  /** The running server, started on first use. */
+  const client = () => {
+    const { server } = cronsoleConfig(process.env);
+    if (!server) throw new Error('Set ACC_CRONSOLE_MCP to the path of Cronsole\'s mcp-server/dist/index.js, then restart the app.');
+    if (!ready) {
+      ready = start(server);
+      ready.catch(() => { ready = null; child?.kill(); });
+    }
+    return ready;
+  };
+
   return {
     /** For the sidebar: whether a server is set, and where the UI is. */
     info() {
@@ -46,15 +57,10 @@ export function cronsole() {
       return { configured: Boolean(server), ui };
     },
 
-    async tasks() {
-      const { server } = cronsoleConfig(process.env);
-      if (!server) throw new Error('Set ACC_CRONSOLE_MCP to the path of Cronsole\'s mcp-server/dist/index.js, then restart the app.');
-      if (!ready) {
-        ready = start(server);
-        ready.catch(() => { ready = null; child?.kill(); });
-      }
-      return listTasks(await ready);
-    },
+    tasks: async () => listTasks(await client()),
+
+    /** Start a task now; the main process asks the user first (cron_run). @param {string} taskId */
+    run: async (taskId) => runTask(await client(), taskId),
 
     close() {
       child?.kill();

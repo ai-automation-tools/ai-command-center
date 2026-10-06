@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleMessage } from '../src/shared/mcp.js';
-import { commandArg, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
+import { commandArg, cronTools, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
 import { searchAll } from '../src/shared/tree.js';
 
 const scan = {
@@ -260,4 +260,38 @@ test('list_terminals and terminal_read read the showing terminal or a named one,
   }
   const none = terminalTools(/** @type {any} */ ({ listTerminals: () => [], readTerminal: () => null, runCommand: async () => null }));
   assert.match((await call(none, 'terminal_read', {})).content[0].text, /No terminal is open/);
+});
+
+// ---- cron_tasks, cron_run ------------------------------------------------------
+
+test('cron_tasks lists Cronsole tasks and surfaces a missing setup as a tool error', async () => {
+  const task = { id: 't1', name: 'Nightly', platform: 'TASKHUB_NATIVE', schedule: null, status: 'ACTIVE', nextRunTime: null, lastRunStatus: null, lastRunAt: null };
+  const t = cronTools(/** @type {any} */ ({ listCronTasks: async () => [task], runCronTask: async () => null }));
+  assert.deepEqual((await call(t, 'cron_tasks', {})).structuredContent, { tasks: [task] });
+  const off = cronTools(/** @type {any} */ ({ listCronTasks: async () => { throw new Error('Set ACC_CRONSOLE_MCP'); }, runCronTask: async () => null }));
+  const res = await call(off, 'cron_tasks', {});
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /ACC_CRONSOLE_MCP/);
+});
+
+test('cron_run asks with the task id, returns the run result, and is a tool error when denied or refused', async () => {
+  /** @type {string[]} */
+  const asked = [];
+  const t = cronTools(/** @type {any} */ ({
+    listCronTasks: async () => [],
+    runCronTask: async (/** @type {string} */ id) => {
+      asked.push(id);
+      if (id === 'deny') return null;
+      if (id === 'missing') throw new Error('Cronsole has no task with id missing');
+      return { ran: true, success: true };
+    },
+  }));
+  assert.deepEqual((await call(t, 'cron_run', { task: ' t1 ' })).structuredContent, { ran: true, task: 't1', result: { ran: true, success: true } });
+  assert.match((await call(t, 'cron_run', { task: 'deny' })).content[0].text, /denied/);
+  assert.match((await call(t, 'cron_run', { task: 'missing' })).content[0].text, /no task/);
+  assert.deepEqual(asked, ['t1', 'deny', 'missing']);
+  for (const args of [undefined, {}, { task: '' }, { task: 3 }, { task: 'a\nb' }, { task: 'x'.repeat(201) }]) {
+    assert.equal((await call(t, 'cron_run', args)).isError, true, JSON.stringify(args));
+  }
+  assert.equal(asked.length, 3);
 });

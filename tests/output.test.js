@@ -10,9 +10,18 @@ test('cleanOutput strips colours, cursor moves, titles and hyperlinks, keeps the
 test('cleanOutput resolves carriage returns and drops control characters but keeps tabs', () => {
   assert.equal(cleanOutput('10%\r50%\r100%\r\nok\tdone\x07\x00'), '100%\nok\tdone');
   assert.equal(cleanOutput('a\r\n\r\nb'), 'a\n\nb');
-  // PSReadLine redraws the typed line with cursor-to-column-1 and erase-line codes.
+});
+
+test('cleanOutput resolves the cursor moves PSReadLine redraws with', () => {
+  // Column 1 and erase line.
   assert.equal(cleanOutput('PS> npm tes\x1b[1G\x1b[2KPS> npm test\x1b[12;1H\x1b[?25hPS> npm test\r\nok\r\n'), 'PS> npm test\nok\n');
-  assert.equal(cleanOutput('col\x1b[11Gkeep'), 'colkeep');
+  // Absolute column past the prompt, as ConPTY emits while a command is typed, then the output.
+  const typed = 'PS> \x1b[1;5H\x1b[93mWrite-Outpu\x1b[0m\x1b[1;16H\x1b[?25l\x1b[1;5H\x1b[93mWrite-Output\x1b[0m "x"\x1b[1;22H\x1b[?25h\r\nx\r\nPS> ';
+  assert.equal(cleanOutput(typed), 'PS> Write-Output "x"\nx\nPS> ');
+  // Cursor back and erase to end of line (backspace over a typo), and padding to a column.
+  assert.equal(cleanOutput('PS> gti\x1b[2D\x1b[Kit status'), 'PS> git status');
+  assert.equal(cleanOutput('col\x1b[11Gkeep'), 'col       keep');
+  assert.equal(cleanOutput('abc\x1b[1K'), '   ');
   assert.equal(cleanOutput(''), '');
 });
 

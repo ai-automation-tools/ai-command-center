@@ -7,6 +7,7 @@
 import { absPath, flatten, flattenBookmarks, searchAll } from './tree.js';
 import { toUrl } from './url.js';
 import { READ_LINES_MAX, cleanOutput, lastLines } from './output.js';
+import { taskIdArg } from './cronsole.js';
 
 const MAX_LIMIT = 100;
 const MAX_QUERY = 500;
@@ -40,6 +41,8 @@ const HIDDEN_CHARS = /[\p{Cc}\p{Cf}]/u;
  *   runCommand: (command: string) => Promise<{ terminal: number } | null>,
  *   listTerminals: () => TerminalInfo[],
  *   readTerminal: (id?: number) => { id: number, raw: string | null } | null,
+ *   listCronTasks: () => Promise<import('./cronsole.js').CronTask[]>,
+ *   runCronTask: (id: string) => Promise<unknown | null>,
  * }} Sources
  * @typedef {{ id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean, active: boolean }} TerminalInfo
  */
@@ -230,6 +233,37 @@ export function navigationTools(src) {
         if (!OPEN_IN.includes(how)) throw new Error(`in must be one of ${OPEN_IN.join(', ')}`);
         await src.openFile(id, how);
         return { opened: id, in: how };
+      },
+    }],
+  ]);
+}
+
+/**
+ * Cronsole through its own MCP server: the task list, and a run that waits for the
+ * user's click like terminal_run does. The task id stays in the main process.
+ * @param {Sources} src
+ * @returns {Map<string, Tool>}
+ */
+export function cronTools(src) {
+  return new Map([
+    ['cron_tasks', {
+      description: "The scheduled tasks Cronsole tracks (id, name, platform, schedule, status, next run, last run result), as the sidebar's Cron tab lists them. Needs Cronsole set up for the app (ACC_CRONSOLE_MCP).",
+      inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+      run: async () => ({ tasks: await src.listCronTasks() }),
+    }],
+    ['cron_run', {
+      description: "Start a Cronsole task now, by the id cron_tasks gives. The app shows the task's name and waits for the user to click Run, so this can take minutes; it fails if they deny it or don't answer in 5 minutes. A native task runs inside the call, so the result can say it ran and failed: report that as the task's outcome, not as a tool failure.",
+      inputSchema: {
+        type: 'object',
+        properties: { task: { type: 'string', minLength: 1, maxLength: 200, description: 'Task id from cron_tasks' } },
+        required: ['task'],
+        additionalProperties: false,
+      },
+      run: async (/** @type {any} */ args) => {
+        const id = taskIdArg(args.task);
+        const result = await src.runCronTask(id);
+        if (result === null) throw new Error('Not run: the user denied the task or did not answer');
+        return { ran: true, task: id, result };
       },
     }],
   ]);

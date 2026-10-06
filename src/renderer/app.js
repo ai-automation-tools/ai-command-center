@@ -100,7 +100,7 @@ $('term-shells').addEventListener('click', async () => {
 // One bar at a time over the terminal; the rest wait their turn. Main holds the
 // command and types it; this only says which terminal, or no.
 
-/** @type {{ id: number, command: string }[]} */
+/** @type {{ id: number, command?: string, task?: string }[]} */
 const asks = [];
 
 function showAsk() {
@@ -108,8 +108,9 @@ function showAsk() {
   $('confirm-bar').hidden = !ask;
   if (!ask) return;
   if (mainEl.classList.contains('no-terminal')) setTerminalOpen(true);
-  $('confirm-cmd').textContent = ask.command;
-  $('confirm-where').textContent = terminals.runTarget()?.label || 'a new terminal';
+  // A command names the terminal it goes to; a Cronsole task (cron_run) names Cronsole.
+  $('confirm-cmd').textContent = ask.task ?? ask.command ?? '';
+  $('confirm-where').textContent = ask.task !== undefined ? 'Cronsole' : terminals.runTarget()?.label || 'a new terminal';
   // Deny takes focus, so an Enter meant for the terminal can't run the command.
   $('confirm-deny').focus();
 }
@@ -119,6 +120,11 @@ async function answerAsk(run) {
   const ask = asks.shift();
   if (!ask) return;
   $('confirm-bar').hidden = true;
+  if (ask.task !== undefined) {
+    await api.mcp.answer(ask.id, run ? true : null);
+    showAsk();
+    return;
+  }
   const pwsh = info.shells.find((/** @type {{ powershell: boolean }} */ s) => s.powershell)?.id;
   const id = run ? (terminals.runTarget()?.id ?? await openTerminal(undefined, pwsh)) : null;
   await api.mcp.answer(ask.id, id);
@@ -128,7 +134,7 @@ async function answerAsk(run) {
 
 $('confirm-run').addEventListener('click', () => answerAsk(true));
 $('confirm-deny').addEventListener('click', () => answerAsk(false));
-api.mcp.onConfirm((/** @type {{ id: number, command: string }} */ ask) => {
+api.mcp.onConfirm((/** @type {{ id: number, command?: string, task?: string }} */ ask) => {
   asks.push(ask);
   if (asks.length === 1) showAsk();
 });
@@ -229,6 +235,7 @@ function updateTab(t) {
 }
 
 api.tabs.onActivated((/** @type {number} */ id) => {
+  if (id !== activeTab && !findForm.hidden) closeFind();
   activeTab = id;
   for (const [tid, el] of tabEls) {
     el.classList.toggle('active', tid === id);
@@ -306,6 +313,37 @@ for (const { label, url } of info.quickLinks) {
   $('quick-links').append(b);
 }
 
+// ---- find in page --------------------------------------------------------------
+
+const findForm = $('find-form');
+const findInput = /** @type {HTMLInputElement} */ ($('find-input'));
+
+function openFind() {
+  findForm.hidden = false;
+  findInput.focus();
+  findInput.select();
+  if (findInput.value) api.tabs.find(findInput.value, true, true);
+}
+function closeFind() {
+  findForm.hidden = true;
+  $('find-count').textContent = '';
+  api.tabs.stopFind();
+}
+findInput.addEventListener('input', () => {
+  if (findInput.value) api.tabs.find(findInput.value, true, true);
+  else { $('find-count').textContent = ''; api.tabs.stopFind(); }
+});
+findInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); if (findInput.value) api.tabs.find(findInput.value, !e.shiftKey, false); }
+  if (e.key === 'Escape') closeFind();
+});
+$('find-next').addEventListener('click', () => findInput.value && api.tabs.find(findInput.value, true, false));
+$('find-prev').addEventListener('click', () => findInput.value && api.tabs.find(findInput.value, false, false));
+$('find-close').addEventListener('click', closeFind);
+api.tabs.onFound((/** @type {number} */ id, /** @type {{ active: number, total: number }} */ r) => {
+  if (id === activeTab && !findForm.hidden) $('find-count').textContent = r.total ? `${r.active}/${r.total}` : '0/0';
+});
+
 // ---- sidebar -----------------------------------------------------------------
 
 const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc, openCronsole });
@@ -332,6 +370,7 @@ api.onShortcut((/** @type {string} */ action) => {
     requestAnimationFrame(reportBounds);
   }
   if (action === 'reload') api.tabs.command('reload');
+  if (action === 'find') openFind();
   if (action === 'devtools') api.tabs.command('devtools');
   if (action === 'reopen-tab') api.tabs.command('reopen');
   if (action.startsWith('zoom-')) api.tabs.command(action);

@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('acc', {
     close: invoke('tabs:close'),
     navigate: invoke('tabs:navigate'),
     command: invoke('tabs:command'),
+    find: invoke('tabs:find'),
+    stopFind: invoke('tabs:stopFind'),
+    onFound: listen('tab:found'),
     openExternal: invoke('tabs:openExternal'),
     restore: invoke('tabs:restore'),
     /** @param {{ x: number, y: number, width: number, height: number }} rect */
