@@ -5,18 +5,12 @@ import { Sidebar, toast } from '/sidebar.js';
 import { startChat } from '/chat.js';
 import { TerminalPanel } from '/terminal.js';
 import { docUrl, isDocUrl } from '/shared/docs.js';
+import { cycleTab, pickTab } from '/shared/session.js';
 import { isCronsoleUrl } from '/shared/cronsole.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-
-const QUICK_LINKS = [
-  ['Project Hub', 'http://127.0.0.1:4273'],
-  ['AI Library', 'https://library.mikesailab.com'],
-  ['mikesailab.com', 'https://mikesailab.com'],
-  ['Chrome Web Store', 'https://chromewebstore.google.com'],
-];
 
 const info = await api.info();
 const cron = await api.cronsole.info();
@@ -190,6 +184,7 @@ async function viewDoc(id, opts = {}) {
 api.tabs.onCreated((/** @type {any} */ t) => {
   const el = document.createElement('div');
   el.className = 'tab';
+  el.dataset.id = String(t.id);
   el.setAttribute('role', 'tab');
   el.innerHTML = '<img alt="" hidden><span class="title">New tab</span><button class="close" aria-label="Close tab">×</button>';
   el.addEventListener('click', (e) => {
@@ -256,6 +251,9 @@ api.tabs.onClosed((/** @type {number} */ id) => {
   }
 });
 
+/** Tab ids in the order the strip shows them (the pinned tab first). */
+const tabOrder = () => [...$('tab-list').querySelectorAll('.tab')].map((el) => Number(/** @type {HTMLElement} */ (el).dataset.id));
+
 function syncNavbar() {
   const s = activeTab !== null ? tabState.get(activeTab) : null;
   if (document.activeElement !== address) address.value = s?.url && s.url !== 'about:blank' ? s.url : '';
@@ -299,7 +297,8 @@ address.addEventListener('blur', () => {
   }, 150);
 });
 
-for (const [label, url] of QUICK_LINKS) {
+// From settings.json (src/shared/settings.js); Project Hub and the Web Store by default.
+for (const { label, url } of info.quickLinks) {
   const b = document.createElement('button');
   b.textContent = label;
   b.title = url;
@@ -334,6 +333,16 @@ api.onShortcut((/** @type {string} */ action) => {
   }
   if (action === 'reload') api.tabs.command('reload');
   if (action === 'devtools') api.tabs.command('devtools');
+  if (action === 'reopen-tab') api.tabs.command('reopen');
+  if (action.startsWith('zoom-')) api.tabs.command(action);
+  if (action === 'next-tab' || action === 'prev-tab') {
+    const id = cycleTab(tabOrder(), activeTab, action === 'next-tab' ? 1 : -1);
+    if (id !== null) api.tabs.activate(id);
+  }
+  if (action.startsWith('tab-')) {
+    const id = pickTab(tabOrder(), action === 'tab-last' ? 9 : Number(action.slice(4)));
+    if (id !== null) api.tabs.activate(id);
+  }
 });
 
 // ---- start -------------------------------------------------------------------

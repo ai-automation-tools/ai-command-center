@@ -54,7 +54,7 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 | **📁 Files** | Every workspace from Project Hub. Click a file to read it in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing; clicking through files reuses that tab, Ctrl+click opens another. An HTML file opens as the page itself. Hover or right-click for Terminal here, View here, VS Code, Reveal in Explorer, Copy path and Copy Hub id. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
-| **🤖 MCP server** | A local MCP server for agents. Read-only tools: `list_tabs`, `sidebar_search` (the sidebar's search box) and `recent`. Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. Every call, including refused ones, shows in the sidebar's **MCP** tab and is appended to `%APPDATA%\ai-command-center\logs\mcp.log`. |
+| **🤖 MCP server** | A local MCP server for agents. Tools that look: `list_tabs`, `read_tab` (a tab's visible text), `sidebar_search` (the sidebar's search box), `recent`, `list_terminals` and `terminal_read` (the last lines a terminal printed, escapes stripped). Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run; `terminal_read` afterwards shows the agent what happened. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. Every call, including refused ones, shows in the sidebar's **MCP** tab and is appended to `%APPDATA%\ai-command-center\logs\mcp.log`. |
 | **💬 Chat** | A **Chat** tab in the sidebar: Claude with the app's MCP server as its tools, so a message can open a tab, find or open a file, or put a command on the terminal's Run bar. The key and model come from your environment (see [Chat in the app](#-chat-in-the-app)); its tool calls show in the MCP tab like any other client's. |
 | **⏱️ Cron** | A **Cron** tab in the sidebar listing [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks, read through Cronsole's own MCP server: next run, paused, missing or failed at a glance, details on hover. **Open Cronsole**, or a click on a task, shows Cronsole's UI in a pinned tab at the left of the strip. Setup is under "Cronsole in the sidebar" below. |
 
@@ -81,6 +81,22 @@ pwsh -NoProfile -WindowStyle Hidden -File <repo>\scripts\Start-AICommandCenter.p
 ```
 
 `npm install` on npm 11 asks before running install scripts; `node-pty` is already approved in `package.json`. If Electron's binary didn't download, run `node node_modules/electron/install.js`.
+
+### Settings
+
+Everything per-machine lives in `%APPDATA%\ai-command-center\settings.json`, which you only need if the defaults don't fit:
+
+```json
+{
+  "hubUrl": "http://127.0.0.1:4273",
+  "quickLinks": [
+    { "label": "Project Hub", "url": "http://127.0.0.1:4273" },
+    { "label": "Chrome Web Store", "url": "https://chromewebstore.google.com" }
+  ]
+}
+```
+
+`hubUrl` is where Project Hub answers (`ACC_HUB_URL` in the environment overrides it); `quickLinks` are the buttons on the empty tab page, http(s) only, twelve at most. Broken values fall back to these defaults. Logs sit next to it in `logs\`: `app.log` for crashes and errors in the app's own processes, `mcp.log` for every MCP call, and `launch.*.log` from the launcher script.
 
 ## 🤖 Drive the app from Claude Code
 
@@ -139,9 +155,12 @@ A weekly roadmap routine also opens PRs, from `roadmap/auto-<date>` branches, on
 
 | Keys | Does |
 |:---|:---|
-| Ctrl+T / Ctrl+W | New tab / close tab |
+| Ctrl+T / Ctrl+W / Ctrl+Shift+T | New tab / close tab / reopen the last closed tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
+| Ctrl+1 … Ctrl+8, Ctrl+9 | That tab, the last tab |
 | Alt+D, or Ctrl+L in a page | Address bar |
 | F5, or Ctrl+R in a page | Reload |
+| Ctrl+plus / Ctrl+minus / Ctrl+0 | Zoom in / out / reset (remembered per site) |
 | Ctrl+\` / Ctrl+Shift+\` | Toggle terminal / new terminal |
 | Ctrl+Shift+F | Search everything |
 | Ctrl+B | Toggle sidebar |
@@ -154,18 +173,20 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | Folder | What's inside |
 |:---|:---|
 | [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
-| [**🧪 tests/**](tests/README.md) | 74 unit tests, plus how the smoke run and the extension spike check the real app. |
+| [**🧪 tests/**](tests/README.md) | The unit tests over `src/shared/`, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
 | [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
+| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. |
 
 ## 🔒 Security model
 
-- Browser tabs are sandboxed, get no preload from this app, and can't navigate to `javascript:`, `data:` or custom protocol URLs.
+- Browser tabs are sandboxed, get no preload from this app, and can't navigate to `javascript:`, `data:` or custom protocol URLs. A page gets no permission it asks for (camera, microphone, location, notifications, MIDI, screen capture, clipboard reads, USB, serial, HID) except fullscreen, pointer lock and sanitized clipboard writes; Electron would grant all of them without a handler.
 - Every IPC channel checks that the sender is the shell UI.
 - Document pages (`acc://doc/…`) are served to the sandboxed tabs only, run no scripts (a `default-src 'none'` policy), can't be framed, and can't be reached from a web page. Only files in Project Hub's index are served, so a crafted address can't read anything else.
 - Each terminal shell is a fixed executable with fixed arguments; the UI can only choose a starting folder and a shell by name. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
-- The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Every call, answered or refused, is logged to the sidebar's MCP tab and `%APPDATA%\ai-command-center\logs\mcp.log` (one JSON line each, arguments clipped to 300 characters, rotated at 5 MB). Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. Project Hub is reached over loopback from the main process.
+- The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Every call, answered or refused, is logged to the sidebar's MCP tab and `%APPDATA%\ai-command-center\logs\mcp.log` (one JSON line each, arguments clipped to 300 characters, rotated at 5 MB). Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. `read_tab` and `terminal_read` show an agent what you see, a page's text or a terminal's output, so they carry whatever is on screen, and their descriptions tell the model that it's content, not instructions. Project Hub is reached over loopback from the main process.
+- Crashes and errors in the app's own processes go to `%APPDATA%\ai-command-center\logs\app.log`, nowhere else: no telemetry.
 - Cronsole's MCP server is the only process the app starts besides the terminals: this app's own Electron binary running the script named by `ACC_CRONSOLE_MCP`, which only the user's environment can set. It talks over stdin and stdout and listens on nothing, and the app calls only its read-only `list_tasks`.
 - The chat panel's API key is read from the environment by the main process and goes only to `api.anthropic.com`; it's never sent to the shell UI or written to disk. The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's, and Claude's replies are shown as plain text, never HTML.
 

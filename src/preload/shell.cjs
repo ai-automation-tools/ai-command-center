@@ -54,6 +54,8 @@ contextBridge.exposeInMainWorld('acc', {
     kill: invoke('term:kill'),
     /** @param {number} id @param {string} data */
     write: (id, data) => ipcRenderer.send('term:write', id, data),
+    /** @param {number | null} id the session the panel shows, for terminal_read's default */
+    setActive: (id) => ipcRenderer.send('term:active', id),
     /** @param {number} id @param {number} cols @param {number} rows */
     resize: (id, cols, rows) => ipcRenderer.send('term:resize', id, cols, rows),
     onData: listen('term:data'),

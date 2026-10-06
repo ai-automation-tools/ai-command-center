@@ -6,6 +6,7 @@ import { app, BaseWindow, Menu, WebContentsView, ipcMain, net, protocol, session
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { appendLog, logCrashes, logError } from './applog.js';
 import { hub } from './hub.js';
 import { chat } from './chat.js';
 import { cronsole } from './cronsole.js';
@@ -22,6 +23,7 @@ import { navigationTools, readOnlyTools, terminalTools } from '../shared/tools.j
 import { Confirmations } from '../shared/confirm.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
+import { isPermissionAllowed } from '../shared/permissions.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -109,7 +111,14 @@ function buildMenu() {
         // the screen and search history. Browser tabs map them in tabs.js instead.
         item('New tab', 'CmdOrCtrl+T', 'new-tab'),
         item('Close tab', 'CmdOrCtrl+W', 'close-tab'),
+        item('Reopen closed tab', 'CmdOrCtrl+Shift+T', 'reopen-tab'),
         item('Focus address bar', 'Alt+D', 'focus-address'),
+        { type: 'separator' },
+        item('Next tab', 'Ctrl+Tab', 'next-tab'),
+        item('Previous tab', 'Ctrl+Shift+Tab', 'prev-tab'),
+        // Chrome's rule: Ctrl+1 to Ctrl+8 pick that tab, Ctrl+9 the last.
+        ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => item(`Tab ${n}`, `CmdOrCtrl+${n}`, `tab-${n}`)),
+        item('Last tab', 'CmdOrCtrl+9', 'tab-last'),
         { type: 'separator' },
         { role: 'quit' },
       ],
@@ -123,6 +132,10 @@ function buildMenu() {
         item('Toggle sidebar', 'CmdOrCtrl+B', 'toggle-sidebar'),
         { type: 'separator' },
         item('Reload page', 'F5', 'reload'),
+        item('Zoom in', 'CmdOrCtrl+=', 'zoom-in'),
+        { ...item('Zoom in', 'CmdOrCtrl+Plus', 'zoom-in'), visible: false },
+        item('Zoom out', 'CmdOrCtrl+-', 'zoom-out'),
+        item('Reset zoom', 'CmdOrCtrl+0', 'zoom-reset'),
         item('Page developer tools', 'F12', 'devtools'),
         { label: 'Shell developer tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => shellView?.webContents.toggleDevTools() },
       ],
@@ -161,6 +174,11 @@ async function createWindow() {
   });
 
   const browseSession = session.fromPartition(BROWSE_PARTITION);
+  // Pages are untrusted: deny every permission but the few in src/shared/permissions.js.
+  // Without these handlers Electron grants whatever a page asks for.
+  browseSession.setPermissionRequestHandler((_wc, permission, callback) => callback(isPermissionAllowed(permission)));
+  browseSession.setPermissionCheckHandler((_wc, permission) => isPermissionAllowed(permission));
+  browseSession.setDevicePermissionHandler(() => false);
   serveDocs(browseSession);
   const tabs = new Tabs({
     window: win,
@@ -189,12 +207,15 @@ async function createWindow() {
   /** @type {import('../shared/tools.js').Sources} */
   const sources = {
     listTabs: () => tabs.list(),
+    readTab: (id) => tabs.text(id),
     scan: () => hub.scan(),
     bookmarks: () => {
       const source = store.layout().bookmarkSource;
       return source === HUB_FAVORITES ? hub.favorites() : hub.webmarks(source || undefined);
     },
     recent: () => store.recent(),
+    listTerminals: () => terminals.listSessions(),
+    readTerminal: (id) => terminals.read(id),
     openTab: (url, activate) => tabs.create(url, { activate }),
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
     runCommand: async (command) => {
@@ -229,6 +250,7 @@ async function createWindow() {
 
   handle('app:info', () => ({
     hubUrl: hub.url,
+    quickLinks: store.settings().quickLinks,
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
     shell: terminals.shell,
     shells: terminals.list(),
@@ -271,6 +293,7 @@ async function createWindow() {
     return t;
   });
   on('term:write', (id, data) => terminals.write(Number(id), data));
+  on('term:active', (id) => { terminals.activeId = Number.isInteger(id) ? id : null; });
   on('term:resize', (id, cols, rows) => terminals.resize(Number(id), cols, rows));
   handle('term:kill', (id) => terminals.kill(Number(id)));
 
@@ -394,6 +417,14 @@ function smoke(dir, tabs, browseSession) {
         return text;
       })()`);
       console.log(`[smoke] mcp terminal_run bar=${JSON.stringify(shown)} result=${JSON.stringify(await ran)}`);
+      // The loop closed: the terminal's output and the page's text, read back.
+      await wait(1500);
+      const sessions = await call('list_terminals', {});
+      const output = await call('terminal_read', { lines: 5 });
+      console.log(`[smoke] mcp list_terminals=${JSON.stringify(sessions)}`);
+      console.log(`[smoke] mcp terminal_read terminal=${output.terminal} text=${JSON.stringify(output.text?.slice(-200))}`);
+      const page = await call('read_tab', { tab: tab.view.webContents.id });
+      console.log(`[smoke] mcp read_tab title=${JSON.stringify(page.title)} chars=${page.text?.length} truncated=${page.truncated} start=${JSON.stringify(page.text?.slice(0, 60))}`);
     } catch (err) {
       console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
     }
@@ -467,12 +498,13 @@ app.on('second-instance', () => {
   win.focus();
 });
 
+logCrashes();
 app.whenReady().then(() => {
   serveShell();
   buildMenu();
   return createWindow();
 }).catch((err) => {
-  console.error('[startup] failed:', err);
+  logError('startup', err);
   app.exit(1);
 });
 

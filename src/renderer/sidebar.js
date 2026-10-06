@@ -3,6 +3,7 @@
 // the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
 import { taskSummary } from '/shared/cronsole.js';
+import { PROJECT_HUB_REPO } from '/shared/settings.js';
 import { pushEntry } from '/shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
 
@@ -118,7 +119,7 @@ export class Sidebar {
       this.el.files.append(list);
     } catch (err) {
       this.el.files.innerHTML = '';
-      this.el.files.append(note(`${errText(err)}\n\nStart it with Repos/AI-Automation-Tools/Tools/HTML-Project-Design/Hub/Start-Hub.ps1, then press Retry.`, true));
+      this.el.files.append(note(`${errText(err)}\n\nStart Project Hub (${PROJECT_HUB_REPO}), or point settings.json or ACC_HUB_URL at it, then press Retry.`, true));
       const retry = document.createElement('button');
       retry.textContent = 'Retry';
       retry.className = 'panel-note';

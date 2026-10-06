@@ -1,0 +1,39 @@
+# Lint and unit tests on every push and pull request. The tests cover src/shared/ and
+# need no Electron binary, so the download is skipped; the smoke run needs a desktop
+# session and stays a local command (see CLAUDE.md).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # --ignore-scripts: node-pty's prebuilt binary isn't needed by the tests either.
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm test
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Reports only: adm-zip (via electron-chrome-web-store) has open advisories with
+      # no fixed version. See docs/decisions/adr-001-electron-shell.md.
+      - run: npm audit --omit=dev
+        continue-on-error: true

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { isAllowedNavigation, toUrl } from '../src/shared/url.js';
 
 test('toUrl keeps full URLs as they are', () => {
-  assert.equal(toUrl('https://mikesailab.com/x?y=1'), 'https://mikesailab.com/x?y=1');
+  assert.equal(toUrl('https://example.com/x?y=1'), 'https://example.com/x?y=1');
   assert.equal(toUrl('file:///D:/a/b.html'), 'file:///D:/a/b.html');
   assert.equal(toUrl('about:blank'), 'about:blank');
 });
@@ -16,8 +16,8 @@ test('toUrl turns Windows paths into file URLs', () => {
 test('toUrl sends loopback to http, hosts to https', () => {
   assert.equal(toUrl('127.0.0.1:4273'), 'http://127.0.0.1:4273');
   assert.equal(toUrl('localhost:5173/app'), 'http://localhost:5173/app');
-  assert.equal(toUrl('mikesailab.com'), 'https://mikesailab.com');
-  assert.equal(toUrl('library.mikesailab.com/news'), 'https://library.mikesailab.com/news');
+  assert.equal(toUrl('example.com'), 'https://example.com');
+  assert.equal(toUrl('docs.example.com/news'), 'https://docs.example.com/news');
 });
 
 test('toUrl searches everything else', () => {

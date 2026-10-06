@@ -25,17 +25,20 @@ private today, public when every release gate in `docs/ROADMAP.md` is ticked.
 
 ```powershell
 npm run lint     # node --check on every .js/.cjs/.mjs in src, scripts, tests
-npm test         # 65+ unit tests
+npm test         # 90+ unit tests
 npm run smoke    # launches the real app, opens a page and a terminal, screenshots to .smoke/, quits (needs a desktop session)
 ```
 
-`npm run lint` and `npm test` must pass on every change. Run `npm run smoke` when you
-touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop session.
+`npm run lint` and `npm test` must pass on every change, and CI (`.github/workflows/ci.yml`)
+runs both on every push. Run `npm run smoke` when you touch `src/main/`, `src/preload/`
+or `src/renderer/` and you have a desktop session. `npm run scan:secrets` (gitleaks)
+before anything goes public.
 
 ## Standards
 
 - **Security invariants.** Don't weaken any of these:
   - Browser tabs are `sandbox: true`, `contextIsolation: true`, and get no preload from this app.
+  - Pages get no permission that isn't in `src/shared/permissions.js` (fullscreen, pointer lock, sanitized clipboard writes). Don't add media, location, notifications or devices to that list without an ADR.
   - Every IPC handler in `src/main/main.js` goes through `handle()` / `on()`, which refuse any sender but the shell view.
   - Tabs refuse navigation outside `isAllowedNavigation()` (`src/shared/url.js`).
   - Each terminal shell is a fixed executable with fixed arguments in `src/shared/shells.js`. The renderer only picks a starting folder and a profile id. No IPC message, MCP call or URL may pass a shell path or arguments.
@@ -45,6 +48,8 @@ touch `src/main/`, `src/preload/` or `src/renderer/` and you have a desktop sess
   - The chat panel's API key and model are read from the environment by the main process (`src/main/chat.js`). The key never goes to the renderer, to disk or into the repo, and there is no default model ID. The chat's tools go through the MCP server with its token, never around it.
   - Cronsole's MCP server (`src/main/cronsole.js`) runs on the app's own Electron binary (`ELECTRON_RUN_AS_NODE`) with the script path from `ACC_CRONSOLE_MCP` in the environment. No IPC message, MCP call or URL may name that script or pass it arguments, and the app calls only its read-only `list_tasks`.
   - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
+  - MCP tools that look (`list_tabs`, `read_tab`, `list_terminals`, `terminal_read`, `sidebar_search`, `recent`) need no click; anything that acts on the machine (`terminal_run`, and `cron_run` when it lands) waits for one. `read_tab` and `terminal_read` return untrusted content and their descriptions say so.
+- **Nothing personal in tracked files.** Per-machine values (the Hub URL, the quick links) live in `%APPDATA%\ai-command-center\settings.json`, read with neutral defaults by `src/shared/settings.js`. Tests use `example.com` hosts.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu.
 - **Docs move with code.** Update `README.md`, `src/README.md`, `docs/` and this file when a change makes them untrue. Every ticked roadmap item gets a `docs/CHANGELOG.md` line in the same commit, tagged with its phase in italics.

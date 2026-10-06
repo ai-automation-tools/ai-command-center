@@ -4,6 +4,9 @@
 
 import { Menu, WebContentsView, clipboard, shell } from 'electron';
 import { isAllowedNavigation } from '../shared/url.js';
+import { cleanSavedTabs } from '../shared/session.js';
+
+const MAX_CLOSED = 10;
 
 /**
  * @typedef {{ id: number, view: WebContentsView }} Tab
@@ -32,6 +35,9 @@ export class Tabs {
     this.bounds = { x: 0, y: 0, width: 0, height: 0 };
     /** @type {import('electron-chrome-extensions').ElectronChromeExtensions | null} */
     this.extensions = null;
+    /** URLs of tabs the user closed, oldest first, for Reopen closed tab. */
+    /** @type {string[]} */
+    this.closed = [];
   }
 
   /** @param {import('electron-chrome-extensions').ElectronChromeExtensions} ext */
@@ -141,8 +147,18 @@ export class Tabs {
     // webContents is already undefined.
     if (!this.window.isDestroyed()) this.window.contentView.removeChildView(tab.view);
     const wc = tab.view.webContents;
-    if (wc && !wc.isDestroyed()) wc.close();
+    if (wc && !wc.isDestroyed()) {
+      this.closed.push(...cleanSavedTabs([wc.getURL()]));
+      this.closed.splice(0, Math.max(0, this.closed.length - MAX_CLOSED));
+      wc.close();
+    }
     this.forget(id);
+  }
+
+  /** Reopen the last tab the user closed, if any. */
+  reopen() {
+    const url = this.closed.pop();
+    if (url) this.create(url);
   }
 
   /** @param {number} id */
@@ -187,10 +203,31 @@ export class Tabs {
     return this.activeId !== null ? this.tabs.get(this.activeId) ?? null : null;
   }
 
-  /** @param {'back' | 'forward' | 'reload' | 'stop' | 'devtools'} action */
+  /**
+   * The visible text of a tab, for read_tab: the one asked for, else the active one.
+   * Runs in the page's sandboxed renderer and can't reach anything but the page.
+   * @param {number} [id]
+   */
+  async text(id) {
+    const tab = id === undefined ? this.active() : this.tabs.get(id) ?? null;
+    if (!tab) throw new Error(id === undefined ? 'No tab is open' : `No tab with id ${id}`);
+    const wc = tab.view.webContents;
+    const text = await Promise.race([
+      wc.executeJavaScript('document.body ? document.body.innerText : ""', false),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('The page did not answer within 5 s')), 5000)),
+    ]);
+    return { id: tab.id, url: wc.getURL(), title: wc.getTitle(), text: String(text ?? '') };
+  }
+
+  /** @param {'back' | 'forward' | 'reload' | 'stop' | 'devtools' | 'reopen' | 'zoom-in' | 'zoom-out' | 'zoom-reset'} action */
   command(action) {
+    if (action === 'reopen') return this.reopen();
     const wc = this.active()?.view.webContents;
     if (!wc) return;
+    // One zoom level is about 20%, like Chrome; zoom is remembered per site by the session.
+    if (action === 'zoom-in') wc.setZoomLevel(Math.min(9, wc.getZoomLevel() + 1));
+    if (action === 'zoom-out') wc.setZoomLevel(Math.max(-7, wc.getZoomLevel() - 1));
+    if (action === 'zoom-reset') wc.setZoomLevel(0);
     if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
     if (action === 'forward' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
     if (action === 'reload') wc.reload();

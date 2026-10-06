@@ -2,7 +2,10 @@
 // Sec-Fetch-Site header, so Hub's same-origin guard lets it through the same way it
 // lets curl through. The renderer never talks to Hub directly.
 
-const HUB = process.env.ACC_HUB_URL || 'http://127.0.0.1:4273';
+import { store } from './store.js';
+
+// settings.json's hubUrl, or ACC_HUB_URL (src/shared/settings.js).
+const HUB = store.settings().hubUrl;
 const TIMEOUT_MS = 30_000; // a cold scan of every workspace takes ~12 s
 
 /**
