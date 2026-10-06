@@ -6,6 +6,7 @@
 export const DEFAULT_UI = 'http://localhost:7373';
 const TIMEOUT_MS = 20_000;
 const MAX_TASKS = 500;
+const MAX_TASK_ID = 200;
 const PROTOCOL_VERSION = '2025-06-18';
 
 /**
@@ -121,16 +122,43 @@ export async function listTasks(rpc) {
 }
 
 /**
+ * A Cronsole task id as list_tasks returns it: short, printable, one line.
+ * @param {unknown} value
+ */
+export function taskIdArg(value) {
+  if (typeof value !== 'string' || !value.trim() || value.length > MAX_TASK_ID || /[\p{Cc}\p{Cf}]/u.test(value)) {
+    throw new Error(`task must be a Cronsole task id from cron_tasks (at most ${MAX_TASK_ID} characters)`);
+  }
+  return value.trim();
+}
+
+/**
+ * Start a task now through Cronsole's run_task, for the cron_run tool. Cronsole runs
+ * its native jobs inside the call, so the result can say the job ran and failed; that
+ * is a finding, not a tool error.
+ * @param {ReturnType<typeof stdioRpc>} rpc
+ * @param {string} taskId
+ */
+export async function runTask(rpc, taskId) {
+  const result = await rpc.request('tools/call', { name: 'run_task', arguments: { taskId } });
+  const text = toolText(result);
+  if (result?.isError) throw new Error(text || 'Cronsole refused run_task');
+  return result?.structuredContent && typeof result.structuredContent === 'object' ? result.structuredContent : { text };
+}
+
+/** The text parts of a tools/call result. @param {any} result */
+function toolText(result) {
+  return Array.isArray(result?.content) ? result.content.map((/** @type {any} */ c) => c?.text).filter(Boolean).join('\n') : '';
+}
+
+/**
  * list_tasks' result as rows for the sidebar. A tool error throws its text; anything
  * malformed in a row becomes null or is dropped, since this is another program's output.
  * @param {any} result
  * @returns {CronTask[]}
  */
 export function taskRows(result) {
-  if (result?.isError) {
-    const text = Array.isArray(result.content) ? result.content.map((/** @type {any} */ c) => c?.text).filter(Boolean).join('\n') : '';
-    throw new Error(text || 'Cronsole refused list_tasks');
-  }
+  if (result?.isError) throw new Error(toolText(result) || 'Cronsole refused list_tasks');
   const tasks = result?.structuredContent?.tasks;
   if (!Array.isArray(tasks)) return [];
   /** @param {unknown} v */

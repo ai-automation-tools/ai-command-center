@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_UI, cronsoleConfig, initialize, isCronsoleUrl, listTasks, stdioRpc, taskRows, taskSummary } from '../src/shared/cronsole.js';
+import { DEFAULT_UI, cronsoleConfig, initialize, isCronsoleUrl, listTasks, runTask, stdioRpc, taskIdArg, taskRows, taskSummary } from '../src/shared/cronsole.js';
 
 test('cronsoleConfig reads the server path and the UI origin, http(s) only', () => {
   assert.deepEqual(cronsoleConfig({}), { server: '', ui: DEFAULT_UI });
@@ -55,6 +55,24 @@ test('initialize then list_tasks over stdio, the way the sidebar asks', async ()
   assert.equal(seen[0].params.clientInfo.name, 'ai-command-center');
   assert.deepEqual(seen[2].params, { name: 'list_tasks', arguments: { limit: 500 } });
   assert.deepEqual(tasks, [{ id: 't1', name: 'Nightly backup', platform: 'WINDOWS_TASK_SCHEDULER', schedule: '0 2 * * *', status: 'ACTIVE', nextRunTime: '2026-10-05T02:00:00.000Z', lastRunStatus: 'SUCCESS', lastRunAt: '2026-10-04T02:00:00.000Z' }]);
+});
+
+test('runTask calls run_task with the id and returns the result; a tool error throws; a failed run is a result', async () => {
+  const { rpc, seen } = fakeServer((msg) => {
+    const id = msg.params?.arguments?.taskId;
+    if (id === 'bad') return { result: { isError: true, content: [{ type: 'text', text: 'No task with id bad' }] } };
+    if (id === 'text-only') return { result: { content: [{ type: 'text', text: 'Started.' }] } };
+    return { result: { content: [{ type: 'text', text: 'ran' }], structuredContent: { ran: true, success: false, exitCode: 1 } } };
+  });
+  assert.deepEqual(await runTask(rpc, 't1'), { ran: true, success: false, exitCode: 1 });
+  assert.deepEqual(seen.at(-1).params, { name: 'run_task', arguments: { taskId: 't1' } });
+  assert.deepEqual(await runTask(rpc, 'text-only'), { text: 'Started.' });
+  await assert.rejects(runTask(rpc, 'bad'), /No task with id bad/);
+});
+
+test('taskIdArg takes a short printable id and refuses the rest', () => {
+  assert.equal(taskIdArg(' t1 '), 't1');
+  for (const bad of ['', '  ', 5, null, 'a\nb', 'x\u200b', 'y'.repeat(201)]) assert.throws(() => taskIdArg(bad), String(bad));
 });
 
 test('stdioRpc surfaces JSON-RPC errors, times out, and fails what is pending', async () => {

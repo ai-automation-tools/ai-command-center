@@ -7,20 +7,18 @@ import { app } from 'electron';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { appendLog } from './applog.js';
 import { createMcpServer } from '../shared/mcp.js';
 import { logLine, pushEntry } from '../shared/mcplog.js';
 
 const infoFile = () => path.join(app.getPath('userData'), 'mcp.json');
-const LOG_MAX_BYTES = 5 * 1024 * 1024;
 
 /**
  * The call log: the newest calls in memory for the panel, every call appended to
- * mcp.log as a JSON line. Past 5 MB the file moves to mcp.log.1, replacing the last one.
+ * logs/mcp.log as a JSON line (rotated at 5 MB by appendLog).
  * @param {(channel: string, ...args: unknown[]) => void} send
  */
 export function mcpLog(send) {
-  const dir = path.join(app.getPath('userData'), 'logs');
-  const file = path.join(dir, 'mcp.log');
   /** @type {import('../shared/mcplog.js').LogEntry[]} */
   const entries = [];
   return {
@@ -29,13 +27,7 @@ export function mcpLog(send) {
     add(entry) {
       pushEntry(entries, entry);
       send('mcp:logged', entry);
-      try {
-        fs.mkdirSync(dir, { recursive: true });
-        if ((fs.statSync(file, { throwIfNoEntry: false })?.size ?? 0) > LOG_MAX_BYTES) fs.renameSync(file, `${file}.1`);
-        fs.appendFileSync(file, logLine(entry));
-      } catch (err) {
-        console.error('[mcp] could not write mcp.log:', err);
-      }
+      appendLog('mcp.log', logLine(entry));
     },
   };
 }

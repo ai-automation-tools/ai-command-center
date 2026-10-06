@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SAVED_TABS_MAX, cleanSavedTabs, savedActiveIndex } from '../src/shared/session.js';
+import { SAVED_TABS_MAX, cleanSavedTabs, cycleTab, pickTab, savedActiveIndex } from '../src/shared/session.js';
 
 test('cleanSavedTabs keeps allowed URLs in order and drops the rest', () => {
   assert.deepEqual(
@@ -25,4 +25,26 @@ test('savedActiveIndex falls back to the last tab when the index is bad', () => 
   assert.equal(savedActiveIndex(-1, 3), 2);
   assert.equal(savedActiveIndex('1', 3), 2);
   assert.equal(savedActiveIndex(undefined, 0), -1);
+});
+
+test('cycleTab wraps round the strip and starts from an end when nothing is active', () => {
+  assert.equal(cycleTab([7, 3, 9], 3, 1), 9);
+  assert.equal(cycleTab([7, 3, 9], 9, 1), 7);
+  assert.equal(cycleTab([7, 3, 9], 7, -1), 9);
+  assert.equal(cycleTab([7, 3, 9], null, 1), 7);
+  assert.equal(cycleTab([7, 3, 9], null, -1), 9);
+  assert.equal(cycleTab([7, 3, 9], 42, 1), 7);
+  assert.equal(cycleTab([], 1, 1), null);
+});
+
+test('pickTab follows Chrome: 1 to 8 pick that tab, 9 the last, out of range nothing', () => {
+  const order = [7, 3, 9];
+  assert.equal(pickTab(order, 1), 7);
+  assert.equal(pickTab(order, 3), 9);
+  assert.equal(pickTab(order, 4), null);
+  assert.equal(pickTab(order, 9), 9);
+  assert.equal(pickTab([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 8), 8);
+  assert.equal(pickTab([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 9), 10);
+  assert.equal(pickTab(order, 0), null);
+  assert.equal(pickTab([], 9), null);
 });

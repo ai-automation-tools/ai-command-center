@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import pty from 'node-pty';
 import { pickShell, shellProfiles } from '../shared/shells.js';
+import { appendOutput } from '../shared/output.js';
 
 /** @param {unknown} dir */
 function safeCwd(dir) {
@@ -27,6 +28,15 @@ export class Terminals {
     this.sessions = new Map();
     /** Session ids running PowerShell, the only ones terminal_run types into. */
     this.powershell = new Set();
+    /** What list_terminals reports; kept after exit until the UI closes the tab. */
+    /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean }>} */
+    this.meta = new Map();
+    /** Raw pty output per session, newest OUTPUT_MAX_CHARS, for terminal_read. */
+    /** @type {Map<number, string>} */
+    this.output = new Map();
+    /** The session the UI shows, as it reports it; terminal_read's default. */
+    /** @type {number | null} */
+    this.activeId = null;
     this.nextId = 1;
     /** @type {Record<string, string>} set once the MCP server is up: ACC_MCP_URL and ACC_MCP_TOKEN */
     this.env = {};
@@ -58,15 +68,38 @@ export class Terminals {
       // which crashes (AttachConsole failed) and keeps the app alive when it quits.
       useConptyDll: true,
     });
-    p.onData((data) => this.send('term:data', id, data));
+    p.onData((data) => {
+      this.output.set(id, appendOutput(this.output.get(id) || '', data));
+      this.send('term:data', id, data);
+    });
     p.onExit(({ exitCode }) => {
       this.sessions.delete(id);
       this.powershell.delete(id);
+      const m = this.meta.get(id);
+      if (m) m.exited = true;
       this.send('term:exit', id, exitCode);
     });
     this.sessions.set(id, p);
     if (profile.powershell) this.powershell.add(id);
-    return { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell };
+    const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell };
+    this.meta.set(id, { ...info, exited: false });
+    this.output.set(id, '');
+    return info;
+  }
+
+  /** Every session the UI still shows, oldest first, for list_terminals. */
+  listSessions() {
+    return [...this.meta.values()].map((m) => ({ ...m, active: m.id === this.activeId }));
+  }
+
+  /**
+   * The raw output of a session: the one asked for, else the one the UI shows, else
+   * the newest. Null when there's no such session.
+   * @param {number} [id]
+   */
+  read(id) {
+    const pick = id ?? (this.activeId !== null && this.meta.has(this.activeId) ? this.activeId : [...this.meta.keys()].pop());
+    return pick === undefined ? null : { id: pick, raw: this.output.get(pick) ?? null };
   }
 
   /** @param {number} id */
@@ -88,6 +121,8 @@ export class Terminals {
 
   /** @param {number} id */
   kill(id) {
+    this.meta.delete(id);
+    this.output.delete(id);
     const p = this.sessions.get(id);
     if (!p) return;
     this.sessions.delete(id);

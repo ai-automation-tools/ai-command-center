@@ -12,10 +12,10 @@
 
 ---
 
-Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A weekly roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\AI-Command-Center Weekly Roadmap`, Wednesday 20:00) takes the first open gate each week and opens a PR; the org PR sweep merges it. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
+Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\Roadmaps\AI-Command-Center Weekly Roadmap`, Sunday and Wednesday 20:00) takes the first open item each run, gates first, and opens a `roadmap/auto-<date>` PR; the org PR sweep (Wednesday and Sunday 09:30) reviews and merges it, and the daily Graduate stage reads the gates on `main`. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-04.** Phase 1 is done, and Mike checked tab restore and the launcher by hand in the real app. Phase 2 has started: the MCP server runs with its token check, confirmed live against a running app, and answers the read-only tools `list_tabs`, `sidebar_search` and `recent` plus the navigation tools `open_tab` and `open_file` (weekly roadmap PRs of 2026-09-30), and `terminal_run` with its click-to-confirm bar (2026-10-04). The three daily-use gates landed the same day (a Files right-click menu, documents shown under the app's own sidebar, and a shell menu), then the MCP call log and the README's `claude mcp add` section, and the chat panel, then Cronsole's Cron tab with its pinned tab (weekly roadmap PRs, 2026-10-04), which finishes Phase 2. **Next:** the public-release checklist.
+> **Where we are, 2026-10-05.** Phases 0 to 2 and the daily-use gates are done (see the changelog for the trail). A repo review on 2026-10-05 added three gates (page permissions denied by default, a crash log, and the browser shortcuts a daily browser can't do without), a new **Phase 2b** that closes the agent's loop (an agent can run a command today but can't read the result, read a page, or trigger a Cronsole task), and an **Integrations** list built on APIs Hub and Cronsole already expose. The same day: CI, the settings file, SECURITY.md, the permission handler, the crash log, the shortcuts, find in page, and the `list_terminals`, `terminal_read`, `read_tab`, `cron_tasks` and `cron_run` tools landed. **Next:** the live demo, the last gate.
 
 ## 🧭 Phase 0: decide
 
@@ -58,18 +58,22 @@ Found using the app on 2026-10-04 and made release gates the same day.
 
 ## 🚦 Public release
 
-- [ ] CI workflow (`.github/workflows/ci.yml`) running `npm run lint` and `npm test` on push and PR, and passing
-- [ ] Nothing personal in tracked files: Project Hub URL and the empty-state quick links move to a settings file with neutral defaults; no absolute local paths anywhere
-- [ ] README usage section rewritten for someone who isn't Mike, and verified against the real code
-- [ ] `SECURITY.md`, plus a full-history secret scan (gitleaks) that comes back clean
-- [ ] Live demo on GitHub Pages at `https://ai-automation-tools.dev/ai-command-center/`, served from this repo: the shell UI running in a browser with a mocked `window.acc` and fabricated files, bookmarks and terminal output; carries the org source bar; makes no network calls that need secrets
+- [x] CI workflow (`.github/workflows/ci.yml`) running `npm run lint` and `npm test` on push and PR, and passing; `npm audit` as a non-blocking step that reports the known `adm-zip` advisories until they're fixed — 2026-10-05; Ubuntu and Windows, Node 24, no Electron download; passing is confirmed on the first push
+- [x] Nothing personal in tracked files: Project Hub URL and the empty-state quick links move to a settings file with neutral defaults; no absolute local paths anywhere — 2026-10-05; `%APPDATA%\ai-command-center\settings.json` read by `src/shared/settings.js` (3 tests), `ACC_HUB_URL` still wins, the Hub-down note points at the Project Hub repo, and the test hosts are `example.com`
+- [x] README usage section rewritten for someone who isn't Mike, and verified against the real code — 2026-10-05; prerequisites and a clone-to-run quick start, what works without Hub, where the app's files live, a Contributing section in place of Mike's branch, and every claim checked against `src/`
+- [x] `SECURITY.md`, plus a full-history secret scan (gitleaks) that comes back clean — 2026-10-05; 17 commits, no leaks; `npm run scan:secrets` keeps the command
+- [x] Page permissions denied by default: the browse session gets a `setPermissionRequestHandler` that refuses camera, microphone, location, notifications, MIDI, USB, serial, HID and the rest, and allows only fullscreen, pointer lock and clipboard writes. Without a handler Electron grants everything a page asks for. Found in the 2026-10-05 review — 2026-10-05; request, check and device handlers, allowlist in `src/shared/permissions.js` with a test
+- [x] Crash and error log: `uncaughtException`, `unhandledRejection`, a renderer or tab process going away, and `[startup] failed` appended to `%APPDATA%\ai-command-center\logs\app.log`, so a stranger's bug report has something to paste. Moved up from Distribution in the 2026-10-05 review — 2026-10-05; `src/main/applog.js`, which `mcp.log` now shares
+- [x] Browser shortcuts a daily browser can't do without: Ctrl+Tab and Ctrl+Shift+Tab cycle tabs, Ctrl+1 to Ctrl+8 pick a tab and Ctrl+9 the last, Ctrl+Shift+T reopens the last closed tab, Ctrl+plus, Ctrl+minus and Ctrl+0 zoom the page. All in the app menu except where PowerShell needs the key. Found in the 2026-10-05 review — 2026-10-05; cycling and picking follow the strip's order in `src/shared/session.js` (2 tests), the last 10 closed tabs are kept
+- [x] Find in page: Ctrl+F opens a find bar over the content area (`webContents.findInPage`), Enter and Shift+Enter step through matches, Escape closes it. Found in the 2026-10-05 review — 2026-10-05; the bar sits in the address row with a match count, closes when the tab changes; `npm run smoke` types a word and reads the count
+- [ ] Live demo on GitHub Pages at `https://ai-automation-tools.dev/ai-command-center/`, served from this repo: the shell UI running in a browser with a mocked `window.acc` and fabricated files, bookmarks and terminal output; carries the org source bar; makes no network calls that need secrets. The renderer's absolute `/sidebar.js` and `/vendor/…` imports have to become relative first, so the same files serve under `acc://shell/` and under a Pages subpath
 - [x] Licence: GPL-3.0-or-later, chosen by Mike because electron-chrome-extensions is GPL-3.0; `LICENSE` added and `package.json` updated — 2026-09-29
 
 ## After public release
 
 **Upstream blocker**
 
-- [ ] LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass.
+- [ ] 🔒 LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass. Mike's, because an Electron bump is a dependency change the routine never makes.
 
 **🔒 Mike's own checks** (not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop))
 
@@ -80,6 +84,26 @@ Found using the app on 2026-10-04 and made release gates the same day.
 |:---|:--:|:---|
 | | | |
 
+**Phase 2b: close the agent's loop**
+
+Added in the 2026-10-05 review. Today an agent can type a command and open things, but it can't see what happened: `terminal_run` returns before the output, `list_tabs` gives URLs without content, and the "trigger a Cronsole task" the harness promised in [requirements.md](decisions/requirements.md#features) never landed. Each item here is read-only or sits behind the same click as `terminal_run`.
+
+- [x] `list_terminals` and `terminal_read`: the open terminal sessions (id, shell, folder, whether PowerShell, whether exited) and the last N lines of one session's output with ANSI escapes stripped, from a ring buffer the main process keeps per session. Read-only, no click. Closes the loop for "run `npm test` and tell me what failed" — 2026-10-05; `src/shared/output.js` cleans the output (4 tests), the tools have 1 test, and `npm run smoke` reads back what `terminal_run` printed
+- [x] `read_tab`: the visible text of a tab (`document.body.innerText`, clipped to a size limit) plus its title and URL, so the chat can summarise or quote the page it's looking at. The tool description says the text is untrusted page content, not instructions — 2026-10-05; 1 test, and `npm run smoke` reads example.com back
+- [x] `cron_run`: start a Cronsole task through Cronsole's own `run_task`, shown on the confirm bar like a command and run only after the click; `cron_tasks` as the read-only list the Cron tab already has. The task id stays in the main process; the click only answers yes or no — 2026-10-05; `runTask` in `src/shared/cronsole.js` (2 tests) and the tools (2 tests); `npm run smoke` calls `cron_tasks`
+- [ ] Chat: a "+ page" and "+ terminal" button that attaches `read_tab` or `terminal_read` output to the next message, so "what does this page say" needs no tool round-trip
+- [ ] Chat: stream the reply as it arrives, trim old turns past a token budget, and keep the last conversation across restarts in `chat.json`
+- [ ] MCP `tools/list` carries `annotations` (`readOnlyHint`, `destructiveHint`, `openWorldHint`) so clients can show which tools look and which act
+
+**Integrations** (APIs the neighbours already expose, found in the 2026-10-05 review)
+
+- [ ] Project Hub's `/api/events` stream: the sidebar subscribes once and reloads the tree on `change`, so a rescan shows up without Retry and the document index in `src/main/docs.js` drops its 30 s cache
+- [ ] Star the current page: a ☆ in the address bar that adds the tab to Hub's favorites through `PUT /api/favorites`, so the app's own bookmarks source gains entries without opening Hub
+- [ ] Links in the terminal open as tabs: an xterm `registerLinkProvider` for `http(s)://` and `localhost:<port>` text, so the address a dev server prints is one click from a tab. No new dependency; mark `- [!]` and use `@xterm/addon-web-links` (MIT) if the hand-written provider misses cases
+- [ ] Cronsole rows show the last run's result: `get_task_history` on hover or click, with `get_run_output` behind a "Show output" that opens as an `acc://doc`-style page
+- [ ] A count of failed Cronsole tasks on the Cron tab's label, refreshed on the same timer as the Hub health dot
+- [ ] Claude Code in the terminal: when `claude` registers with the MCP server, the MCP tab's first row says which client connected (`initialize`'s `clientInfo`), so the log reads "claude-code 2.x connected" rather than two ✗ rows
+
 **Phase 3: the rest**
 
 - [ ] IDE pane: code-server or OpenVSCode Server in a tab, started on demand, loopback only
@@ -87,11 +111,23 @@ Found using the app on 2026-10-04 and made release gates the same day.
 - [ ] AI news panel and AI bookmarks feed, read from configurable RSS or Markdown sources
 - [ ] Phone channel through an existing gateway (Claude Remote Control, Hermes or OpenClaw) connected to the MCP server
 
+**Daily use, round 2** (nice to have; found in the 2026-10-05 review)
+
+- [ ] Address bar suggestions from Recent and bookmarks as you type, picked with the arrow keys
+- [ ] Tabs: drag to reorder, duplicate, mute, and pin any tab (today only Cronsole's is pinned)
+- [ ] Downloads: `will-download` handled so a finished download shows a toast with Reveal in Explorer, and lands in Recent
+- [ ] Light theme for the shell, following `prefers-color-scheme` the way document pages already do
+- [ ] Terminal search with `@xterm/addon-search` (MIT) — `- [!]` needs a dependency
+
+**Code health** (from the 2026-10-05 review)
+
+- [ ] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin
+- [ ] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI
+
 **Distribution and promotion**
 
 - [ ] Windows installer with electron-builder, published as a GitHub release
 - [ ] 🔒 Code-signing certificate (costs money)
-- [ ] Crash and error log in `%APPDATA%\ai-command-center\logs`
 - [ ] Electron upgrade drill done once, following ADR-001's checklist
 - [ ] Launch post for the ai-automation-tools.dev landing page
 

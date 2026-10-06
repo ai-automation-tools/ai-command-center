@@ -89,6 +89,7 @@ export class TerminalPanel {
       s.tab.setAttribute('aria-selected', String(on));
     }
     this.activeId = id;
+    this.api.term.setActive(id);
     this.fitActive();
     this.sessions.get(id)?.term.focus();
   }
@@ -97,7 +98,8 @@ export class TerminalPanel {
   close(id) {
     const s = this.sessions.get(id);
     if (!s) return;
-    if (!s.exited) this.api.term.kill(id);
+    // Always, so main drops the session's output buffer even when the shell has exited.
+    this.api.term.kill(id);
     s.term.dispose();
     s.pane.remove();
     s.tab.remove();
@@ -106,6 +108,7 @@ export class TerminalPanel {
       const next = [...this.sessions.keys()].pop();
       this.activeId = null;
       if (next !== undefined) this.activate(next);
+      else this.api.term.setActive(null);
     }
   }
 

@@ -2,7 +2,7 @@
   "name": "ai-command-center",
   "version": "0.1.0",
   "private": true,
-  "description": "One window for the browser, terminal, file sidebar and agent harness on Mike's machine.",
+  "description": "One window for the browser, PowerShell terminals, a sidebar over your project folders, and an agent harness.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "main": "src/main/main.js",
@@ -11,6 +11,7 @@
     "lint": "node scripts/lint.js",
     "test": "node --test \"tests/**/*.test.js\"",
     "smoke": "node scripts/smoke.js",
+    "scan:secrets": "gitleaks git --no-banner --redact .",
     "spike:extensions": "node scripts/smoke.js https://www.bestbuy.com --install hdokiejnpimakedhajhdlcegeplioahd,chhjbpecpncaggjpdakmflnfcopglcmi"
   },
   "dependencies": {

@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
 import { cleanSavedTabs } from '../shared/session.js';
+import { settingsFrom } from '../shared/settings.js';
 
 /** @param {string} name */
 const file = (name) => path.join(app.getPath('userData'), name);
@@ -34,6 +35,11 @@ function writeJson(name, data) {
 }
 
 export const store = {
+  /** settings.json with neutral defaults; ACC_HUB_URL in the environment overrides the file. */
+  settings() {
+    return settingsFrom(readJson('settings.json', {}), process.env);
+  },
+
   recent() {
     return cleanRecent(readJson('recent.json', []));
   },

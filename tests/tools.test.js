@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleMessage } from '../src/shared/mcp.js';
-import { commandArg, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
+import { commandArg, cronTools, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
 import { searchAll } from '../src/shared/tree.js';
 
 const scan = {
@@ -39,9 +39,9 @@ async function call(t, name, args) {
   return res.result;
 }
 
-test('tools/list offers the three read-only tools with object schemas', async () => {
+test('tools/list offers the four read-only tools with object schemas', async () => {
   const res = /** @type {any} */ (await handleMessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, tools(), ''));
-  assert.deepEqual(res.result.tools.map((/** @type {any} */ t) => t.name), ['list_tabs', 'sidebar_search', 'recent']);
+  assert.deepEqual(res.result.tools.map((/** @type {any} */ t) => t.name), ['list_tabs', 'sidebar_search', 'read_tab', 'recent']);
   for (const t of res.result.tools) assert.equal(t.inputSchema.type, 'object');
 });
 
@@ -213,4 +213,85 @@ test('searchAll: every word must match, empty query matches nothing, limits per 
   assert.equal(searchAll(index, '   ').bookmarks.length, 0);
   assert.equal(searchAll(index, '   ').recent.length, 0);
   assert.equal(searchAll(index, 'a', { files: 1, bookmarks: 1, recent: 1 }).bookmarks.length, 1);
+});
+
+// ---- read_tab, list_terminals, terminal_read --------------------------------
+
+test('read_tab returns the active tab or the one asked for, clipped, and refuses bad ids', async () => {
+  const long = 'x'.repeat(1500);
+  const t = tools({
+    readTab: async (id) => {
+      if (id === 7) throw new Error('No tab with id 7');
+      return { id: id ?? 1, url: 'https://example.com/', title: 'Example', text: long };
+    },
+  });
+  const out = (await call(t, 'read_tab', {})).structuredContent;
+  assert.deepEqual(out, { id: 1, url: 'https://example.com/', title: 'Example', text: long, truncated: false });
+  const clipped = (await call(t, 'read_tab', { tab: 2, max_chars: 1000 })).structuredContent;
+  assert.equal(clipped.id, 2);
+  assert.equal(clipped.text.length, 1000);
+  assert.equal(clipped.truncated, true);
+  for (const args of [{ tab: 7 }, { tab: 0 }, { tab: 'a' }, { max_chars: 10 }, { max_chars: 1e6 }]) {
+    const res = await call(t, 'read_tab', args);
+    assert.equal(res.isError, true, JSON.stringify(args));
+  }
+});
+
+test('list_terminals and terminal_read read the showing terminal or a named one, cleaned, last N lines', async () => {
+  const sessions = [
+    { id: 1, shell: 'pwsh.exe', profile: 'pwsh', cwd: 'D:/work', powershell: true, exited: false, active: false },
+    { id: 2, shell: 'cmd.exe', profile: 'cmd', cwd: 'D:/work', powershell: false, exited: true, active: true },
+  ];
+  const raw = { 1: '\x1b[32mPS>\x1b[0m npm test\r\n1 passing\r\n', 2: 'a\r\nb\r\nc\r\n\r\n' };
+  const t = terminalTools(/** @type {any} */ ({
+    listTerminals: () => sessions,
+    readTerminal: (id) => {
+      const pick = id ?? 2;
+      return pick in raw ? { id: pick, raw: raw[/** @type {1 | 2} */ (pick)] } : null;
+    },
+    runCommand: async () => null,
+  }));
+  assert.deepEqual((await call(t, 'list_terminals', {})).structuredContent, { terminals: sessions });
+  assert.deepEqual((await call(t, 'terminal_read', {})).structuredContent, { terminal: 2, text: 'a\nb\nc' });
+  assert.deepEqual((await call(t, 'terminal_read', { terminal: 1 })).structuredContent, { terminal: 1, text: 'PS> npm test\n1 passing' });
+  assert.deepEqual((await call(t, 'terminal_read', { terminal: 2, lines: 1 })).structuredContent, { terminal: 2, text: 'c' });
+  for (const args of [{ terminal: 9 }, { terminal: 0 }, { terminal: '1' }, { lines: 0 }, { lines: 501 }, { lines: 1.5 }]) {
+    assert.equal((await call(t, 'terminal_read', args)).isError, true, JSON.stringify(args));
+  }
+  const none = terminalTools(/** @type {any} */ ({ listTerminals: () => [], readTerminal: () => null, runCommand: async () => null }));
+  assert.match((await call(none, 'terminal_read', {})).content[0].text, /No terminal is open/);
+});
+
+// ---- cron_tasks, cron_run ------------------------------------------------------
+
+test('cron_tasks lists Cronsole tasks and surfaces a missing setup as a tool error', async () => {
+  const task = { id: 't1', name: 'Nightly', platform: 'TASKHUB_NATIVE', schedule: null, status: 'ACTIVE', nextRunTime: null, lastRunStatus: null, lastRunAt: null };
+  const t = cronTools(/** @type {any} */ ({ listCronTasks: async () => [task], runCronTask: async () => null }));
+  assert.deepEqual((await call(t, 'cron_tasks', {})).structuredContent, { tasks: [task] });
+  const off = cronTools(/** @type {any} */ ({ listCronTasks: async () => { throw new Error('Set ACC_CRONSOLE_MCP'); }, runCronTask: async () => null }));
+  const res = await call(off, 'cron_tasks', {});
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /ACC_CRONSOLE_MCP/);
+});
+
+test('cron_run asks with the task id, returns the run result, and is a tool error when denied or refused', async () => {
+  /** @type {string[]} */
+  const asked = [];
+  const t = cronTools(/** @type {any} */ ({
+    listCronTasks: async () => [],
+    runCronTask: async (/** @type {string} */ id) => {
+      asked.push(id);
+      if (id === 'deny') return null;
+      if (id === 'missing') throw new Error('Cronsole has no task with id missing');
+      return { ran: true, success: true };
+    },
+  }));
+  assert.deepEqual((await call(t, 'cron_run', { task: ' t1 ' })).structuredContent, { ran: true, task: 't1', result: { ran: true, success: true } });
+  assert.match((await call(t, 'cron_run', { task: 'deny' })).content[0].text, /denied/);
+  assert.match((await call(t, 'cron_run', { task: 'missing' })).content[0].text, /no task/);
+  assert.deepEqual(asked, ['t1', 'deny', 'missing']);
+  for (const args of [undefined, {}, { task: '' }, { task: 3 }, { task: 'a\nb' }, { task: 'x'.repeat(201) }]) {
+    assert.equal((await call(t, 'cron_run', args)).isError, true, JSON.stringify(args));
+  }
+  assert.equal(asked.length, 3);
 });

@@ -5,18 +5,12 @@ import { Sidebar, toast } from '/sidebar.js';
 import { startChat } from '/chat.js';
 import { TerminalPanel } from '/terminal.js';
 import { docUrl, isDocUrl } from '/shared/docs.js';
+import { cycleTab, pickTab } from '/shared/session.js';
 import { isCronsoleUrl } from '/shared/cronsole.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-
-const QUICK_LINKS = [
-  ['Project Hub', 'http://127.0.0.1:4273'],
-  ['AI Library', 'https://library.mikesailab.com'],
-  ['mikesailab.com', 'https://mikesailab.com'],
-  ['Chrome Web Store', 'https://chromewebstore.google.com'],
-];
 
 const info = await api.info();
 const cron = await api.cronsole.info();
@@ -106,7 +100,7 @@ $('term-shells').addEventListener('click', async () => {
 // One bar at a time over the terminal; the rest wait their turn. Main holds the
 // command and types it; this only says which terminal, or no.
 
-/** @type {{ id: number, command: string }[]} */
+/** @type {{ id: number, command?: string, task?: string }[]} */
 const asks = [];
 
 function showAsk() {
@@ -114,8 +108,9 @@ function showAsk() {
   $('confirm-bar').hidden = !ask;
   if (!ask) return;
   if (mainEl.classList.contains('no-terminal')) setTerminalOpen(true);
-  $('confirm-cmd').textContent = ask.command;
-  $('confirm-where').textContent = terminals.runTarget()?.label || 'a new terminal';
+  // A command names the terminal it goes to; a Cronsole task (cron_run) names Cronsole.
+  $('confirm-cmd').textContent = ask.task ?? ask.command ?? '';
+  $('confirm-where').textContent = ask.task !== undefined ? 'Cronsole' : terminals.runTarget()?.label || 'a new terminal';
   // Deny takes focus, so an Enter meant for the terminal can't run the command.
   $('confirm-deny').focus();
 }
@@ -125,6 +120,11 @@ async function answerAsk(run) {
   const ask = asks.shift();
   if (!ask) return;
   $('confirm-bar').hidden = true;
+  if (ask.task !== undefined) {
+    await api.mcp.answer(ask.id, run ? true : null);
+    showAsk();
+    return;
+  }
   const pwsh = info.shells.find((/** @type {{ powershell: boolean }} */ s) => s.powershell)?.id;
   const id = run ? (terminals.runTarget()?.id ?? await openTerminal(undefined, pwsh)) : null;
   await api.mcp.answer(ask.id, id);
@@ -134,7 +134,7 @@ async function answerAsk(run) {
 
 $('confirm-run').addEventListener('click', () => answerAsk(true));
 $('confirm-deny').addEventListener('click', () => answerAsk(false));
-api.mcp.onConfirm((/** @type {{ id: number, command: string }} */ ask) => {
+api.mcp.onConfirm((/** @type {{ id: number, command?: string, task?: string }} */ ask) => {
   asks.push(ask);
   if (asks.length === 1) showAsk();
 });
@@ -190,6 +190,7 @@ async function viewDoc(id, opts = {}) {
 api.tabs.onCreated((/** @type {any} */ t) => {
   const el = document.createElement('div');
   el.className = 'tab';
+  el.dataset.id = String(t.id);
   el.setAttribute('role', 'tab');
   el.innerHTML = '<img alt="" hidden><span class="title">New tab</span><button class="close" aria-label="Close tab">×</button>';
   el.addEventListener('click', (e) => {
@@ -234,6 +235,7 @@ function updateTab(t) {
 }
 
 api.tabs.onActivated((/** @type {number} */ id) => {
+  if (id !== activeTab && !findForm.hidden) closeFind();
   activeTab = id;
   for (const [tid, el] of tabEls) {
     el.classList.toggle('active', tid === id);
@@ -255,6 +257,9 @@ api.tabs.onClosed((/** @type {number} */ id) => {
     syncNavbar();
   }
 });
+
+/** Tab ids in the order the strip shows them (the pinned tab first). */
+const tabOrder = () => [...$('tab-list').querySelectorAll('.tab')].map((el) => Number(/** @type {HTMLElement} */ (el).dataset.id));
 
 function syncNavbar() {
   const s = activeTab !== null ? tabState.get(activeTab) : null;
@@ -299,13 +304,45 @@ address.addEventListener('blur', () => {
   }, 150);
 });
 
-for (const [label, url] of QUICK_LINKS) {
+// From settings.json (src/shared/settings.js); Project Hub and the Web Store by default.
+for (const { label, url } of info.quickLinks) {
   const b = document.createElement('button');
   b.textContent = label;
   b.title = url;
   b.addEventListener('click', () => openUrl(url));
   $('quick-links').append(b);
 }
+
+// ---- find in page --------------------------------------------------------------
+
+const findForm = $('find-form');
+const findInput = /** @type {HTMLInputElement} */ ($('find-input'));
+
+function openFind() {
+  findForm.hidden = false;
+  findInput.focus();
+  findInput.select();
+  if (findInput.value) api.tabs.find(findInput.value, true, true);
+}
+function closeFind() {
+  findForm.hidden = true;
+  $('find-count').textContent = '';
+  api.tabs.stopFind();
+}
+findInput.addEventListener('input', () => {
+  if (findInput.value) api.tabs.find(findInput.value, true, true);
+  else { $('find-count').textContent = ''; api.tabs.stopFind(); }
+});
+findInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); if (findInput.value) api.tabs.find(findInput.value, !e.shiftKey, false); }
+  if (e.key === 'Escape') closeFind();
+});
+$('find-next').addEventListener('click', () => findInput.value && api.tabs.find(findInput.value, true, false));
+$('find-prev').addEventListener('click', () => findInput.value && api.tabs.find(findInput.value, false, false));
+$('find-close').addEventListener('click', closeFind);
+api.tabs.onFound((/** @type {number} */ id, /** @type {{ active: number, total: number }} */ r) => {
+  if (id === activeTab && !findForm.hidden) $('find-count').textContent = r.total ? `${r.active}/${r.total}` : '0/0';
+});
 
 // ---- sidebar -----------------------------------------------------------------
 
@@ -333,7 +370,18 @@ api.onShortcut((/** @type {string} */ action) => {
     requestAnimationFrame(reportBounds);
   }
   if (action === 'reload') api.tabs.command('reload');
+  if (action === 'find') openFind();
   if (action === 'devtools') api.tabs.command('devtools');
+  if (action === 'reopen-tab') api.tabs.command('reopen');
+  if (action.startsWith('zoom-')) api.tabs.command(action);
+  if (action === 'next-tab' || action === 'prev-tab') {
+    const id = cycleTab(tabOrder(), activeTab, action === 'next-tab' ? 1 : -1);
+    if (id !== null) api.tabs.activate(id);
+  }
+  if (action.startsWith('tab-')) {
+    const id = pickTab(tabOrder(), action === 'tab-last' ? 9 : Number(action.slice(4)));
+    if (id !== null) api.tabs.activate(id);
+  }
 });
 
 // ---- start -------------------------------------------------------------------

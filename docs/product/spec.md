@@ -23,6 +23,7 @@ Condensed from [requirements.md](../decisions/requirements.md), which has the re
 | **One search.** As a developer, I want one box that searches files, bookmarks and recent items, so that I don't need to remember where something lives. | Every word must match; name matches rank first; results appear within half a second of typing. |
 | **An agent can drive the window** *(Phase 2)*. As a developer, I want Claude to open tabs and files and run terminal commands through an MCP server, so that one agent works across the browser, the terminal and my files. | The MCP server binds `127.0.0.1` only, refuses calls without its per-launch token, asks before running a command, and logs every call. |
 | **Chat inside the app** *(Phase 2)*. As a developer, I want a chat panel wired to that server, so that I don't need a separate window to drive it. | A message in the panel can open a tab, open a file, and run a confirmed command. |
+| **The agent can see what it did** *(Phase 2b)*. As a developer, I want the agent to read a terminal's output and a tab's text, so that "run the tests and tell me what failed" works in one message. | `terminal_read` returns the last lines of a session with escapes stripped; `read_tab` returns a tab's visible text, marked as untrusted; neither needs a click. Anything that acts (a Cronsole task) waits for the click like a command. |
 
 ## Shoulds
 
@@ -30,6 +31,8 @@ Condensed from [requirements.md](../decisions/requirements.md), which has the re
 - Bookmarks from the user's Chrome, Edge or Brave profile.
 - Cronsole's task list and UI inside the app.
 - Tabs reopen after a restart.
+- The browser basics: cycle and pick tabs from the keyboard, reopen a closed tab, zoom, find in page.
+- A crash log a stranger can paste into a bug report.
 
 ## Won't
 
@@ -45,7 +48,7 @@ Condensed from [requirements.md](../decisions/requirements.md), which has the re
 |:---|:---|
 | Platform | Windows 11, PowerShell 7 |
 | Network | No listening ports except the MCP server on loopback |
-| Untrusted content | Tabs sandboxed with no preload from this app; IPC refuses any sender but the shell |
+| Untrusted content | Tabs sandboxed with no preload from this app; IPC refuses any sender but the shell; page permission requests (camera, microphone, location, notifications and the rest) denied by default |
 | Cold start | Window and terminal usable within a few seconds; the Hub tree may take about 12 s on a cold Hub |
 
 ---
