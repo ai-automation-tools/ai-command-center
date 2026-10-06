@@ -3,7 +3,7 @@
 <h1 align="center">🧭 AI Command Center</h1>
 
 <p align="center">
-  <em>One window for Mike's browser, PowerShell, project files and bookmarks,<br>with an MCP server that lets an agent drive it.</em>
+  <em>One window for your browser, PowerShell, project files and bookmarks,<br>with an MCP server that lets an agent drive it.</em>
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-Phase_1_·_MVP-F59E0B?style=for-the-badge" alt="Status: Phase 1 MVP">
+  <img src="https://img.shields.io/badge/status-incubating_·_release_gates-F59E0B?style=for-the-badge" alt="Status: incubating, release gates in progress">
   <img src="https://img.shields.io/badge/runs_on-Windows_11-0078D4?style=for-the-badge" alt="Runs on Windows 11">
   <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/plan-ROADMAP-8B5CF6?style=for-the-badge" alt="Roadmap"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-2ea44f?style=for-the-badge" alt="License: GPL-3.0-or-later"></a>
@@ -37,13 +37,13 @@
 
 ---
 
-A desktop app that puts a browser, PowerShell terminals and a sidebar over every workspace in one Electron window. The sidebar comes from [Project Hub](https://github.com/ai-automation-tools/project-hub), which already scans the workspaces and reads the browser bookmarks, so this app reuses it rather than rescanning disk. Phase 2 adds an MCP server and a chat panel so an agent can drive the whole window.
+A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over every project folder you work in into one Electron window. The sidebar comes from [Project Hub](https://github.com/ai-automation-tools/project-hub), a small local server that already scans your workspaces and reads your browser bookmarks, so this app reuses it rather than rescanning disk. An MCP server and a chat panel let an agent, Claude Code in one of the app's terminals or Claude in the sidebar, drive the whole window: open tabs and files, read what a page or a terminal shows, and run commands you approve with a click.
 
 > [!WARNING]
-> **LastPass and Rakuten don't work yet.** Both install from the Chrome Web Store and show their toolbar icons, but their background service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
+> **Extensions with Manifest V3 background workers don't work yet.** LastPass and Rakuten, for instance, install from the Chrome Web Store and show their toolbar icons, but their service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
 
 > [!NOTE]
-> A business analysis kept outside this repo recommended not building this and composing existing tools instead. Mike decided to build it on 2026-09-29; that override is recorded in the analysis's decisions folder.
+> This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
 
 ## ✨ What works today
 
@@ -60,11 +60,15 @@ A desktop app that puts a browser, PowerShell terminals and a sidebar over every
 
 ## 🚀 Quick start
 
+You need Windows 11, [Node.js](https://nodejs.org) 24, [PowerShell 7](https://github.com/PowerShell/PowerShell) and a running [Project Hub](https://github.com/ai-automation-tools/project-hub) (its README is a two-minute setup: point it at your project folders and start it; it listens on `http://127.0.0.1:4273`).
+
 ```powershell
-# 1. Project Hub should be running (it usually is; the watchdog task restarts it)
+# 1. Check Project Hub answers
 Invoke-RestMethod http://127.0.0.1:4273/api/health
 
 # 2. Install. node-pty ships prebuilt binaries, so no compiler is needed
+git clone https://github.com/ai-automation-tools/ai-command-center
+cd ai-command-center
 npm install
 
 # 3. Run the app (or .\scripts\Start-AICommandCenter.ps1, which leaves no console behind)
@@ -73,6 +77,8 @@ npm start
 # 4. Check it: lint and unit tests, then a scripted launch that saves screenshots to .smoke/
 npm run lint; npm test; npm run smoke
 ```
+
+Without Project Hub the app still runs: the browser, terminals and extensions work, and the Files and Bookmarks panels say Hub isn't reachable and offer Retry. Everything the app saves (open tabs, splitter sizes, recent items, installed extensions, site data) lives under `%APPDATA%\ai-command-center`.
 
 To start it from a shortcut or the Start menu without a terminal, point the shortcut at:
 
@@ -140,16 +146,9 @@ setx ACC_CRONSOLE_MCP "<cronsole>\mcp-server\dist\index.js"
 
 The server runs on the app's own Electron binary in Node mode and gets the app's environment, so it finds `CRONSOLE_TOKEN` and `CRONSOLE_API_URL` the same way it does under Claude Code; Cronsole's backend has to be running. Agents get the same list through the `cron_tasks` MCP tool, and `cron_run` starts a task by id once you click Run on the bar over the terminal, which shows the task's name. Cronsole's UI opens from `http://localhost:7373`; set `ACC_CRONSOLE_UI` if yours is elsewhere. A tab on that address is the pinned tab: it sits first in the strip with no close button (Ctrl+W still closes it), and **Open Cronsole** goes back to it instead of opening another. Refresh asks Cronsole again; the server stops when the app quits.
 
-## 🌿 Branches
+## 🌿 Contributing
 
-Work on `mike_desktop`, push it, and open a pull request against `main`:
-
-```powershell
-git push origin mike_desktop
-gh pr create --base main --head mike_desktop
-```
-
-A weekly roadmap routine also opens PRs, from `roadmap/auto-<date>` branches, one release gate at a time (see [the roadmap](docs/ROADMAP.md)). Dependency changes are never made by the routine, so after one merges, quit the app and run `npm install` yourself.
+Branch from `main`, keep `npm run lint` and `npm test` green (CI runs both on every push), run `npm run smoke` when you touch the main process or the shell UI, and open a pull request against `main`. [CLAUDE.md](CLAUDE.md) has the standards, the security invariants that every change has to keep, and the list of things this project won't do. A weekly roadmap routine also opens PRs, from `roadmap/auto-<date>` branches, one release gate at a time (see [the roadmap](docs/ROADMAP.md)). Dependency changes are never made by the routine, so after one merges, quit the app and run `npm install` yourself.
 
 ## ⌨️ Shortcuts
 

@@ -15,7 +15,7 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
-Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. The read-only and navigation MCP tools followed in weekly roadmap PRs the same day, and `terminal_run` on 2026-10-04, along with the daily-use gates (Files right-click menu, documents under the app's own sidebar, shell menu) and a fix to the page context menu's open-externally item, then the MCP call log and the README's `claude mcp add` section, the chat panel, and Cronsole in the sidebar, which finished Phase 2. A repo review on 2026-10-05 reshaped the roadmap and landed six release gates (CI, the settings file, SECURITY.md, page permissions, the crash log, browser shortcuts) then find in page, and the first Phase 2b tools (`list_terminals`, `terminal_read`, `read_tab`, `cron_tasks`, `cron_run`). Next up: the README rewrite and the live demo.
+Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launcher and the live MCP server's token check were confirmed by hand on 2026-09-30. The read-only and navigation MCP tools followed in weekly roadmap PRs the same day, and `terminal_run` on 2026-10-04, along with the daily-use gates (Files right-click menu, documents under the app's own sidebar, shell menu) and a fix to the page context menu's open-externally item, then the MCP call log and the README's `claude mcp add` section, the chat panel, and Cronsole in the sidebar, which finished Phase 2. A repo review on 2026-10-05 reshaped the roadmap and landed six release gates (CI, the settings file, SECURITY.md, page permissions, the crash log, browser shortcuts) then find in page, and the first Phase 2b tools (`list_terminals`, `terminal_read`, `read_tab`, `cron_tasks`, `cron_run`). Next up: the live demo, the last gate.
 
 **Added**
 
@@ -48,6 +48,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Changed**
 
+- README rewritten for someone who isn't Mike: prerequisites (Windows 11, Node 24, PowerShell 7, a running Project Hub), a clone-to-run quick start, what still works when Hub is down, where the app keeps its files, a Contributing section in place of the personal branch, a current status badge, and the extension warning phrased for any Manifest V3 extension. *(roadmap: Public release)*
 - Nothing personal in tracked files: the empty-state links to Mike's own sites moved out of the renderer into the settings file, the Hub-down note points at the Project Hub repository instead of a path on Mike's disk, the URL tests use `example.com`, and `package.json`'s description no longer names a machine. *(roadmap: Public release)*
 - Closing a terminal tab always tells the main process, even when the shell had already exited, so the session's output buffer is dropped.
 
