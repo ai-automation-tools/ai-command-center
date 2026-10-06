@@ -1,6 +1,6 @@
 # CLAUDE.md — AI Command Center
 
-Instructions for any agent working in this repo, including the weekly roadmap routine.
+Instructions for any agent working in this repo, including the roadmap routine that runs twice a week.
 Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before changing code.
 
 ## What this is
@@ -30,7 +30,8 @@ npm run smoke    # launches the real app, opens a page and a terminal, screensho
 ```
 
 `npm run lint` and `npm test` must pass on every change, and CI (`.github/workflows/ci.yml`)
-runs both on every push. Run `npm run smoke` when you touch `src/main/`, `src/preload/`
+runs both on every push; the org PR sweep won't merge a PR with a red check, and the
+Graduate stage needs a green run on `main`. Run `npm run smoke` when you touch `src/main/`, `src/preload/`
 or `src/renderer/` and you have a desktop session. `npm run scan:secrets` (gitleaks)
 before anything goes public.
 

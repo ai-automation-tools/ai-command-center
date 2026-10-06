@@ -148,7 +148,7 @@ The server runs on the app's own Electron binary in Node mode and gets the app's
 
 ## 🌿 Contributing
 
-Branch from `main`, keep `npm run lint` and `npm test` green (CI runs both on every push), run `npm run smoke` when you touch the main process or the shell UI, and open a pull request against `main`. [CLAUDE.md](CLAUDE.md) has the standards, the security invariants that every change has to keep, and the list of things this project won't do. A weekly roadmap routine also opens PRs, from `roadmap/auto-<date>` branches, one release gate at a time (see [the roadmap](docs/ROADMAP.md)). Dependency changes are never made by the routine, so after one merges, quit the app and run `npm install` yourself.
+Branch from `main`, keep `npm run lint` and `npm test` green (CI runs both on every push), run `npm run smoke` when you touch the main process or the shell UI, and open a pull request against `main`. [CLAUDE.md](CLAUDE.md) has the standards, the security invariants that every change has to keep, and the list of things this project won't do. A scheduled roadmap routine also opens PRs twice a week, from `roadmap/auto-<date>` branches, one roadmap item at a time (see [the roadmap](docs/ROADMAP.md)); an org-wide sweep reviews and merges them, and a daily stage promotes the repo to public once every release gate is ticked. Dependency changes are never made by the routine, so after one of its PRs merges, quit the app and run `npm install` yourself.
 
 ## ⌨️ Shortcuts
 
