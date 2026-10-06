@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/now-slice_2-F59E0B?style=for-the-badge" alt="Now: slice 2">
+  <img src="https://img.shields.io/badge/now-slices_3_and_2b-F59E0B?style=for-the-badge" alt="Now: slices 3 and 2b">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-product-6B7280?style=for-the-badge" alt="Back to product"></a>
 </p>
 
@@ -18,8 +18,9 @@ Each slice runs from the UI through to the main process and is usable when it la
 | 0 | **Decide.** Requirements, three architecture options, three ADRs. | Picking a runtime that can't carry the product | ✅ 2026-09-29 |
 | 1 | **One window.** Tabs, terminal, Hub sidebar, recent, search, extension spike. | Whether Electron can host a daily browser and a real terminal on this machine. Answer: yes, except MV3 extension workers. | ✅ 2026-09-30 |
 | 2 | **Harness.** MCP server on loopback with a token, a command log, confirmations, then the chat panel, then Cronsole. | Whether an agent can drive the window safely. The MCP server comes before the chat panel because it's the part other agents (Claude Code in the terminal) can use on day one. | done 2026-10-04: MCP server with read-only, navigation and `terminal_run` tools, the call log, the `claude mcp add` README section, the chat panel, and Cronsole's tasks in the sidebar with its UI in a pinned tab |
-| 3 | **Public release.** CI, a browser demo of the shell with fabricated data, configurable Hub URL and quick links, SECURITY.md, secret scan, licence. | Whether a stranger can install it and trust it | after 2 |
-| 4 | **The rest.** IDE pane, docs view, news and bookmark feeds, phone channel. | None that blocks release; these are the "should" and "later" rows | after public release |
+| 3 | **Public release.** CI, a browser demo of the shell with fabricated data, configurable Hub URL and quick links, SECURITY.md, secret scan, licence; from the 2026-10-05 review, page permissions denied by default, a crash log, and the browser shortcuts and find bar a daily browser needs. | Whether a stranger can install it and trust it | started 2026-10-05: CI, settings file, SECURITY.md, permissions, crash log, shortcuts |
+| 2b | **Close the agent's loop.** `terminal_read`, `read_tab`, `cron_run`, chat context buttons and streaming. | Whether the harness is useful rather than demonstrable: an agent that can act but not see stops after one step. Runs alongside slice 3 because its read-only tools are small and the chat panel is the first thing a stranger will try. | started 2026-10-05: `list_terminals`, `terminal_read`, `read_tab` |
+| 4 | **The rest.** Integrations over Hub's event stream and favorites and Cronsole's run history, then the IDE pane, docs view, news and bookmark feeds, phone channel. | None that blocks release; these are the "should" and "later" rows | after public release |
 
 ## When we'd stop
 
