@@ -8,6 +8,8 @@
 
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
+  ·
+  <a href="https://ai-automation-tools.dev/ai-command-center/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
@@ -41,6 +43,9 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 
 > [!WARNING]
 > **Extensions with Manifest V3 background workers don't work yet.** LastPass and Rakuten, for instance, install from the Chrome Web Store and show their toolbar icons, but their service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
+
+> [!TIP]
+> **[Try the demo](https://ai-automation-tools.dev/ai-command-center/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
 
 > [!NOTE]
 > This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
@@ -172,12 +177,12 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 
 | Folder | What's inside |
 |:---|:---|
-| [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
+| [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers; plus `demo/`, the fake `window.acc` the browser demo runs on. |
 | [**🧪 tests/**](tests/README.md) | The unit tests over `src/shared/`, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
-| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
-| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. |
+| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `demo.js` behind `npm run demo`, which builds the browser demo into `_site/`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
+| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`; `pages.yml` deploys the demo from `main`. |
 
 ## 🔒 Security model
 

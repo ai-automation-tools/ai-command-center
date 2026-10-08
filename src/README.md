@@ -12,7 +12,7 @@
 
 ---
 
-Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` directly; the shell UI loads from this folder over the private `acc://shell/` protocol, which serves `renderer/`, `shared/`, and the two xterm packages from `node_modules`, and nothing else.
+Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` directly; the shell UI loads from this folder over the private `acc://shell/` protocol, which serves `renderer/`, `shared/`, and the two xterm packages from `node_modules`, and nothing else. Every path in the shell UI is relative, so the same files also serve from a subpath on GitHub Pages as the demo (`demo/`, below).
 
 ## 🖥️ main/ — the main process
 
@@ -46,6 +46,17 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 | [**sidebar.js**](renderer/sidebar.js) | Files, Bookmarks and Recent panels and the search box across them, plus the MCP panel of calls agents made and the Cron panel of Cronsole's tasks. Clicks, hover buttons and the right-click menu on Files rows all go through one `fileAction()`. |
 | [**terminal.js**](renderer/terminal.js) | One xterm.js instance per shell session, with copy and paste keys; tells main which session is showing, so `terminal_read` reads that one by default. |
 | [**styles.css**](renderer/styles.css) | Dark theme and the grid layout. |
+
+## 🎭 demo/ — the browser demo
+
+The shell UI from `renderer/` running in an ordinary browser at [ai-automation-tools.dev/ai-command-center](https://ai-automation-tools.dev/ai-command-center/). `npm run demo` (`scripts/demo.js`) copies `renderer/`, `shared/`, this folder and xterm into `_site/`; `.github/workflows/pages.yml` deploys it on every push to `main`. The app never loads anything here.
+
+| File | What it does |
+|:---|:---|
+| [**acc.js**](demo/acc.js) | `demoApi()`: every call `preload/shell.cjs` exposes, answered from made-up files, bookmarks, Cronsole tasks and MCP calls. Tabs keep a history but have no browser behind them; terminals echo what you type and answer `npm test`, `git status`, `ls` and `help` with canned output; one `terminal_run` ask shows the confirm bar after six seconds. No network, no storage. |
+| [**install.js**](demo/install.js) | Loaded before `app.js`: puts `demoApi()` on `window.acc`, draws the stand-in page where a tab would be, and shows toasts. |
+| [**page.js**](demo/page.js) | `demoHtml()`: the app's `index.html` with the org source bar at the top, the demo stylesheet and `install.js` added; fails if `index.html` moved an anchor it relies on. |
+| [**demo.css**](demo/demo.css) | The fixed source bar (the shell is shortened by its height), the stand-in page and toasts. |
 
 ## 🔁 shared/ — pure helpers, unit-tested
 

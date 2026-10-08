@@ -32,7 +32,7 @@ export async function startChat(api) {
     }
   };
 
-  api.chat.onEvent((/** @type {import('/shared/chat.js').ChatEvent} */ e) => {
+  api.chat.onEvent((/** @type {import('./shared/chat.js').ChatEvent} */ e) => {
     if (e.type === 'text') line('assistant', e.text);
     if (e.type === 'tool') line('tool', `→ ${e.name} ${JSON.stringify(e.input)}`);
     if (e.type === 'result') line(`tool ${e.ok ? 'ok' : 'failed'}`, `${e.ok ? '✓' : '✗'} ${e.text}`);

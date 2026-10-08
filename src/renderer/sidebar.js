@@ -2,10 +2,10 @@
 // plus Hub's own favorites), Recent, and one search box across all three; plus MCP,
 // the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
-import { taskSummary } from '/shared/cronsole.js';
-import { PROJECT_HUB_REPO } from '/shared/settings.js';
-import { pushEntry } from '/shared/mcplog.js';
-import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from '/shared/tree.js';
+import { taskSummary } from './shared/cronsole.js';
+import { PROJECT_HUB_REPO } from './shared/settings.js';
+import { pushEntry } from './shared/mcplog.js';
+import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from './shared/tree.js';
 
 const ICONS = {
   projects: '🗂️', root: '📦', section: '📁', cli: '🤖', folder: '📁', repo: '📘', group: '🗃️', draft: '🧪',
@@ -15,8 +15,8 @@ const ICONS = {
 const RECENT_ICONS = { url: '🌐', file: '📄', folder: '📁', terminal: '💻' };
 
 /**
- * @typedef {import('/shared/tree.js').HubNode} HubNode
- * @typedef {import('/shared/tree.js').FileAction} FileAction
+ * @typedef {import('./shared/tree.js').HubNode} HubNode
+ * @typedef {import('./shared/tree.js').FileAction} FileAction
  */
 
 export class Sidebar {
@@ -83,9 +83,9 @@ export class Sidebar {
     document.getElementById('cron-open')?.addEventListener('click', () => this.openCronsole());
     document.getElementById('cron-refresh')?.addEventListener('click', () => this.loadCron());
     api.recent.onChanged((/** @type {any[]} */ list) => { this.recent = list; this.renderRecent(); });
-    /** @type {import('/shared/mcplog.js').LogEntry[]} */
+    /** @type {import('./shared/mcplog.js').LogEntry[]} */
     this.calls = [];
-    api.mcp.onLogged((/** @type {import('/shared/mcplog.js').LogEntry} */ entry) => {
+    api.mcp.onLogged((/** @type {import('./shared/mcplog.js').LogEntry} */ entry) => {
       pushEntry(this.calls, entry);
       this.renderCalls();
     });

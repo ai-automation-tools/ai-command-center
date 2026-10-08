@@ -1,12 +1,12 @@
 // Shell UI entry point: wires the sidebar, the browser tab strip and address bar, and
 // the terminal panel, and keeps the main process told where the browser pane sits.
 
-import { Sidebar, toast } from '/sidebar.js';
-import { startChat } from '/chat.js';
-import { TerminalPanel } from '/terminal.js';
-import { docUrl, isDocUrl } from '/shared/docs.js';
-import { cycleTab, pickTab } from '/shared/session.js';
-import { isCronsoleUrl } from '/shared/cronsole.js';
+import { Sidebar, toast } from './sidebar.js';
+import { startChat } from './chat.js';
+import { TerminalPanel } from './terminal.js';
+import { docUrl, isDocUrl } from './shared/docs.js';
+import { cycleTab, pickTab } from './shared/session.js';
+import { isCronsoleUrl } from './shared/cronsole.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
