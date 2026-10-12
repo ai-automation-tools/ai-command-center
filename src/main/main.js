@@ -250,7 +250,7 @@ async function createWindow() {
   // The chat panel: Claude with this app's MCP server as its tools.
   const conversation = chat({ mcp: () => mcp, send });
   handle('chat:info', () => conversation.info());
-  handle('chat:send', (text) => conversation.send(text));
+  handle('chat:send', (text, attach) => conversation.send(text, attach));
   handle('chat:reset', () => conversation.reset());
 
   // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
@@ -494,7 +494,11 @@ function smoke(dir, tabs, terminals, browseSession) {
       s.dispatchEvent(new Event('input'));
       await new Promise((r) => setTimeout(r, 300));
       document.querySelector('.side-tabs [data-panel="chat"]').click();
-      return { info: await window.acc.chat.info(), shown: document.getElementById('chat-log').textContent.slice(0, 160) };
+      const page = document.getElementById('chat-attach-page');
+      page.click();
+      const attach = page.getAttribute('aria-pressed');
+      page.click();
+      return { info: await window.acc.chat.info(), attach, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
     // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set),

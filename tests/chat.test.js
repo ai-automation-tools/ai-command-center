@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { API_URL, API_VERSION, addUserText, chatConfig, chatText, mcpClient, messagesApi, runTurn, toApiTools, toolOutcome } from '../src/shared/chat.js';
+import { API_URL, API_VERSION, addUserText, chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, toApiTools, toolOutcome, withAttachments } from '../src/shared/chat.js';
 import { createMcpServer } from '../src/shared/mcp.js';
 
 test('chatConfig reads the key and model from the environment, with no default model', () => {
@@ -92,6 +92,42 @@ test('runTurn reports tool errors and thrown tools to Claude, and stops after ma
   addUserText(messages, 'carry on');
   assert.equal(messages.at(-1).content.at(-1).text, 'carry on');
   assert.equal(messages.at(-2).role, 'assistant');
+});
+
+test('chatAttach takes page and terminal only, and refuses anything else', () => {
+  assert.deepEqual(chatAttach(undefined), []);
+  assert.deepEqual(chatAttach(null), []);
+  assert.deepEqual(chatAttach([]), []);
+  assert.deepEqual(chatAttach(['terminal', 'page', 'page']), ['terminal', 'page']);
+  assert.throws(() => chatAttach('page'), /page and terminal only/);
+  assert.throws(() => chatAttach(['page', 'cron_run']));
+  assert.throws(() => chatAttach(['__proto__']));
+  assert.throws(() => chatAttach([{}]));
+});
+
+test('withAttachments puts each attachment above the text, or says it failed', () => {
+  assert.equal(withAttachments('hi', []), 'hi');
+  assert.equal(
+    withAttachments('what failed?', [{ kind: 'page', text: 'P', isError: false }, { kind: 'terminal', text: 'No terminal is open', isError: true }]),
+    "<attached page>\nP\n</attached page>\n\n(The terminal couldn't be attached: No terminal is open)\n\nwhat failed?",
+  );
+});
+
+test('runTurn reads attachments through the tools before posting, and shows the calls', async () => {
+  const { bodies, post } = scripted([{ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] }]);
+  /** @type {any[]} */
+  const events = [];
+  /** @type {string[]} */
+  const called = [];
+  await runTurn({
+    messages: [], text: 'summarise', model: 'm', tools: [], post, attach: ['page', 'terminal'],
+    callTool: async (name) => { called.push(name); if (name === 'terminal_read') throw new Error('No terminal is open'); return { text: 'Example Domain', isError: false }; },
+    onEvent: (e) => events.push(e),
+  });
+  assert.deepEqual(called, ['read_tab', 'terminal_read']);
+  assert.deepEqual(events.map((e) => e.type), ['tool', 'result', 'tool', 'result', 'text']);
+  assert.equal(events[3].ok, false);
+  assert.equal(bodies[0].messages[0].content, "<attached page>\nExample Domain\n</attached page>\n\n(The terminal couldn't be attached: No terminal is open)\n\nsummarise");
 });
 
 test('runTurn answers every tool_use even when the stop reason is not tool_use', async () => {

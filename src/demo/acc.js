@@ -338,7 +338,13 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
 
     chat: {
       info: async () => ({ model: 'demo · no model', missing: [], mcp: true }),
-      send: async (/** @type {string} */ text) => {
+      send: async (/** @type {string} */ text, /** @type {string[] | undefined} */ attach) => {
+        for (const kind of attach || []) {
+          const name = kind === 'page' ? 'read_tab' : 'terminal_read';
+          emit('chat', { type: 'tool', name, input: {} });
+          logCall(name, {});
+          emit('chat', { type: 'result', name, ok: true, text: kind === 'page' ? '{"title":"Demo page","text":"Made-up page text"}' : '{"terminal":1,"text":"PS D:/work> npm test"}' });
+        }
         const query = String(text).slice(0, 40);
         emit('chat', { type: 'tool', name: 'sidebar_search', input: { query } });
         logCall('sidebar_search', { query });
