@@ -9,6 +9,12 @@ export async function startChat(api) {
   const log = $('chat-log');
   const input = /** @type {HTMLTextAreaElement} */ ($('chat-input'));
   const sendBtn = /** @type {HTMLButtonElement} */ ($('chat-send'));
+  // Toggles: what's pressed is read by the main process (read_tab, terminal_read) and
+  // goes above the next message; the text never passes through this file.
+  const attachBtns = { page: $('chat-attach-page'), terminal: $('chat-attach-terminal') };
+  for (const b of Object.values(attachBtns)) {
+    b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')));
+  }
 
   /** @param {string} cls @param {string} text */
   const line = (cls, text) => {
@@ -28,11 +34,11 @@ export async function startChat(api) {
     } else if (!info.mcp) {
       line('note', "The app's MCP server didn't start, so the chat has no tools.");
     } else {
-      line('note', `Claude (${info.model}) can open tabs and files, search the sidebar, and run commands in the terminal after you click Run. Its calls show in the MCP tab.`);
+      line('note', `Claude (${info.model}) can open tabs and files, search the sidebar, and run commands in the terminal after you click Run. + page and + terminal attach what the tab or terminal shows to your next message. Its calls show in the MCP tab.`);
     }
   };
 
-  api.chat.onEvent((/** @type {import('/shared/chat.js').ChatEvent} */ e) => {
+  api.chat.onEvent((/** @type {import('./shared/chat.js').ChatEvent} */ e) => {
     if (e.type === 'text') line('assistant', e.text);
     if (e.type === 'tool') line('tool', `→ ${e.name} ${JSON.stringify(e.input)}`);
     if (e.type === 'result') line(`tool ${e.ok ? 'ok' : 'failed'}`, `${e.ok ? '✓' : '✗'} ${e.text}`);
@@ -42,12 +48,14 @@ export async function startChat(api) {
     e.preventDefault();
     const text = input.value.trim();
     if (!text || sendBtn.disabled) return;
-    line('user', text);
+    const attach = Object.entries(attachBtns).filter(([, b]) => b.getAttribute('aria-pressed') === 'true').map(([k]) => k);
+    line('user', [...attach.map((k) => `[+ ${k}]`), text].join(' '));
     input.value = '';
+    for (const b of Object.values(attachBtns)) b.setAttribute('aria-pressed', 'false');
     sendBtn.disabled = true;
     const thinking = line('note', 'Thinking…');
     try {
-      await api.chat.send(text);
+      await api.chat.send(text, attach);
     } catch (err) {
       line('error', errText(err));
     } finally {

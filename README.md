@@ -8,6 +8,8 @@
 
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
+  ·
+  <a href="https://ai-automation-tools.dev/ai-command-center/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
@@ -42,6 +44,9 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 > [!WARNING]
 > **Extensions with Manifest V3 background workers don't work yet.** LastPass and Rakuten, for instance, install from the Chrome Web Store and show their toolbar icons, but their service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
 
+> [!TIP]
+> **[Try the demo](https://ai-automation-tools.dev/ai-command-center/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
+
 > [!NOTE]
 > This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
 
@@ -55,7 +60,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
 | **🤖 MCP server** | A local MCP server for agents. Tools that look: `list_tabs`, `read_tab` (a tab's visible text), `sidebar_search` (the sidebar's search box), `recent`, `list_terminals` and `terminal_read` (the last lines a terminal printed, escapes stripped). Navigation tools: `open_tab` (takes what the address bar takes) and `open_file` (a Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer). `terminal_run` shows a command over the terminal and types it in only when you click Run; `terminal_read` afterwards shows the agent what happened. `cron_tasks` and `cron_run` do the same for Cronsole's scheduled tasks, with the same click. Its address and per-launch token are in `%APPDATA%\ai-command-center\mcp.json`. Every call, including refused ones, shows in the sidebar's **MCP** tab and is appended to `%APPDATA%\ai-command-center\logs\mcp.log`. |
-| **💬 Chat** | A **Chat** tab in the sidebar: Claude with the app's MCP server as its tools, so a message can open a tab, find or open a file, or put a command on the terminal's Run bar. The key and model come from your environment (see [Chat in the app](#-chat-in-the-app)); its tool calls show in the MCP tab like any other client's. |
+| **💬 Chat** | A **Chat** tab in the sidebar: Claude with the app's MCP server as its tools, so a message can open a tab, find or open a file, or put a command on the terminal's Run bar. **+ page** and **+ terminal** attach what the active tab or the showing terminal says to your next message. The key and model come from your environment (see [Chat in the app](#-chat-in-the-app)); its tool calls show in the MCP tab like any other client's. |
 | **⏱️ Cron** | A **Cron** tab in the sidebar listing [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks, read through Cronsole's own MCP server: next run, paused, missing or failed at a glance, details on hover. **Open Cronsole**, or a click on a task, shows Cronsole's UI in a pinned tab at the left of the strip. An agent can list the tasks and, after you click Run, start one. Setup is under "Cronsole in the sidebar" below. |
 
 ## 🚀 Quick start
@@ -134,7 +139,7 @@ setx ACC_CHAT_MODEL "<a Claude model ID>"
 
 `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` work too, but `ACC_CHAT_API_KEY` keeps the key out of Claude Code's way: with `ANTHROPIC_API_KEY` set, `claude` in a terminal bills that key instead of your subscription. There is no default model, so the app never picks what you pay for. The key stays in the main process; the panel only ever sees the model name.
 
-Enter sends, Shift+Enter starts a new line, Clear starts a new conversation. Each tool call shows in the conversation as it happens, and `terminal_run` still waits for your click on the terminal's Run bar; a denial goes back to Claude as an error.
+Enter sends, Shift+Enter starts a new line, Clear starts a new conversation. **+ page** and **+ terminal** attach the active tab's text or the showing terminal's last lines to your next message, read through `read_tab` and `terminal_read` the way Claude would, so "what does this page say" needs no tool round-trip; both switch off once the message is sent. Each tool call shows in the conversation as it happens, and `terminal_run` still waits for your click on the terminal's Run bar; a denial goes back to Claude as an error.
 
 ## ⏱️ Cronsole in the sidebar
 
@@ -172,12 +177,12 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 
 | Folder | What's inside |
 |:---|:---|
-| [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers. |
+| [**🧩 src/**](src/README.md) | The app: main process, the shell's preload, the shell UI, and shared helpers; plus `demo/`, the fake `window.acc` the browser demo runs on. |
 | [**🧪 tests/**](tests/README.md) | The unit tests over `src/shared/`, plus how the smoke run and the extension spike check the real app. |
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
-| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
-| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. |
+| [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `demo.js` behind `npm run demo`, which builds the browser demo into `_site/`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
+| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. The demo builds with `npm run demo` but isn't deployed until the repo goes public. |
 
 ## 🔒 Security model
 

@@ -1,0 +1,22 @@
+/* The demo only: the org source bar fixed across the top (the shell is sized to the
+   viewport, so it's shortened by the bar), the stand-in tab page, and toasts. */
+
+:root { --srcbar-h: 34px; }
+body.demo { padding-top: var(--srcbar-h); }
+body.demo #app { height: calc(100vh - var(--srcbar-h)); }
+
+.src-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; align-items: center; gap: 16px;
+  height: var(--srcbar-h); padding: 0 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: 12px; }
+.src-note { margin: 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-3); }
+.src-note strong { font-weight: 600; color: var(--accent); }
+.src-link { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); text-decoration: none; }
+.src-link:hover { color: var(--text); }
+
+#demo-page { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 4px; padding: 24px; text-align: center; color: var(--text-2); }
+#demo-page h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--text); }
+#demo-page .url { color: var(--accent); word-break: break-all; }
+#demo-page p { max-width: 520px; margin: 4px 0; }
+
+.demo-toast { position: fixed; left: 12px; bottom: 12px; z-index: 30; max-width: 420px; padding: 10px 12px;
+  background: #1f2937; border: 1px solid #374151; border-radius: 8px; color: #f4f4f5; }

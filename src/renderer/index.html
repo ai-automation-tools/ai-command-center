@@ -5,9 +5,9 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http: crx:; connect-src 'self'; font-src 'self' data:">
   <title>AI Command Center</title>
-  <link rel="stylesheet" href="/vendor/xterm/css/xterm.css">
-  <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/app.js"></script>
+  <link rel="stylesheet" href="vendor/xterm/css/xterm.css">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
 </head>
 <body>
   <div id="app">
@@ -41,6 +41,8 @@
         <form id="chat-form">
           <textarea id="chat-input" rows="3" placeholder="Ask Claude to open a tab, find a file, run a command…  (Enter sends, Shift+Enter for a new line)" aria-label="Chat message" spellcheck="true"></textarea>
           <div class="chat-actions">
+            <button type="button" id="chat-attach-page" class="chat-attach" aria-pressed="false" title="Attach the active tab's text to your next message">+ page</button>
+            <button type="button" id="chat-attach-terminal" class="chat-attach" aria-pressed="false" title="Attach the showing terminal's last lines to your next message">+ terminal</button>
             <span id="chat-model"></span>
             <button type="button" id="chat-clear">Clear</button>
             <button type="submit" id="chat-send">Send</button>

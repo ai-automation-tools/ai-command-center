@@ -27,6 +27,7 @@ private today, public when every release gate in `docs/ROADMAP.md` is ticked.
 npm run lint     # node --check on every .js/.cjs/.mjs in src, scripts, tests
 npm test         # 90+ unit tests
 npm run smoke    # launches the real app, opens a page and a terminal, screenshots to .smoke/, quits (needs a desktop session)
+npm run demo     # builds the browser demo (renderer + src/demo's fake window.acc) into _site/
 ```
 
 `npm run lint` and `npm test` must pass on every change, and CI (`.github/workflows/ci.yml`)
@@ -50,6 +51,7 @@ before anything goes public.
   - Cronsole's MCP server (`src/main/cronsole.js`) runs on the app's own Electron binary (`ELECTRON_RUN_AS_NODE`) with the script path from `ACC_CRONSOLE_MCP` in the environment. No IPC message, MCP call or URL may name that script or pass it arguments, and the app calls only its read-only `list_tasks` and, after the user clicks Run on the confirm bar, `run_task` with an id from that list (`cron_run`).
   - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
   - MCP tools that look (`list_tabs`, `read_tab`, `list_terminals`, `terminal_read`, `sidebar_search`, `recent`) need no click; anything that acts on the machine (`terminal_run`, `cron_run`) waits for one. `read_tab` and `terminal_read` return untrusted content and their descriptions say so.
+- **The demo stays fake.** `src/demo/` answers every `window.acc` call from made-up data: no network call, no storage, no secret, and the source bar stays on. A new call in `src/preload/shell.cjs` needs an answer in `src/demo/acc.js` (`tests/demo.test.js` fails otherwise), and renderer paths stay relative so the same files serve under `acc://shell/` and on Pages.
 - **Nothing personal in tracked files.** Per-machine values (the Hub URL, the quick links) live in `%APPDATA%\ai-command-center\settings.json`, read with neutral defaults by `src/shared/settings.js`. Tests use `example.com` hosts.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu. Everything else a browser expects (Ctrl+T/W/F, Ctrl+Tab, Ctrl+1 to 9, zoom) is in the menu.

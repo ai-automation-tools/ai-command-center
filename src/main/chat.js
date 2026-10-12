@@ -2,7 +2,7 @@
 // reaches the shell UI. The turn logic is in src/shared/chat.js; tools go through the
 // app's MCP server, so every call the chat makes is logged like any other client's.
 
-import { chatConfig, chatText, mcpClient, messagesApi, runTurn } from '../shared/chat.js';
+import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn } from '../shared/chat.js';
 
 /**
  * @param {{ mcp: () => { url: string, token: string } | null, send: (channel: string, ...args: unknown[]) => void }} opts
@@ -20,9 +20,10 @@ export function chat({ mcp, send }) {
       return { model, missing, mcp: Boolean(mcp()) };
     },
 
-    /** @param {unknown} input */
-    async send(input) {
+    /** @param {unknown} input @param {unknown} [attach] 'page' and/or 'terminal', read through read_tab and terminal_read */
+    async send(input, attach) {
       const text = chatText(input);
+      const kinds = chatAttach(attach);
       const { apiKey, model, missing } = chatConfig(process.env);
       if (missing.length) throw new Error(`Set ${missing.join(' and ')} in your environment, then restart the app.`);
       const server = mcp();
@@ -34,6 +35,7 @@ export function chat({ mcp, send }) {
         await runTurn({
           messages,
           text,
+          attach: kinds,
           model,
           tools: await client.list(),
           post: messagesApi(apiKey),

@@ -1,7 +1,7 @@
 // The terminal panel: one xterm.js instance per shell session in main.
 
-import { Terminal } from '/vendor/xterm/lib/xterm.mjs';
-import { FitAddon } from '/vendor/addon-fit/lib/addon-fit.mjs';
+import { Terminal } from './vendor/xterm/lib/xterm.mjs';
+import { FitAddon } from './vendor/addon-fit/lib/addon-fit.mjs';
 
 const THEME = {
   background: '#0b0d10', foreground: '#e4e4e7', cursor: '#38bdf8', selectionBackground: '#38bdf855',
