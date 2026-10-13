@@ -25,6 +25,27 @@ export async function startChat(api) {
     log.scrollTop = log.scrollHeight;
     return d;
   };
+  /** The reply being streamed in, until any other event closes it. @type {HTMLElement | null} */
+  let streaming = null;
+  /** @type {HTMLElement | null} */
+  let thinking = null;
+  /** @param {import('./shared/chat.js').ChatEvent} e */
+  const show = (e) => {
+    thinking?.remove();
+    thinking = null;
+    if (e.type === 'delta') {
+      streaming ??= line('assistant', '');
+      streaming.append(e.text);
+      log.scrollTop = log.scrollHeight;
+      return;
+    }
+    streaming = null;
+    if (e.type === 'text') line('assistant', e.text);
+    if (e.type === 'note') line('note', e.text);
+    if (e.type === 'user') line('user', e.text);
+    if (e.type === 'tool') line('tool', `→ ${e.name} ${JSON.stringify(e.input)}`);
+    if (e.type === 'result') line(`tool ${e.ok ? 'ok' : 'failed'}`, `${e.ok ? '✓' : '✗'} ${e.text}`);
+  };
   const intro = async () => {
     log.innerHTML = '';
     const info = await api.chat.info();
@@ -36,13 +57,12 @@ export async function startChat(api) {
     } else {
       line('note', `Claude (${info.model}) can open tabs and files, search the sidebar, and run commands in the terminal after you click Run. + page and + terminal attach what the tab or terminal shows to your next message. Its calls show in the MCP tab.`);
     }
+    // The conversation saved at the last close; Clear forgets it.
+    for (const e of info.history || []) show(e);
+    streaming = null;
   };
 
-  api.chat.onEvent((/** @type {import('./shared/chat.js').ChatEvent} */ e) => {
-    if (e.type === 'text') line('assistant', e.text);
-    if (e.type === 'tool') line('tool', `→ ${e.name} ${JSON.stringify(e.input)}`);
-    if (e.type === 'result') line(`tool ${e.ok ? 'ok' : 'failed'}`, `${e.ok ? '✓' : '✗'} ${e.text}`);
-  });
+  api.chat.onEvent(show);
 
   $('chat-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -53,13 +73,15 @@ export async function startChat(api) {
     input.value = '';
     for (const b of Object.values(attachBtns)) b.setAttribute('aria-pressed', 'false');
     sendBtn.disabled = true;
-    const thinking = line('note', 'Thinking…');
+    thinking = line('note', 'Thinking…');
     try {
       await api.chat.send(text, attach);
     } catch (err) {
       line('error', errText(err));
     } finally {
-      thinking.remove();
+      thinking?.remove();
+      thinking = null;
+      streaming = null;
       sendBtn.disabled = false;
       input.focus();
     }

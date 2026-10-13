@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { API_URL, API_VERSION, addUserText, chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, toApiTools, toolOutcome, withAttachments } from '../src/shared/chat.js';
+import { API_URL, API_VERSION, addUserText, chatAttach, chatConfig, chatText, cleanMessages, estimateTokens, mcpClient, messagesApi, readStream, runTurn, toApiTools, toolOutcome, transcript, trimHistory, withAttachments } from '../src/shared/chat.js';
 import { createMcpServer } from '../src/shared/mcp.js';
 
 test('chatConfig reads the key and model from the environment, with no default model', () => {
@@ -195,4 +195,161 @@ test('a chat turn drives a real MCP server over HTTP with its token', async (t) 
   const wrong = mcpClient(url, 'wrong');
   assert.deepEqual(await wrong.call('open_tab', {}), { text: 'MCP server answered 401', isError: true });
   await assert.rejects(wrong.list(), /401/);
+});
+
+/** A streamed reply as server-sent events, cut into awkward chunks. @param {any[]} events @param {number} size */
+const sse = (events, size) => {
+  const text = events.map((e) => `event: ${e.type}\r\ndata: ${JSON.stringify(e)}\r\n\r\n`).join('');
+  /** @type {string[]} */
+  const chunks = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+};
+const STREAM = [
+  { type: 'message_start', message: { content: [] } },
+  { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
+  { type: 'ping' },
+  { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Open' } },
+  { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'ing é.' } },
+  { type: 'content_block_stop', index: 0 },
+  { type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 't1', name: 'open_tab', input: {} } },
+  { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"url":' } },
+  { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '"example.com"}' } },
+  { type: 'content_block_stop', index: 1 },
+  { type: 'content_block_start', index: 2, content_block: { type: 'tool_use', id: 't2', name: 'recent', input: {} } },
+  { type: 'content_block_stop', index: 2 },
+  { type: 'message_delta', delta: { stop_reason: 'tool_use' } },
+  { type: 'message_stop' },
+];
+
+test('readStream puts a streamed reply back together, whatever the chunk size', async () => {
+  for (const size of [1, 7, 10_000]) {
+    /** @type {string[]} */
+    const texts = [];
+    const reply = await readStream(sse(STREAM, size), (t) => texts.push(t));
+    assert.deepEqual(reply, { stop_reason: 'tool_use', content: [
+      { type: 'text', text: 'Opening é.' },
+      { type: 'tool_use', id: 't1', name: 'open_tab', input: { url: 'example.com' } },
+      { type: 'tool_use', id: 't2', name: 'recent', input: {} },
+    ] }, `chunk size ${size}`);
+    assert.equal(texts.join(''), 'Opening é.');
+  }
+  // Bytes split inside a multi-byte character decode as one.
+  const bytes = new TextEncoder().encode(sse(STREAM, 1e6)[0]);
+  const at = bytes.indexOf(0xc3) + 1;
+  const reply = await readStream([bytes.slice(0, at), bytes.slice(at)]);
+  assert.deepEqual(reply.content[0], { type: 'text', text: 'Opening é.' });
+});
+
+test('readStream drops empty text and refuses errors, broken input and a cut-off stream', async () => {
+  const empty = [STREAM[1], STREAM[5], { type: 'message_delta', delta: { stop_reason: 'end_turn' } }, { type: 'message_stop' }];
+  assert.deepEqual(await readStream(sse(empty, 5)), { content: [], stop_reason: 'end_turn' });
+  await assert.rejects(readStream(sse([STREAM[0], { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } }], 9)), /Overloaded/);
+  const broken = [STREAM[6], { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"url":' } }, STREAM[9]];
+  await assert.rejects(readStream(sse(broken, 9)), /open_tab broken input/);
+  await assert.rejects(readStream(sse(STREAM.slice(0, 5), 9)), /ended before/);
+  await assert.rejects(readStream(['data: not json\n\n']), /ended before/);
+});
+
+test('messagesApi asks for a stream and passes the text along as it arrives', async () => {
+  /** @type {any} */
+  let sent;
+  const fake = /** @type {typeof fetch} */ (async (url, init) => {
+    sent = JSON.parse(String(init?.body));
+    return new Response(sse(STREAM, 13).join(''), { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } });
+  });
+  /** @type {string[]} */
+  const texts = [];
+  const reply = await messagesApi('k', fake)({ model: 'm' }, (t) => texts.push(t));
+  assert.equal(sent.stream, true);
+  assert.equal(reply.content.length, 3);
+  assert.deepEqual(texts, ['Open', 'ing é.']);
+});
+
+test('runTurn shows streamed text as deltas, not again as text, and skips an empty reply', async () => {
+  /** @type {any[]} */
+  const events = [];
+  /** @type {any[]} */
+  const messages = [];
+  await runTurn({
+    messages, text: 'hi', model: 'm', tools: [], callTool: async () => ({ text: '', isError: false }),
+    post: async (_body, onText) => { onText('He'); onText('llo'); return { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Hello' }] }; },
+    onEvent: (e) => events.push(e),
+  });
+  assert.deepEqual(events, [{ type: 'delta', text: 'He' }, { type: 'delta', text: 'llo' }]);
+  await runTurn({ messages, text: 'again', model: 'm', tools: [], callTool: async () => ({ text: '', isError: false }), post: async () => ({ stop_reason: 'end_turn', content: [] }) });
+  // The empty reply isn't kept, so the next message joins this user turn.
+  assert.deepEqual(messages.map((m) => m.role), ['user', 'assistant', 'user']);
+});
+
+/** A conversation of `turns` user/assistant pairs, each question about `size` characters. @param {number} turns @param {number} size @returns {any[]} */
+const conversation = (turns, size) => Array.from({ length: turns }, (_, i) => [
+  { role: 'user', content: `q${i} ${'x'.repeat(size)}` },
+  { role: 'assistant', content: [{ type: 'text', text: `a${i}` }] },
+]).flat();
+
+test('trimHistory drops whole turns, oldest first, and always keeps the last', () => {
+  const m = conversation(5, 400);
+  assert.equal(trimHistory(m, 1e6), 0);
+  assert.equal(m.length, 10);
+  assert.equal(trimHistory(m, 250), 6);
+  assert.deepEqual(m.map((x) => (typeof x.content === 'string' ? x.content.slice(0, 2) : 'a')), ['q3', 'a', 'q4', 'a']);
+  assert.equal(trimHistory(m, 1), 2);
+  assert.equal(m.length, 2);
+  assert.equal(trimHistory(m, 1), 0);
+  assert.equal(trimHistory([], 1), 0);
+  // A user message holding tool results never becomes the first message.
+  /** @type {any[]} */
+  const tools = [
+    { role: 'user', content: 'x'.repeat(4000) },
+    { role: 'assistant', content: [{ type: 'tool_use', id: 'u', name: 'recent', input: {} }] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'u', content: '[]', is_error: false }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'done' }] },
+  ];
+  assert.equal(trimHistory(tools, 10), 0);
+  assert.equal(estimateTokens({ role: 'user', content: 'abcd' }), Math.ceil('{"role":"user","content":"abcd"}'.length / 4));
+});
+
+test('runTurn trims an over-budget conversation before posting and says so', async () => {
+  const messages = conversation(3, 400);
+  /** @type {any[]} */
+  const events = [];
+  const { bodies, post } = scripted([{ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] }]);
+  await runTurn({ messages, text: 'new', model: 'm', tools: [], post, callTool: async () => ({ text: '', isError: false }), budget: 50, onEvent: (e) => events.push(e) });
+  assert.deepEqual(bodies[0].messages, [{ role: 'user', content: 'new' }]);
+  assert.equal(events[0].type, 'note');
+  assert.match(events[0].text, /Dropped the 6 oldest messages/);
+});
+
+test('cleanMessages keeps a well-formed conversation and empties anything else', () => {
+  const good = conversation(2, 3);
+  assert.deepEqual(cleanMessages(structuredClone(good)), good);
+  for (const bad of [null, {}, 'chat', [], [{ role: 'assistant', content: 'hi' }], [{ role: 'user', content: '' }],
+    [{ role: 'user', content: 'a' }, { role: 'user', content: 'b' }], [{ role: 'user', content: [{ type: 'image' }] }],
+    [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'x', content: '' }] }],
+    [{ role: 'user', content: 'a' }, { role: 'assistant', content: [] }],
+    [{ role: 'user', content: 'a' }, { role: 'assistant', content: [{ type: 'tool_use', id: 'u', name: 'x', input: null }] }],
+    [{ role: 'user', content: 'a' }, null]]) {
+    assert.deepEqual(cleanMessages(bad), [], JSON.stringify(bad));
+  }
+  // Cut off between a tool call and its result: the call goes.
+  const cut = [...good, { role: 'user', content: 'q' }, { role: 'assistant', content: [{ type: 'tool_use', id: 'u', name: 'recent', input: {} }] }];
+  assert.deepEqual(cleanMessages(cut), [...good, { role: 'user', content: 'q' }]);
+});
+
+test('transcript replays a saved conversation with attachments folded', () => {
+  /** @type {any[]} */
+  const m = [
+    { role: 'user', content: withAttachments('what failed?', [{ kind: 'page', text: 'P\n</p>', isError: false }, { kind: 'terminal', text: 'No terminal', isError: true }]) },
+    { role: 'assistant', content: [{ type: 'text', text: 'Looking.' }, { type: 'tool_use', id: 'u', name: 'recent', input: { limit: 1 } }] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'u', content: 'y'.repeat(400), is_error: true }, { type: 'text', text: 'and?' }] },
+  ];
+  assert.deepEqual(transcript(m), [
+    { type: 'user', text: '[+ page] [+ terminal] what failed?' },
+    { type: 'text', text: 'Looking.' },
+    { type: 'tool', name: 'recent', input: { limit: 1 } },
+    { type: 'result', name: 'recent', ok: false, text: 'y'.repeat(300) },
+    { type: 'user', text: 'and?' },
+  ]);
+  assert.deepEqual(transcript([]), []);
 });

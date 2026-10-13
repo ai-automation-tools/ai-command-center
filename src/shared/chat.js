@@ -12,6 +12,8 @@ const MAX_TOKENS = 4096;
 const MAX_STEPS = 10;
 const MAX_TEXT = 20_000;
 const SHOWN_RESULT = 300;
+// Older turns go once the conversation passes this many (estimated) tokens.
+export const TOKEN_BUDGET = 50_000;
 
 const SYSTEM = [
   "You are the chat panel inside AI Command Center, a desktop app with browser tabs, PowerShell terminals and a sidebar over the user's project files (from Project Hub).",
@@ -28,8 +30,12 @@ const SYSTEM = [
  * @typedef {{ role: 'user' | 'assistant', content: string | Block[] }} Message
  * @typedef {{ name: string, description?: string, inputSchema?: object }} McpTool
  * @typedef {{ text: string, isError: boolean }} ToolOutcome
- * @typedef {{ type: 'text', text: string } | { type: 'tool', name: string, input: unknown }
+ * @typedef {{ type: 'text', text: string } | { type: 'delta', text: string } | { type: 'note', text: string }
+ *   | { type: 'user', text: string } | { type: 'tool', name: string, input: unknown }
  *   | { type: 'result', name: string, ok: boolean, text: string }} ChatEvent
+ *   'delta' is a piece of streamed text that continues the reply being shown; 'user' is
+ *   only in a transcript of a restored conversation.
+ * @typedef {{ content: Block[], stop_reason: string }} Reply
  */
 
 /**
@@ -159,18 +165,23 @@ export function mcpClient(url, token, fetchFn = fetch) {
 }
 
 /**
- * Posts one Messages API request; an error status becomes an Error with the API's message.
+ * Posts one Messages API request with streaming on; an error status becomes an Error
+ * with the API's message. Text goes to onText as it arrives; the promise resolves to
+ * the whole reply. A plain JSON reply is read too.
  * @param {string} apiKey
  * @param {typeof fetch} [fetchFn]
- * @returns {(body: object) => Promise<{ content: Block[], stop_reason: string }>}
+ * @returns {(body: object, onText?: (text: string) => void) => Promise<Reply>}
  */
 export function messagesApi(apiKey, fetchFn = fetch) {
-  return async (body) => {
+  return async (body, onText) => {
     const res = await fetchFn(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': API_VERSION },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, stream: true }),
     });
+    if (res.ok && res.body && res.headers.get('content-type')?.includes('text/event-stream')) {
+      return readStream(/** @type {AsyncIterable<Uint8Array>} */ (/** @type {unknown} */ (res.body)), onText);
+    }
     const json = await res.json().catch(() => null);
     if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${json?.error?.message || res.statusText}`);
     if (!Array.isArray(json?.content)) throw new Error('Anthropic API sent a reply without content');
@@ -179,22 +190,177 @@ export function messagesApi(apiKey, fetchFn = fetch) {
 }
 
 /**
+ * A streamed Messages API reply (server-sent events) put back together as the reply a
+ * plain request would get, calling onText with each piece of text as it arrives.
+ * Throws on an `error` event, a tool call with broken input, or a stream that stops
+ * before `message_stop`.
+ * @param {AsyncIterable<Uint8Array | string>} chunks
+ * @param {(text: string) => void} [onText]
+ * @returns {Promise<Reply>}
+ */
+export async function readStream(chunks, onText = () => {}) {
+  const decoder = new TextDecoder();
+  /** @type {any[]} */
+  const content = [];
+  /** @type {string[]} */
+  const inputJson = [];
+  let stopReason = '';
+  let done = false;
+  let pending = '';
+  /** @type {string[]} */
+  let data = [];
+
+  /** @param {string} raw */
+  const dispatch = (raw) => {
+    /** @type {any} */
+    let e;
+    try { e = JSON.parse(raw); } catch { return; }
+    const i = e?.index;
+    if (e?.type === 'content_block_start' && e.content_block) {
+      content[i] = { ...e.content_block };
+      inputJson[i] = '';
+    } else if (e?.type === 'content_block_delta' && content[i]) {
+      if (e.delta?.type === 'text_delta') {
+        content[i].text = (content[i].text || '') + e.delta.text;
+        onText(e.delta.text);
+      } else if (e.delta?.type === 'input_json_delta') {
+        inputJson[i] += e.delta.partial_json;
+      }
+    } else if (e?.type === 'content_block_stop' && content[i]?.type === 'tool_use' && inputJson[i]) {
+      try { content[i].input = JSON.parse(inputJson[i]); } catch { throw new Error(`Anthropic API sent ${content[i].name} broken input`); }
+    } else if (e?.type === 'message_delta' && e.delta?.stop_reason) {
+      stopReason = e.delta.stop_reason;
+    } else if (e?.type === 'message_stop') {
+      done = true;
+    } else if (e?.type === 'error') {
+      throw new Error(`Anthropic API: ${e.error?.message || 'the stream failed'}`);
+    }
+  };
+  /** @param {string} line */
+  const onLine = (line) => {
+    if (line.endsWith('\r')) line = line.slice(0, -1);
+    if (line === '') {
+      if (data.length) dispatch(data.join('\n'));
+      data = [];
+    } else if (line.startsWith('data:')) {
+      data.push(line.slice(line[5] === ' ' ? 6 : 5));
+    }
+  };
+
+  for await (const chunk of chunks) {
+    pending += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+    const lines = pending.split('\n');
+    pending = /** @type {string} */ (lines.pop());
+    lines.forEach(onLine);
+  }
+  onLine(pending + decoder.decode());
+  onLine('');
+  if (!done) throw new Error('Anthropic API stream ended before the reply was finished');
+  // The API refuses empty text blocks when they're sent back.
+  return { content: content.filter((b) => b && !(b.type === 'text' && !b.text)), stop_reason: stopReason };
+}
+
+/** Rough token count of a message: about four characters a token, over the JSON the API gets. @param {Message} m */
+export const estimateTokens = (m) => Math.ceil(JSON.stringify(m).length / 4);
+
+/** Whether a message starts a user turn: a user message without tool results. @param {Message} m */
+const startsTurn = (m) => m.role === 'user' && (typeof m.content === 'string' || !m.content.some((b) => b.type === 'tool_result'));
+
+/**
+ * Drops whole turns from the front, oldest first, until the conversation's estimated
+ * tokens fit the budget. The last turn always stays, even over budget. Changes
+ * `messages` in place and returns how many messages went.
+ * @param {Message[]} messages
+ * @param {number} [budget]
+ */
+export function trimHistory(messages, budget = TOKEN_BUDGET) {
+  const sizes = messages.map(estimateTokens);
+  let total = sizes.reduce((a, b) => a + b, 0);
+  let cut = 0;
+  for (let i = 1; i < messages.length && total > budget; i++) {
+    if (!startsTurn(messages[i])) continue;
+    for (let j = cut; j < i; j++) total -= sizes[j];
+    cut = i;
+  }
+  messages.splice(0, cut);
+  return cut;
+}
+
+/** @param {any} b */
+const validBlock = (b) => (b?.type === 'text' && typeof b.text === 'string' && b.text !== '')
+  || (b?.type === 'tool_use' && typeof b.id === 'string' && typeof b.name === 'string' && b.input !== null && typeof b.input === 'object')
+  || (b?.type === 'tool_result' && typeof b.tool_use_id === 'string' && typeof b.content === 'string');
+
+/**
+ * The conversation from `chat.json`: alternating user and assistant messages, starting
+ * with a user turn, every block one this file writes. Anything else, a hand-edited or
+ * half-written file included, gives an empty conversation. A conversation cut off
+ * between a tool call and its result loses that last assistant message.
+ * @param {unknown} raw
+ * @returns {Message[]}
+ */
+export function cleanMessages(raw) {
+  if (!Array.isArray(raw) || !raw.length) return [];
+  const ok = raw.every((m, i) => m?.role === (i % 2 ? 'assistant' : 'user')
+    && (typeof m.content === 'string' ? m.content !== '' : Array.isArray(m.content) && m.content.length > 0 && m.content.every(validBlock)));
+  if (!ok || !startsTurn(raw[0])) return [];
+  const messages = /** @type {Message[]} */ (raw);
+  const last = messages[messages.length - 1];
+  if (last.role === 'assistant' && Array.isArray(last.content) && last.content.some((b) => b.type === 'tool_use')) messages.pop();
+  return messages;
+}
+
+/**
+ * What the panel shows for a saved conversation: the user's text with each attachment
+ * folded to `[+ page]` or `[+ terminal]`, Claude's text, and each tool call and result.
+ * @param {Message[]} messages
+ * @returns {ChatEvent[]}
+ */
+export function transcript(messages) {
+  /** @type {Map<string, string>} */
+  const names = new Map();
+  /** @type {ChatEvent[]} */
+  const events = [];
+  /** @param {string} text */
+  const userText = (text) => text
+    .replace(/<attached (\w+)>\n[\s\S]*?\n<\/attached \1>\n\n/g, '[+ $1] ')
+    .replace(/\(The (\w+) couldn't be attached: [^\n]*\)\n\n/g, '[+ $1] ');
+  for (const m of messages) {
+    const blocks = typeof m.content === 'string' ? [{ type: /** @type {const} */ ('text'), text: m.content }] : m.content;
+    for (const b of blocks) {
+      if (b.type === 'text') events.push(m.role === 'user' ? { type: 'user', text: userText(b.text) } : { type: 'text', text: b.text });
+      if (b.type === 'tool_use') {
+        names.set(b.id, b.name);
+        events.push({ type: 'tool', name: b.name, input: b.input });
+      }
+      if (b.type === 'tool_result') {
+        events.push({ type: 'result', name: names.get(b.tool_use_id) || '', ok: !b.is_error, text: b.content.slice(0, SHOWN_RESULT) });
+      }
+    }
+  }
+  return events;
+}
+
+/**
  * One user message to the end of Claude's answer: post, run any tools it asks for,
  * post the results, until it stops asking or after 10 rounds. `messages` is the
- * conversation so far and grows in place.
+ * conversation so far and grows in place; before each post its oldest turns go if it's
+ * over `budget`. Text that `post` streams goes out as 'delta' events, a reply that
+ * wasn't streamed as one 'text' event per block.
  * @param {{
  *   messages: Message[],
  *   text: string,
  *   model: string,
  *   tools: McpTool[],
- *   post: (body: object) => Promise<{ content: Block[], stop_reason: string }>,
+ *   post: (body: object, onText: (text: string) => void) => Promise<Reply>,
  *   callTool: (name: string, input: unknown) => Promise<ToolOutcome>,
  *   onEvent?: (e: ChatEvent) => void,
  *   maxSteps?: number,
  *   attach?: (keyof typeof ATTACH_TOOLS)[],
+ *   budget?: number,
  * }} opts
  */
-export async function runTurn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attach = [] }) {
+export async function runTurn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attach = [], budget = TOKEN_BUDGET }) {
   /** A tool call shown in the panel like any other. @param {string} name @param {unknown} input */
   const use = async (name, input) => {
     onEvent({ type: 'tool', name, input });
@@ -209,9 +375,16 @@ export async function runTurn({ messages, text, model, tools, post, callTool, on
   addUserText(messages, withAttachments(text, parts));
   const apiTools = toApiTools(tools);
   for (let step = 0; step < maxSteps; step++) {
-    const reply = await post({ model, max_tokens: MAX_TOKENS, system: SYSTEM, messages, tools: apiTools });
-    messages.push({ role: 'assistant', content: reply.content });
-    for (const b of reply.content) if (b.type === 'text' && b.text) onEvent({ type: 'text', text: b.text });
+    const dropped = trimHistory(messages, budget);
+    if (dropped) onEvent({ type: 'note', text: `Dropped the ${dropped} oldest messages to keep the conversation under ${budget.toLocaleString('en')} tokens.` });
+    let streamed = false;
+    const reply = await post({ model, max_tokens: MAX_TOKENS, system: SYSTEM, messages, tools: apiTools }, (t) => {
+      streamed = true;
+      onEvent({ type: 'delta', text: t });
+    });
+    // An empty assistant message would be refused next time; the next text joins the user turn instead.
+    if (reply.content.length) messages.push({ role: 'assistant', content: reply.content });
+    if (!streamed) for (const b of reply.content) if (b.type === 'text' && b.text) onEvent({ type: 'text', text: b.text });
     const uses = /** @type {Extract<Block, { type: 'tool_use' }>[]} */ (reply.content.filter((b) => b.type === 'tool_use'));
     // Every tool_use needs a tool_result in the next request, whatever the stop reason.
     if (!uses.length) return;

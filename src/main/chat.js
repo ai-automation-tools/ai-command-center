@@ -1,23 +1,38 @@
 // The chat panel's one conversation, held in the main process so the API key never
 // reaches the shell UI. The turn logic is in src/shared/chat.js; tools go through the
 // app's MCP server, so every call the chat makes is logged like any other client's.
+// The conversation is saved to chat.json after every turn and read back at start.
 
-import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn } from '../shared/chat.js';
+import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript } from '../shared/chat.js';
 
 /**
- * @param {{ mcp: () => { url: string, token: string } | null, send: (channel: string, ...args: unknown[]) => void }} opts
+ * @typedef {import('../shared/chat.js').Message} Message
+ * @param {{
+ *   mcp: () => { url: string, token: string } | null,
+ *   send: (channel: string, ...args: unknown[]) => void,
+ *   load: () => Message[],
+ *   save: (messages: Message[]) => void,
+ * }} opts
  */
-export function chat({ mcp, send }) {
-  // ponytail: the whole conversation goes with every request; Clear starts over. Trim old turns if long chats get slow or costly.
-  /** @type {import('../shared/chat.js').Message[]} */
-  let messages = [];
+export function chat({ mcp, send, load, save }) {
+  /** @type {Message[]} */
+  let messages = load();
   let busy = false;
 
+  /** Saving is best-effort: a full disk shouldn't turn an answered message into an error. */
+  const persist = () => {
+    try {
+      save(messages);
+    } catch (err) {
+      console.error('[chat] could not save chat.json:', err);
+    }
+  };
+
   return {
-    /** What the panel needs to know: the model, or which variables to set. Never the key. */
+    /** What the panel needs to know: the model, or which variables to set, and the saved conversation. Never the key. */
     info() {
       const { model, missing } = chatConfig(process.env);
-      return { model, missing, mcp: Boolean(mcp()) };
+      return { model, missing, mcp: Boolean(mcp()), history: transcript(messages) };
     },
 
     /** @param {unknown} input @param {unknown} [attach] 'page' and/or 'terminal', read through read_tab and terminal_read */
@@ -44,12 +59,14 @@ export function chat({ mcp, send }) {
         });
       } finally {
         busy = false;
+        persist();
       }
     },
 
     reset() {
       if (busy) throw new Error('Wait for the answer to the last message.');
       messages = [];
+      persist();
     },
   };
 }

@@ -248,7 +248,7 @@ async function createWindow() {
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
   // The chat panel: Claude with this app's MCP server as its tools.
-  const conversation = chat({ mcp: () => mcp, send });
+  const conversation = chat({ mcp: () => mcp, send, load: store.chat, save: store.saveChat });
   handle('chat:info', () => conversation.info());
   handle('chat:send', (text, attach) => conversation.send(text, attach));
   handle('chat:reset', () => conversation.reset());
