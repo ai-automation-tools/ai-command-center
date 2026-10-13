@@ -4,6 +4,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { cleanMessages } from '../shared/chat.js';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
 import { cleanSavedTabs } from '../shared/session.js';
 import { settingsFrom } from '../shared/settings.js';
@@ -67,5 +68,15 @@ export const store = {
   /** @param {Partial<ReturnType<typeof store.layout>>} patch */
   saveLayout(patch) {
     writeJson('layout.json', { ...store.layout(), ...patch });
+  },
+
+  /** chat.json: the chat panel's last conversation, attached page and terminal text included. Empty if the file is missing or malformed. */
+  chat() {
+    return cleanMessages(readJson('chat.json', []));
+  },
+
+  /** @param {import('../shared/chat.js').Message[]} messages */
+  saveChat(messages) {
+    writeJson('chat.json', messages);
   },
 };

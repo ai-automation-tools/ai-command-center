@@ -337,7 +337,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
     },
 
     chat: {
-      info: async () => ({ model: 'demo · no model', missing: [], mcp: true }),
+      info: async () => ({ model: 'demo · no model', missing: [], mcp: true, history: [] }),
       send: async (/** @type {string} */ text, /** @type {string[] | undefined} */ attach) => {
         for (const kind of attach || []) {
           const name = kind === 'page' ? 'read_tab' : 'terminal_read';
@@ -349,7 +349,12 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
         emit('chat', { type: 'tool', name: 'sidebar_search', input: { query } });
         logCall('sidebar_search', { query });
         emit('chat', { type: 'result', name: 'sidebar_search', ok: true, text: 'Files (1): acme-api/docs/architecture.md' });
-        emit('chat', { type: 'text', text: 'This is the demo, so no model is answering. In the app, Claude reads your message, calls the app\'s MCP tools (search the sidebar, open tabs, read a page or a terminal) and asks before it runs anything. Its model and key come from your environment.' });
+        // A few words at a time, the way the app shows a reply as it streams in.
+        const reply = 'This is the demo, so no model is answering. In the app, Claude reads your message, calls the app\'s MCP tools (search the sidebar, open tabs, read a page or a terminal) and asks before it runs anything. Its model and key come from your environment.';
+        for (const piece of reply.match(/\S+\s*/g) ?? []) {
+          emit('chat', { type: 'delta', text: piece });
+          await new Promise((r) => later(() => r(undefined), 25));
+        }
       },
       reset: async () => {},
       onEvent: listen('chat'),
