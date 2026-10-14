@@ -1,0 +1,28 @@
+# Dependency updates. Minor/patch bumps arrive as one grouped PR per ecosystem per week;
+# major versions are ignored (the org convention since 2026-09-29): Dependabot security
+# alerts still fire for any version, and a major that breaks something is roadmap work.
+# The org PR sweep (Wed + Sun 09:30) merges grouped minor/patch and security-fix PRs when
+# CI is green and holds majors for Mike. Added 2026-10-14: 8 alerts (5 high, all adm-zip,
+# a transitive dependency of the electron-chrome-* packages) had sat since 2026-09-29
+# with nothing to act on them.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule: { interval: weekly, day: monday }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: weekly, day: monday }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      actions:
+        patterns: ["*"]
