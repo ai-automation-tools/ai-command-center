@@ -23,7 +23,7 @@
     "node-pty": "^1.1.0"
   },
   "devDependencies": {
-    "electron": "^44.4.5"
+    "electron": "^44.7.0"
   },
   "allowScripts": {
     "node-pty@1.1.0": true
