@@ -53,6 +53,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Changed**
 
+- Public since 2026-10-18: the README, roadmap and CLAUDE.md no longer call the repo private or incubating, and the status badges say public.
 - The roadmap's description of its automation matches the live schedule: the routine runs Sunday and Wednesday 20:00 from the `Roadmaps\` task folder, the org PR sweep merges its PRs, and Graduate reads the gates on `main`. The LastPass item is marked 🔒 because an Electron bump is a dependency change the routine never makes.
 - README rewritten for someone who isn't Mike: prerequisites (Windows 11, Node 24, PowerShell 7, a running Project Hub), a clone-to-run quick start, what still works when Hub is down, where the app keeps its files, a Contributing section in place of the personal branch, a current status badge, and the extension warning phrased for any Manifest V3 extension. *(roadmap: Public release)*
 - Nothing personal in tracked files: the empty-state links to Mike's own sites moved out of the renderer into the settings file, the Hub-down note points at the Project Hub repository instead of a path on Mike's disk, the URL tests use `example.com`, and `package.json`'s description no longer names a machine. *(roadmap: Public release)*

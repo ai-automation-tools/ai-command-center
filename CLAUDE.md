@@ -8,8 +8,8 @@ Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before chan
 A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over the
 user's project folders into one Electron window, with an agent harness (an MCP server
 the app exposes, plus a chat panel) as Phase 2. The sidebar reads Project Hub's
-HTTP API rather than scanning disk. It's an incubating `ai-automation-tools` project:
-private today, public when every release gate in `docs/ROADMAP.md` is ticked.
+HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
+(graduated 2026-10-18); the weekly roadmap routine works the items under `## After public release`.
 
 ## Stack
 

@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/now-public_release_checklist-F59E0B?style=for-the-badge" alt="Now: public release checklist">
-  <img src="https://img.shields.io/badge/stage-incubating_(private)-8B5CF6?style=for-the-badge" alt="Stage: incubating, private">
+  <img src="https://img.shields.io/badge/now-after_public_release-F59E0B?style=for-the-badge" alt="Now: after public release">
+  <img src="https://img.shields.io/badge/stage-public_since_2026--10--18-2ea44f?style=for-the-badge" alt="Stage: public since 2026-10-18">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-docs_home-6B7280?style=for-the-badge" alt="Back to docs"></a>
 </p>
 

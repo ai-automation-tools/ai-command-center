@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-automation-tools/ai-command-center">GitHub (private, incubating)</a>
+  <a href="https://github.com/ai-automation-tools/ai-command-center">GitHub</a>
   ·
   <a href="docs/ROADMAP.md">Roadmap</a>
   ·
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-incubating_·_release_gates-F59E0B?style=for-the-badge" alt="Status: incubating, release gates in progress">
+  <img src="https://img.shields.io/badge/status-public_since_2026--10--18-2ea44f?style=for-the-badge" alt="Status: public since 2026-10-18">
   <img src="https://img.shields.io/badge/runs_on-Windows_11-0078D4?style=for-the-badge" alt="Runs on Windows 11">
   <a href="docs/ROADMAP.md"><img src="https://img.shields.io/badge/plan-ROADMAP-8B5CF6?style=for-the-badge" alt="Roadmap"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-2ea44f?style=for-the-badge" alt="License: GPL-3.0-or-later"></a>
@@ -206,5 +206,5 @@ The browser's Chrome extension support comes from [electron-chrome-extensions](h
 ---
 
 <p align="center">
-  Incubating in <a href="https://github.com/ai-automation-tools">ai-automation-tools</a>, private until its release gates are done · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> · <a href="LICENSE">GPL-3.0-or-later</a> · <a href="docs/README.md">Docs</a>
+  Part of <a href="https://github.com/ai-automation-tools">ai-automation-tools</a> · Built on <a href="https://www.electronjs.org">Electron</a>, <a href="https://xtermjs.org">xterm.js</a>, <a href="https://github.com/samuelmaddock/electron-browser-shell">electron-chrome-extensions</a> · <a href="LICENSE">GPL-3.0-or-later</a> · <a href="docs/README.md">Docs</a>
 </p>
