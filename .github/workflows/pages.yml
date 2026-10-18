@@ -1,5 +1,5 @@
 # Builds the demo (`npm run demo`) and publishes _site/ to GitHub Pages at
-# https://ai-automation-tools.dev/ai-command-center/. The demo is fake end to end;
+# https://ai-command-center.ai-automation-tools.dev/. The demo is fake end to end;
 # see src/demo/ and CLAUDE.md.
 name: Pages
 
