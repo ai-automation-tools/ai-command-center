@@ -23,7 +23,7 @@ export const SOURCE_BAR = `<div class="src-bar">
 export function demoHtml(html) {
   /** @type {[string, string][]} */
   const edits = [
-    ['<title>AI Command Center</title>', '<title>AI Command Center · demo</title>'],
+    ['<title>AI Command Center</title>', '<title>AI Command Center · demo</title>\n  <link rel="icon" href="demo/icon.svg" type="image/svg+xml">'],
     ['<script type="module" src="app.js"></script>',
       '<link rel="stylesheet" href="demo/demo.css">\n  <script type="module" src="demo/install.js"></script>\n  <script type="module" src="app.js"></script>'],
     ['<body>', `<body class="demo">\n  ${SOURCE_BAR}`],
