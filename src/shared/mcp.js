@@ -13,7 +13,8 @@ export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 const MAX_BODY = 1024 * 1024;
 
 /**
- * @typedef {{ description: string, inputSchema: object, run: (args: any) => unknown }} Tool
+ * @typedef {{ readOnlyHint?: boolean, destructiveHint?: boolean, idempotentHint?: boolean, openWorldHint?: boolean }} ToolAnnotations
+ * @typedef {{ description: string, inputSchema: object, annotations?: ToolAnnotations, run: (args: any) => unknown }} Tool
  * @typedef {{ jsonrpc: '2.0', id: string | number | null, result?: unknown, error?: { code: number, message: string } }} Response
  */
 
@@ -63,7 +64,7 @@ export async function handleMessage(msg, tools, version) {
     return {
       jsonrpc: '2.0',
       id,
-      result: { tools: [...tools].map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema })) },
+      result: { tools: [...tools].map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema, ...(t.annotations && { annotations: t.annotations }) })) },
     };
   }
   if (method === 'tools/call') {
