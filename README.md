@@ -182,7 +182,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 | [**📚 docs/**](docs/README.md) | Roadmap (the release gates), changelog, product spec and build plan, requirements, architecture options, and three ADRs. |
 | [**🤖 CLAUDE.md**](CLAUDE.md) | Standards, verification commands and the Won't list for any agent working here, including the weekly roadmap routine. |
 | [**📜 scripts/**](scripts/smoke.js) | `smoke.js` behind `npm run smoke` and `npm run spike:extensions`; `lint.js` behind `npm run lint`; `demo.js` behind `npm run demo`, which builds the browser demo into `_site/`; `Start-AICommandCenter.ps1`, which starts the app with no console window and writes Electron's output to `%APPDATA%\ai-command-center\logs\launch.*.log`. |
-| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. The demo builds with `npm run demo` but isn't deployed until the repo goes public. |
+| [**🛡️ SECURITY.md**](SECURITY.md) | How to report a vulnerability, the model in short, and the last secret scan. CI is `.github/workflows/ci.yml`. `.github/workflows/pages.yml` builds the demo with `npm run demo` and deploys it to Pages on every push to `main`. |
 
 ## 🔒 Security model
 
