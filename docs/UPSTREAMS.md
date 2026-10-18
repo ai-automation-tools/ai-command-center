@@ -34,7 +34,7 @@ current by hand too: a new outbound call or a new runtime dependency is a new ro
 | Upstream | What the code assumes | Where | Check at | Last checked |
 |:---|:---|:---|:---|:---|
 | **GitHub Actions** | `actions/checkout@v4`, `actions/setup-node@v4`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`; Dependabot raises the grouped bumps | `.github/workflows/ci.yml`, `.github/workflows/pages.yml` | github.com/actions/setup-node/releases; github.com/actions/deploy-pages/releases | — |
-| **GitHub Pages** | The demo (`npm run demo` into `_site/`) is deployed by `pages.yml` to `https://ai-automation-tools.dev/ai-command-center/` on every push to `main` | `.github/workflows/pages.yml`, `scripts/demo.js` | docs.github.com/en/pages; github.blog/changelog | — |
+| **GitHub Pages** | The demo (`npm run demo` into `_site/`) is deployed by `pages.yml` to `https://ai-command-center.ai-automation-tools.dev/` on every push to `main` | `.github/workflows/pages.yml`, `scripts/demo.js` | docs.github.com/en/pages; github.blog/changelog | — |
 | **npm audit** | The CI `audit` job runs `npm audit --omit=dev` and must stay green | `.github/workflows/ci.yml` | docs.npmjs.com/cli/commands/npm-audit | — |
 
 Flag breaking majors, EOL runtimes, protocol revisions and security advisories only. Routine bumps
