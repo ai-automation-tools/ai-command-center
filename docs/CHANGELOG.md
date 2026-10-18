@@ -54,6 +54,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Changed**
 
+- The demo's welcome page now reads like the README: the app icon, tagline, links and badge rows up top, a "you're in the demo" note, then tables for what to try and what the app does, the quick start, and the `claude mcp add` line. The badges are drawn in CSS, so the page still loads nothing from outside. The icon is also the demo's favicon, which was missing. The README's Electron badge says 44.7, matching the dependency. *(demo)*
 - The demo moved to its own subdomain, `https://ai-command-center.ai-automation-tools.dev/`, set at graduation; the old `ai-automation-tools.dev/ai-command-center/` path redirects there. README, `pages.yml` and `UPSTREAMS.md` link the new address.
 - Public since 2026-10-18: the README, roadmap and CLAUDE.md no longer call the repo private or incubating, and the status badges say public.
 - The roadmap's description of its automation matches the live schedule: the routine runs Sunday and Wednesday 20:00 from the `Roadmaps\` task folder, the org PR sweep merges its PRs, and Graduate reads the gates on `main`. The LastPass item is marked 🔒 because an Electron bump is a dependency change the routine never makes.
