@@ -32,6 +32,7 @@ test('handleMessage: initialize, notifications, tools, errors', async () => {
   assert.equal(await handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, tools, ''), null);
   const list = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, tools, '');
   assert.deepEqual(/** @type {any} */ (list?.result).tools.map((/** @type {any} */ t) => t.name), ['echo', 'boom']);
+  assert.equal('annotations' in /** @type {any} */ (list?.result).tools[0], false);
   const call = await handleMessage({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'echo', arguments: { x: 1 } } }, tools, '');
   assert.deepEqual(/** @type {any} */ (call?.result).structuredContent, { x: 1 });
   const fail = await handleMessage({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'boom' } }, tools, '');

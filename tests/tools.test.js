@@ -295,3 +295,24 @@ test('cron_run asks with the task id, returns the run result, and is a tool erro
   }
   assert.equal(asked.length, 3);
 });
+
+// ---- annotations ---------------------------------------------------------------
+
+test('tools/list annotates every tool: only the click-gated ones act, and they say they can do anything', async () => {
+  const all = new Map([
+    ...readOnlyTools(/** @type {any} */ ({})), ...navigationTools(/** @type {any} */ ({})),
+    ...terminalTools(/** @type {any} */ ({})), ...cronTools(/** @type {any} */ ({})),
+  ]);
+  const res = /** @type {any} */ (await handleMessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, all, ''));
+  /** @type {Record<string, any>} */
+  const by = Object.fromEntries(res.result.tools.map((/** @type {any} */ t) => [t.name, t.annotations]));
+  assert.equal(Object.keys(by).length, 11);
+  for (const [name, a] of Object.entries(by)) {
+    for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof a?.[hint], 'boolean', `${name}.${hint}`);
+  }
+  const acting = Object.keys(by).filter((n) => !by[n].readOnlyHint).sort();
+  assert.deepEqual(acting, ['cron_run', 'open_file', 'open_tab', 'terminal_run']);
+  assert.deepEqual(Object.keys(by).filter((n) => by[n].destructiveHint).sort(), ['cron_run', 'terminal_run']);
+  for (const n of ['read_tab', 'open_tab', 'terminal_run', 'cron_run']) assert.equal(by[n].openWorldHint, true, n);
+  assert.equal(by.list_tabs.openWorldHint, false);
+});
