@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { demoApi, commandOutput, TREE } from '../src/demo/acc.js';
 import { demoHtml, REPO_URL } from '../src/demo/page.js';
 import { flatten } from '../src/shared/tree.js';
+import { ABOUT_HTML, WELCOME_ID, WELCOME_URL } from '../src/demo/about.js';
 
 const read = (/** @type {string} */ p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -35,7 +36,7 @@ test('the mock answers every call the preload exposes', () => {
 });
 
 test('the demo makes no network calls', () => {
-  for (const f of ['acc.js', 'install.js', 'page.js']) {
+  for (const f of ['acc.js', 'install.js', 'page.js', 'about.js']) {
     assert.doesNotMatch(read(`../src/demo/${f}`), /\bfetch\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon/, f);
   }
 });
@@ -88,4 +89,20 @@ test('fabricated tree has no virtual node with a path and flattens', () => {
   const flat = flatten(TREE);
   assert.ok(flat.length > 10);
   assert.ok(flat.every((f) => !/^[a-z]:/i.test(f.node.id)));
+});
+
+test('the demo opens its welcome page first, and the sidebar can reopen it', async () => {
+  /** @type {any[]} */
+  const shown = [];
+  /** @type {any[]} */
+  const created = [];
+  const api = demoApi({ onTab: (t) => shown.push(t) });
+  api.tabs.onCreated((/** @type {any} */ t) => created.push(t));
+  await api.tabs.restore();
+  assert.equal(shown.at(-1).url, WELCOME_URL);
+  assert.equal(shown.at(-1).title, 'README.md');
+  await api.tabs.restore();
+  assert.equal(created.length, 1, 'restore opens it once');
+  assert.ok(flatten(TREE).some((f) => f.node.id === WELCOME_ID));
+  assert.doesNotMatch(ABOUT_HTML, /<script|\son\w+=/i);
 });

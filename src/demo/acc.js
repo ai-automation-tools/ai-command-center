@@ -6,6 +6,7 @@
 import { toUrl } from '../shared/url.js';
 import { docIdFromUrl, isDocUrl } from '../shared/docs.js';
 import { pushRecent } from '../shared/recent.js';
+import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
 const BASE = 'D:/work';
@@ -16,6 +17,7 @@ const node = (id, name, kind, children, desc) => ({ id, name, kind, ...(children
 
 export const TREE = [
   node('@projects', 'Projects', 'projects', [
+    node('ai-command-center', 'ai-command-center', 'repo', [node(WELCOME_ID, 'README.md', 'md')], 'This app'),
     node('acme-api', 'acme-api', 'repo', [
       node('acme-api/README.md', 'README.md', 'md'),
       node('acme-api/package.json', 'package.json', 'config'),
@@ -282,7 +284,8 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       stopFind: async () => {},
       onFound: listen('tab:found'),
       openExternal: async (/** @type {string} */ url) => notify(`In the app this opens ${url} in your default browser.`),
-      restore: async () => {},
+      // The app reopens last session's tabs here; the demo opens its welcome page.
+      restore: async () => { if (!tabs.size) create(WELCOME_URL); },
       setBounds: () => {},
       setHidden: (/** @type {boolean} */ h) => { hidden = Boolean(h); show(); },
       onCreated: listen('tab:created'),

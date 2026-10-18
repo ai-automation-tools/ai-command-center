@@ -2,13 +2,19 @@
 // stand-in where the app would draw a browser tab. No network, no storage.
 
 import { demoApi } from './acc.js';
+import { ABOUT_HTML, WELCOME_URL } from './about.js';
 
 const content = /** @type {HTMLElement} */ (document.getElementById('content'));
 const page = document.createElement('div');
 page.id = 'demo-page';
 page.hidden = true;
 page.innerHTML = '<h2></h2><p class="url"></p><p>In the app, this tab is a sandboxed Chromium view with Chrome extension support. The demo has no browser behind it, so the tab strip, the address bar and Recent work, and the page stays this note.</p>';
-content.append(page);
+// The welcome tab the demo opens first (and the sidebar's ai-command-center/README.md).
+const about = document.createElement('div');
+about.id = 'demo-about';
+about.hidden = true;
+about.innerHTML = ABOUT_HTML;
+content.append(page, about);
 
 /** @param {string} text */
 function notify(text) {
@@ -23,8 +29,10 @@ function notify(text) {
   notify,
   askAfterMs: 6000,
   onTab(tab) {
-    page.hidden = !tab;
-    if (!tab) return;
+    const welcome = tab?.url === WELCOME_URL;
+    about.hidden = !welcome;
+    page.hidden = !tab || welcome;
+    if (!tab || welcome) return;
     /** @type {HTMLElement} */ (page.querySelector('h2')).textContent = tab.title;
     /** @type {HTMLElement} */ (page.querySelector('.url')).textContent = tab.url;
   },
