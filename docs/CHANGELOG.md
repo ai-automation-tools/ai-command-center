@@ -58,6 +58,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Fixed**
 
+- The `adm-zip` advisories: electron-chrome-web-store, which unpacks Web Store installs, pins `adm-zip` `^0.5.16`, and every release up to 0.6.0 carried open advisories (8 Dependabot alerts, 5 high). A `package.json` `overrides` entry pins the patched `^0.6.1`. `npm audit` reports 0 vulnerabilities, so the CI audit job now fails the build instead of only reporting. `npm run smoke` still loads both installed extensions, and an extract round trip on 0.6.1 passes. *(roadmap: Public release)*
 - A page's right-click "Open link in default browser" passed any link to Windows, so a `file:` or `ms-*:` link could launch a program; it's now http and https only. "Open link in new tab" now goes through the same navigation check as clicks.
 - A second launch while the app was running started its own MCP server and overwrote `mcp.json` with a port that died a moment later. It now exits before doing anything else.
 - `Start-AICommandCenter.ps1` no longer prints Electron's log output into the terminal it was run from; it goes to `%APPDATA%\ai-command-center\logs\launch.out.log` and `launch.err.log`.
