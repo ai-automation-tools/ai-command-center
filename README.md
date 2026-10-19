@@ -9,7 +9,7 @@
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
   ·
-  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
+  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://ai-command-center-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 > **Extensions with Manifest V3 background workers don't work yet.** LastPass and Rakuten, for instance, install from the Chrome Web Store and show their toolbar icons, but their service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
 
 > [!TIP]
-> **[Try the demo](https://ai-command-center.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
+> **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
 
 > [!NOTE]
 > This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
