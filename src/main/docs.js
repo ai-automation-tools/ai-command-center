@@ -24,6 +24,11 @@ async function lookup() {
   return index;
 }
 
+/** Drop the cached index so the next acc://doc request rescans (Hub changed). */
+export function invalidateDocsIndex() {
+  index = null;
+}
+
 /**
  * @param {number} status
  * @param {string} title

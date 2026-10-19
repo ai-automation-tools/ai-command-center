@@ -98,8 +98,8 @@ Added in the 2026-10-05 review. Today an agent can type a command and open thing
 
 **Integrations** (APIs the neighbours already expose, found in the 2026-10-05 review)
 
-- [ ] Project Hub's `/api/events` stream: the sidebar subscribes once and reloads the tree on `change`, so a rescan shows up without Retry and the document index in `src/main/docs.js` drops its 30 s cache
-- [ ] Star the current page: a ☆ in the address bar that adds the tab to Hub's favorites through `PUT /api/favorites`, so the app's own bookmarks source gains entries without opening Hub
+- [x] Project Hub's `/api/events` stream: the sidebar subscribes once and reloads the tree on `change`, so a rescan shows up without Retry and the document index in `src/main/docs.js` drops its 30 s cache — 2026-10-18; `src/shared/events.js` parses the stream (6 tests), the main process subscribes and reconnects over the stream, a `change` reloads the Files tree and invalidates the doc index, and the demo's fake hub answers the new `onChanged`
+- [x] Star the current page: a ☆ in the address bar that adds the tab to Hub's favorites through `PUT /api/favorites`, so the app's own bookmarks source gains entries without opening Hub — 2026-10-18; `src/shared/favorites.js` adds/removes a link in the favorites tree (6 tests), `hub.favorite` GETs and PUTs the whole list, the address-bar ☆ toggles and shows filled when starred, and the demo's fake hub toggles for real
 - [ ] Links in the terminal open as tabs: an xterm `registerLinkProvider` for `http(s)://` and `localhost:<port>` text, so the address a dev server prints is one click from a tab. No new dependency; mark `- [!]` and use `@xterm/addon-web-links` (MIT) if the hand-written provider misses cases
 - [ ] Cronsole rows show the last run's result: `get_task_history` on hover or click, with `get_run_output` behind a "Show output" that opens as an `acc://doc`-style page
 - [ ] A count of failed Cronsole tasks on the Cron tab's label, refreshed on the same timer as the Hub health dot

@@ -3,10 +3,13 @@
 // lets curl through. The renderer never talks to Hub directly.
 
 import { store } from './store.js';
+import { feedSse } from '../shared/events.js';
+import { toggleFavorite } from '../shared/favorites.js';
 
 // settings.json's hubUrl, or ACC_HUB_URL (src/shared/settings.js).
 const HUB = store.settings().hubUrl;
 const TIMEOUT_MS = 30_000; // a cold scan of every workspace takes ~12 s
+const RETRY_MS = 3_000; // Hub's /api/events stream advertises retry: 3000
 
 /**
  * @param {string} path
@@ -62,6 +65,25 @@ export const hub = {
   },
 
   /**
+   * Toggle a web page in Hub's favorites: read the list, add or remove the page, and
+   * PUT the whole list back (Hub's endpoint replaces it). Returns the new roots and
+   * whether the page is now starred.
+   * @param {string} url
+   * @param {string} name
+   * @returns {Promise<{ starred: boolean, roots: unknown }>}
+   */
+  async favorite(url, name) {
+    const { roots } = await this.favorites();
+    const next = toggleFavorite(roots, { url, name });
+    await hubFetch('/api/favorites', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ roots: next.roots }),
+    });
+    return next;
+  },
+
+  /**
    * A file as HTML, the way Hub's own viewer shows it: Markdown rendered and sanitized
    * by Hub, anything else as an escaped code block. Hub refuses ids outside its roots.
    * @param {string} id
@@ -85,3 +107,52 @@ export const hub = {
     await hubFetch(`/api/open?${q}`);
   },
 };
+
+/**
+ * Subscribe to Hub's `/api/events` server-sent stream, so a rescan the watcher noticed
+ * shows up in the app without a manual Retry. The stream is long-lived, so it bypasses
+ * hubFetch's 30 s timeout. It reconnects when Hub drops or refuses it, and the returned
+ * stop function aborts the stream in flight.
+ *
+ * @param {() => void} onChange called for each `change` event
+ * @returns {() => void} stop
+ */
+export function subscribeHubEvents(onChange) {
+  let stopped = false;
+  /** @type {AbortController | null} */
+  let controller = null;
+  let lastLog = 0;
+
+  (async () => {
+    while (!stopped) {
+      controller = new AbortController();
+      try {
+        const res = await fetch(HUB + '/api/events', { signal: controller.signal });
+        if (!res.ok || !res.body) throw new Error(`Project Hub /api/events returned ${res.status}`);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (!stopped) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const out = feedSse(buffer, decoder.decode(value, { stream: true }));
+          buffer = out.buffer;
+          for (const e of out.events) if (e.event === 'change') onChange();
+        }
+      } catch (err) {
+        if (stopped) return;
+        // Hub may be down at launch (the app runs without it); don't spam every 3 s.
+        if (Date.now() - lastLog > 30_000) {
+          lastLog = Date.now();
+          console.error(`[hub] events stream: ${err instanceof Error ? err.message : err}; reconnecting every ${RETRY_MS / 1000} s`);
+        }
+      }
+      await new Promise((r) => setTimeout(r, RETRY_MS));
+    }
+  })();
+
+  return () => {
+    stopped = true;
+    controller?.abort();
+  };
+}

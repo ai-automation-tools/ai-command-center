@@ -131,6 +131,7 @@ button, input, select { font: inherit; color: inherit; }
 .icon-btn { background: none; border: 0; border-radius: 5px; width: 28px; height: 28px; cursor: pointer; color: var(--text-2); flex: none; }
 .icon-btn:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
 .icon-btn:disabled { opacity: .35; cursor: default; }
+#star.starred { color: #fbbf24; }
 
 #content { position: relative; min-height: 0; background: var(--bg); }
 .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--text-2); }

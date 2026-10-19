@@ -99,6 +99,8 @@ export class Sidebar {
     this.calls = await this.api.mcp.log();
     this.renderCalls();
     await Promise.all([this.loadFiles(), this.loadBookmarks()]);
+    // Hub rescans on its own; reload the tree when it says so, no Retry needed.
+    this.api.hub.onChanged(() => this.loadFiles());
   }
 
   async checkHub() {
@@ -109,7 +111,11 @@ export class Sidebar {
 
   /** @param {boolean} [fresh] */
   async loadFiles(fresh = false) {
-    this.el.files.innerHTML = '<div class="panel-note">Loading the Project Hub tree… a cold scan takes about 12 seconds.</div>';
+    // A warm rescan (a change event) re-renders in place; only an empty panel gets the
+    // "loading" note, so the cold-scan warning doesn't flash over an existing tree.
+    if (!this.el.files.querySelector('.row')) {
+      this.el.files.innerHTML = '<div class="panel-note">Loading the Project Hub tree… a cold scan takes about 12 seconds.</div>';
+    }
     try {
       this.scan = await this.api.hub.scan(fresh);
       this.fileIndex = flatten(this.scan.tree);

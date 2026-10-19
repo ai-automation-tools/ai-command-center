@@ -6,6 +6,7 @@
 import { toUrl } from '../shared/url.js';
 import { docIdFromUrl, isDocUrl } from '../shared/docs.js';
 import { pushRecent } from '../shared/recent.js';
+import { toggleFavorite } from '../shared/favorites.js';
 import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
@@ -140,6 +141,9 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
   /** @param {any} item */
   const addRecent = (item) => { recent = /** @type {any} */ (pushRecent(/** @type {any} */ (recent), item, now())); emit('recent', recent); };
 
+  /** Hub favorites, mutable so the address-bar star toggles them like the real app. */
+  let favs = JSON.parse(JSON.stringify(FAVORITES));
+
   const log = calls(now());
   /** @param {string} tool @param {unknown} args @param {boolean} [ok] */
   const logCall = (tool, args, ok = true) => emit('logged', { at: now(), method: 'tools/call', tool, args: JSON.stringify(args), ok, ms: 4 });
@@ -252,8 +256,14 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       health: async () => ({ ok: true, state: 'ready' }),
       scan: async () => ({ base: BASE, home: HOME, tree: TREE }),
       webmarks: async () => ({ sources: [{ id: 'chrome', label: 'Chrome · Default' }], source: 'chrome', roots: BOOKMARKS }),
-      favorites: async () => ({ roots: FAVORITES }),
+      favorites: async () => ({ roots: favs }),
+      favorite: async (/** @type {string} */ url, /** @type {string} */ name) => {
+        const out = toggleFavorite(favs, { url, name });
+        favs = /** @type {any} */ (out.roots);
+        return out;
+      },
       open: async () => { throw new Error('VS Code and Explorer open from the desktop app, not the demo.'); },
+      onChanged: listen('hub:changed'),
     },
 
     tabs: {
