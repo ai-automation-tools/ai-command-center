@@ -10,3 +10,6 @@ _site/
 .claude/*
 !.claude/agents/
 !.claude/skills/
+
+# Archify build receipts and screenshots (scripts/build-diagram.mjs)
+docs/diagrams/.build/

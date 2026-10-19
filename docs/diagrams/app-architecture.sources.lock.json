@@ -1,0 +1,22 @@
+{
+  "revision": "25dc2a385d9fd3ce1ac5cb5547caa1b542b0a801",
+  "files": {
+    "src/main/chat.js": "5d6c6092c85ac927367e447f63ec98b18afc1c6c",
+    "src/main/cronsole.js": "6e112938df08f7ca10d69a63d8809f37fe009cda",
+    "src/main/docs.js": "ec69eb4007a233012a57365076a7dfeb73848746",
+    "src/main/hub.js": "88679d74bcf80d7ec7ebd944bd0ef24937f74069",
+    "src/main/main.js": "d0a8c1e464fffdd94a98a38b1e55438ae12d75e9",
+    "src/main/mcp.js": "60a1f01c61fb6f32aa332a2fba222a70a8d47c4d",
+    "src/main/store.js": "d5f76a243f421738da6d25330382121daa1adff1",
+    "src/main/tabs.js": "1ab687ca137970b12a915017a5b13cbabeeabd9d",
+    "src/main/terminal.js": "1648363b68ab4892712b989297776eb065efb449",
+    "src/preload/shell.cjs": "22f293cdf8ee8280c62348b200f73481db531bdc",
+    "src/renderer/app.js": "a940cc3f58eace62549af918c53cd9772397cfc5",
+    "src/shared/chat.js": "cec8d7e2a3039f90b9350b11c4cf010431b01359",
+    "src/shared/confirm.js": "2b66a370a4e8a9ebe28428a3c3b76d27a86c50b0",
+    "src/shared/cronsole.js": "4a04bb640e47f472aeec5e90a63ef384f1bd7c90",
+    "src/shared/mcp.js": "5afe803ec9df0fe3129dda20faffa2bace671c8e",
+    "src/shared/shells.js": "3ddbe6e558d961ad72dc0792bbdb75e3887c8c1e",
+    "src/shared/tools.js": "9a26e705d67fac2f83f48c407afe52b550cb6024"
+  }
+}

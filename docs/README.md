@@ -29,6 +29,7 @@ Start with the roadmap if you want to know what to do next, or the decisions fol
 |:---|:---|
 | [**🎯 product/**](product/README.md) | The spec (must stories with acceptance criteria, the Won't list) and the build plan with its stop points. |
 | [**⚖️ decisions/**](decisions/README.md) | Requirements, three architecture options, and three ADRs: the Electron shell (with the extension spike), Project Hub over HTTP, and the terminal. |
+| [**🧭 diagrams/**](diagrams/README.md) | The app architecture diagram the [homepage](https://ai-command-center.ai-automation-tools.dev/#architecture) shows: shell UI → main process → tabs, Project Hub, Cronsole, terminals, chat and the MCP server with its confirm bar. Interactive, every component linked to its code, and drift-checked in CI. |
 
 <p align="right">(<a href="#docs-top">back to top</a>)</p>
 
