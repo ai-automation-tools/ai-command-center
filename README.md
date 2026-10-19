@@ -55,7 +55,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 | Area | What you get |
 |:---|:---|
 | **🌐 Browser** | Tabs, address bar (URLs, `D:\` paths, `localhost`, or a search), back/forward/reload, links and pop-ups open as tabs, context menu, open in default browser. A ☆ in the address bar adds the page to Hub's favorites (again to remove). Chrome Web Store installs work in a tab. |
-| **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Ctrl+C copies a selection, Ctrl+V pastes. |
+| **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Web addresses in the output (`http(s)://…`, `localhost:3000`) open as a tab on click. Ctrl+C copies a selection, Ctrl+V pastes. |
 | **📁 Files** | Every workspace from Project Hub; a rescan by Hub shows up on its own. Click a file to read it in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing; clicking through files reuses that tab, Ctrl+click opens another. An HTML file opens as the page itself. Hover or right-click for Terminal here, View here, VS Code, Reveal in Explorer, Copy path and Copy Hub id. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |
