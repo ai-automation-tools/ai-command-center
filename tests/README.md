@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-130_passing-2ea44f?style=for-the-badge" alt="130 tests passing">
+  <img src="https://img.shields.io/badge/tests-136_passing-2ea44f?style=for-the-badge" alt="136 tests passing">
   <img src="https://img.shields.io/badge/runner-node_--test-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="node --test">
   <a href="../README.md"><img src="https://img.shields.io/badge/↩-repository_root-6B7280?style=for-the-badge" alt="Repository root"></a>
 </p>
@@ -34,6 +34,7 @@ The unit tests use Node's built-in runner, so there's nothing to install beyond 
 | [**output.test.js**](output.test.js) | Terminal output cleaning: colours, titles and hyperlinks stripped, carriage returns and PSReadLine's redraws (absolute column, erase line, cursor back) resolved to what the screen shows, control characters dropped, tabs kept, the last N lines without trailing blanks, the capped buffer. |
 | [**events.test.js**](events.test.js) | Hub's `/api/events` stream: `change` events with their data, the `retry` preamble and heartbeat comments ignored, events and multi-line data split across chunk boundaries, several events in one chunk, CRLF line endings. |
 | [**favorites.test.js**](favorites.test.js) | Starring a page in Hub: added to the front of the Favorites bar, removed from anywhere on toggle, blank names filled with the URL and long ones capped, non-web URLs and malformed roots ignored, exact web-URL matching, and no mutation of the input tree. |
+| [**links.test.js**](links.test.js) | Links in terminal output: a dev server's address and its position, bare loopback hosts with a port made `http://`, several links on one line, trailing punctuation dropped but balanced brackets kept, other schemes, portless hosts, lookalikes and bad ports ignored, empty and non-string input. |
 
 ## Checking the real app
 
