@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-116_passing-2ea44f?style=for-the-badge" alt="116 tests passing">
+  <img src="https://img.shields.io/badge/tests-130_passing-2ea44f?style=for-the-badge" alt="130 tests passing">
   <img src="https://img.shields.io/badge/runner-node_--test-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="node --test">
   <a href="../README.md"><img src="https://img.shields.io/badge/↩-repository_root-6B7280?style=for-the-badge" alt="Repository root"></a>
 </p>
@@ -32,6 +32,8 @@ The unit tests use Node's built-in runner, so there's nothing to install beyond 
 | [**permissions.test.js**](permissions.test.js) | Pages get fullscreen, pointer lock and sanitized clipboard writes; media, location, notifications, MIDI, screen capture, clipboard reads, devices and anything unknown are refused. |
 | [**demo.test.js**](demo.test.js) | The browser demo: the source bar and the mock load before `app.js`, every path relative, a moved anchor fails the build; renderer imports are relative; the mock answers every call the preload exposes, so a new IPC call can't ship without one; no `fetch`, XHR, WebSocket or beacon in the demo; the fake terminal's echo, prompt and canned output; tab history and reopen; the confirm-bar ask logged as denied without a click. |
 | [**output.test.js**](output.test.js) | Terminal output cleaning: colours, titles and hyperlinks stripped, carriage returns and PSReadLine's redraws (absolute column, erase line, cursor back) resolved to what the screen shows, control characters dropped, tabs kept, the last N lines without trailing blanks, the capped buffer. |
+| [**events.test.js**](events.test.js) | Hub's `/api/events` stream: `change` events with their data, the `retry` preamble and heartbeat comments ignored, events and multi-line data split across chunk boundaries, several events in one chunk, CRLF line endings. |
+| [**favorites.test.js**](favorites.test.js) | Starring a page in Hub: added to the front of the Favorites bar, removed from anywhere on toggle, blank names filled with the URL and long ones capped, non-web URLs and malformed roots ignored, exact web-URL matching, and no mutation of the input tree. |
 
 ## Checking the real app
 

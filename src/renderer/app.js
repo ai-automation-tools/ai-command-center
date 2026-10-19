@@ -7,6 +7,7 @@ import { TerminalPanel } from './terminal.js';
 import { docUrl, isDocUrl } from './shared/docs.js';
 import { cycleTab, pickTab } from './shared/session.js';
 import { isCronsoleUrl } from './shared/cronsole.js';
+import { isFavorite } from './shared/favorites.js';
 
 /** @type {any} */
 const api = /** @type {any} */ (window).acc;
@@ -19,6 +20,9 @@ const appEl = $('app');
 const mainEl = $('main');
 const content = $('content');
 const address = /** @type {HTMLInputElement} */ ($('address'));
+const star = /** @type {HTMLButtonElement} */ ($('star'));
+/** Hub's favorites, for the address-bar star; refreshed on load and after each toggle. */
+let favorites = /** @type {any[]} */ ([]);
 
 // ---- layout ----------------------------------------------------------------
 
@@ -266,7 +270,36 @@ function syncNavbar() {
   if (document.activeElement !== address) address.value = s?.url && s.url !== 'about:blank' ? s.url : '';
   /** @type {HTMLButtonElement} */ (document.querySelector('[data-cmd="back"]')).disabled = !s?.canGoBack;
   /** @type {HTMLButtonElement} */ (document.querySelector('[data-cmd="forward"]')).disabled = !s?.canGoForward;
+  syncStar();
 }
+
+/** The address-bar ☆: only a web page can be starred, and it shows filled when it is. */
+function syncStar() {
+  const s = activeTab !== null ? tabState.get(activeTab) : null;
+  const url = s?.url;
+  const starrable = Boolean(url) && /^https?:/i.test(url);
+  star.hidden = !starrable;
+  if (!starrable) return;
+  const on = isFavorite(favorites, url);
+  star.textContent = on ? '★' : '☆';
+  star.classList.toggle('starred', on);
+  star.setAttribute('aria-pressed', String(on));
+  star.title = on ? 'Remove from Project Hub favorites' : 'Add to Project Hub favorites';
+}
+
+star.addEventListener('click', async () => {
+  const s = activeTab !== null ? tabState.get(activeTab) : null;
+  const url = s?.url;
+  if (!url || !/^https?:/i.test(url)) return;
+  try {
+    const out = await api.hub.favorite(url, s?.title || url);
+    favorites = out.roots || [];
+    toast(out.starred ? `Added to Hub favorites: ${url}` : `Removed from Hub favorites: ${url}`);
+    syncStar();
+  } catch (err) {
+    toast(err instanceof Error ? err.message : String(err));
+  }
+});
 
 $('address-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -389,5 +422,6 @@ api.onShortcut((/** @type {string} */ action) => {
 reportBounds();
 api.tabs.restore();
 if (layout.terminalOpen) openTerminal();
+api.hub.favorites().then((f) => { favorites = f.roots || []; syncStar(); }).catch(() => {});
 sidebar.load();
 startChat(api);

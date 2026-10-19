@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendLog, logCrashes, logError } from './applog.js';
-import { hub } from './hub.js';
+import { hub, subscribeHubEvents } from './hub.js';
 import { chat } from './chat.js';
 import { cronsole } from './cronsole.js';
 import { mcpLog, startMcp } from './mcp.js';
@@ -16,7 +16,7 @@ import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions, setupExtensions } from './extensions.js';
-import { serveDocs } from './docs.js';
+import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
@@ -54,6 +54,8 @@ let shellView = null;
 /** @type {Awaited<ReturnType<typeof startMcp>> | null} */
 let mcp = null;
 const cron = cronsole();
+/** @type {(() => void) | null} */
+let stopEvents = null;
 
 /** @param {string} channel @param {...unknown} args */
 function send(channel, ...args) {
@@ -181,6 +183,11 @@ async function createWindow() {
   browseSession.setPermissionCheckHandler((_wc, permission) => isPermissionAllowed(permission));
   browseSession.setDevicePermissionHandler(() => false);
   serveDocs(browseSession);
+  // Hub rescans on its own; reload the tree and drop the doc index when it says so.
+  stopEvents = subscribeHubEvents(() => {
+    invalidateDocsIndex();
+    send('hub:changed');
+  });
   const tabs = new Tabs({
     window: win,
     session: browseSession,
@@ -272,6 +279,7 @@ async function createWindow() {
   handle('hub:scan', (fresh) => hub.scan(Boolean(fresh)));
   handle('hub:webmarks', (source) => hub.webmarks(typeof source === 'string' ? source : undefined));
   handle('hub:favorites', () => hub.favorites());
+  handle('hub:favorite', (url, name) => hub.favorite(String(url || ''), String(name || url || '')));
   handle('hub:open', (id, how, label) => openInHub(String(id), how === 'reveal' ? 'reveal' : how === 'default' ? 'default' : 'code', String(label || id)));
 
   handle('tabs:create', (input) => tabs.create(toUrl(String(input || 'about:blank'))).id);
@@ -554,5 +562,6 @@ app.on('window-all-closed', () => app.quit());
 app.on('quit', () => {
   mcp?.close();
   cron.close();
+  stopEvents?.();
   setImmediate(() => app.exit(0));
 });

@@ -28,7 +28,9 @@ contextBridge.exposeInMainWorld('acc', {
     scan: invoke('hub:scan'),
     webmarks: invoke('hub:webmarks'),
     favorites: invoke('hub:favorites'),
+    favorite: invoke('hub:favorite'),
     open: invoke('hub:open'),
+    onChanged: listen('hub:changed'),
   },
 
   tabs: {
