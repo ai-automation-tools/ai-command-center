@@ -5,3 +5,8 @@ _site/
 .env
 .env.*
 !.env.example
+
+# Local agent workspace: share the tracked config and skills only, never scratch files.
+.claude/*
+!.claude/agents/
+!.claude/skills/
