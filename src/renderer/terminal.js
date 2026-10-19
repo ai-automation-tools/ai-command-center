@@ -2,6 +2,7 @@
 
 import { Terminal } from './vendor/xterm/lib/xterm.mjs';
 import { FitAddon } from './vendor/addon-fit/lib/addon-fit.mjs';
+import { findLinks } from './shared/links.js';
 
 const THEME = {
   background: '#0b0d10', foreground: '#e4e4e7', cursor: '#38bdf8', selectionBackground: '#38bdf855',
@@ -12,9 +13,10 @@ const THEME = {
 /** @typedef {{ id: number, term: Terminal, fit: FitAddon, pane: HTMLElement, tab: HTMLElement, exited: boolean, powershell: boolean }} Session */
 
 export class TerminalPanel {
-  /** @param {{ host: HTMLElement, tabs: HTMLElement, api: any }} opts */
-  constructor({ host, tabs, api }) {
+  /** @param {{ host: HTMLElement, tabs: HTMLElement, api: any, openLink: (url: string) => void }} opts */
+  constructor({ host, tabs, api, openLink }) {
     this.host = host;
+    this.openLink = openLink;
     this.tabsEl = tabs;
     this.api = api;
     /** @type {Map<number, Session>} */
@@ -46,6 +48,7 @@ export class TerminalPanel {
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
+    term.registerLinkProvider({ provideLinks: (y, done) => done(lineLinks(term, y, this.openLink)) });
 
     const pane = document.createElement('div');
     pane.className = 'term-pane';
@@ -131,6 +134,35 @@ export class TerminalPanel {
   }
 
   get size() { return this.sessions.size; }
+}
+
+/**
+ * The web addresses on buffer line y (1-based) as xterm links that open a tab on click.
+ * Reads the line cell by cell so a wide character before a link doesn't shift its columns.
+ * ponytail: one row only, so a URL wrapped onto the next row links its first part.
+ * @param {Terminal} term
+ * @param {number} y
+ * @param {(url: string) => void} open
+ */
+function lineLinks(term, y, open) {
+  const line = term.buffer.active.getLine(y - 1);
+  if (!line) return undefined;
+  let text = '';
+  /** @type {number[]} */
+  const col = [];
+  for (let x = 0; x < line.length; x++) {
+    const cell = line.getCell(x);
+    if (!cell || !cell.getWidth()) continue;
+    const chars = cell.getChars() || ' ';
+    text += chars;
+    for (let i = 0; i < chars.length; i++) col.push(x + 1);
+  }
+  const links = findLinks(text).map((l) => ({
+    range: { start: { x: col[l.start], y }, end: { x: col[l.start + l.text.length - 1], y } },
+    text: l.text,
+    activate: () => open(l.url),
+  }));
+  return links.length ? links : undefined;
 }
 
 /** @param {string} dir */

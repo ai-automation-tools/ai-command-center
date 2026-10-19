@@ -9,7 +9,7 @@
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
   ·
-  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
+  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://ai-command-center-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 > **Extensions with Manifest V3 background workers don't work yet.** LastPass and Rakuten, for instance, install from the Chrome Web Store and show their toolbar icons, but their service workers crash in Electron 44. Until that's fixed upstream, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#spike-result-2026-09-29).
 
 > [!TIP]
-> **[Try the demo](https://ai-command-center.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
+> **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
 
 > [!NOTE]
 > This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
@@ -55,7 +55,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 | Area | What you get |
 |:---|:---|
 | **🌐 Browser** | Tabs, address bar (URLs, `D:\` paths, `localhost`, or a search), back/forward/reload, links and pop-ups open as tabs, context menu, open in default browser. A ☆ in the address bar adds the page to Hub's favorites (again to remove). Chrome Web Store installs work in a tab. |
-| **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Ctrl+C copies a selection, Ctrl+V pastes. |
+| **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Web addresses in the output (`http(s)://…`, `localhost:3000`) open as a tab on click. Ctrl+C copies a selection, Ctrl+V pastes. |
 | **📁 Files** | Every workspace from Project Hub; a rescan by Hub shows up on its own. Click a file to read it in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing; clicking through files reuses that tab, Ctrl+click opens another. An HTML file opens as the page itself. Hover or right-click for Terminal here, View here, VS Code, Reveal in Explorer, Copy path and Copy Hub id. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
 | **🕘 Recent and 🔍 Search** | Pages, files and terminals you've opened, and one search box across files, bookmarks and recent. |

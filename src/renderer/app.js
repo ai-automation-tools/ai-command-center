@@ -73,7 +73,7 @@ dragSplitter($('term-split'), (e) => {
 
 // ---- terminals ---------------------------------------------------------------
 
-const terminals = new TerminalPanel({ host: $('term-host'), tabs: $('term-tabs'), api });
+const terminals = new TerminalPanel({ host: $('term-host'), tabs: $('term-tabs'), api, openLink: (url) => openUrl(url) });
 
 /** @param {boolean} open */
 function setTerminalOpen(open) {
