@@ -72,11 +72,13 @@ Found using the app on 2026-10-04 and made release gates the same day.
 
 ## After public release
 
-**Upstream blocker**
+### Upstream blocker
 
 - [ ] 🔒 LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass. Mike's, because an Electron bump is a dependency change the routine never makes.
 
-**🔒 Mike's own checks** (not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop))
+### 🔒 Mike's own checks
+
+Not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop).
 
 - [ ] Use the app as the main window for 5 working days and fill in the log below
 - [ ] Terminal checked by hand: typing, resize, colors, copy/paste, and `claude` running in it
@@ -85,7 +87,7 @@ Found using the app on 2026-10-04 and made release gates the same day.
 |:---|:--:|:---|
 | | | |
 
-**Phase 2b: close the agent's loop**
+### Phase 2b: close the agent's loop
 
 Added in the 2026-10-05 review. Today an agent can type a command and open things, but it can't see what happened: `terminal_run` returns before the output, `list_tabs` gives URLs without content, and the "trigger a Cronsole task" the harness promised in [requirements.md](decisions/requirements.md#features) never landed. Each item here is read-only or sits behind the same click as `terminal_run`.
 
@@ -96,7 +98,9 @@ Added in the 2026-10-05 review. Today an agent can type a command and open thing
 - [x] Chat: stream the reply as it arrives, trim old turns past a token budget, and keep the last conversation across restarts in `chat.json` — 2026-10-12, roadmap run; `readStream`, `trimHistory` (about 50,000 tokens, whole turns, oldest first), `cleanMessages` and `transcript` in `src/shared/chat.js`, 8 tests; `npm run smoke` checks the panel gets the saved history. Not yet streamed from the live API, which needs Mike's key
 - [x] MCP `tools/list` carries `annotations` (`readOnlyHint`, `destructiveHint`, `openWorldHint`) so clients can show which tools look and which act — 2026-10-14, roadmap run; seven tools look, `open_tab` and `open_file` open without harm, `terminal_run` and `cron_run` are destructive and open-world. Set in `src/shared/tools.js`, passed through by `src/shared/mcp.js`; 1 test
 
-**Integrations** (APIs the neighbours already expose, found in the 2026-10-05 review)
+### Integrations
+
+APIs the neighbours already expose, found in the 2026-10-05 review.
 
 - [x] Project Hub's `/api/events` stream: the sidebar subscribes once and reloads the tree on `change`, so a rescan shows up without Retry and the document index in `src/main/docs.js` drops its 30 s cache — 2026-10-18; `src/shared/events.js` parses the stream (6 tests), the main process subscribes and reconnects over the stream, a `change` reloads the Files tree and invalidates the doc index, and the demo's fake hub answers the new `onChanged`
 - [x] Star the current page: a ☆ in the address bar that adds the tab to Hub's favorites through `PUT /api/favorites`, so the app's own bookmarks source gains entries without opening Hub — 2026-10-18; `src/shared/favorites.js` adds/removes a link in the favorites tree (6 tests), `hub.favorite` GETs and PUTs the whole list, the address-bar ☆ toggles and shows filled when starred, and the demo's fake hub toggles for real
@@ -105,14 +109,16 @@ Added in the 2026-10-05 review. Today an agent can type a command and open thing
 - [ ] A count of failed Cronsole tasks on the Cron tab's label, refreshed on the same timer as the Hub health dot
 - [ ] Claude Code in the terminal: when `claude` registers with the MCP server, the MCP tab's first row says which client connected (`initialize`'s `clientInfo`), so the log reads "claude-code 2.x connected" rather than two ✗ rows
 
-**Phase 3: the rest**
+### Phase 3: the rest
 
 - [ ] IDE pane: code-server or OpenVSCode Server in a tab, started on demand, loopback only
 - [ ] Docs upkeep view: last run and report of the docs-maintenance jobs
 - [ ] AI news panel and AI bookmarks feed, read from configurable RSS or Markdown sources
 - [ ] Phone channel through an existing gateway (Claude Remote Control, Hermes or OpenClaw) connected to the MCP server
 
-**Daily use, round 2** (nice to have; found in the 2026-10-05 review)
+### Daily use, round 2
+
+Nice to have; found in the 2026-10-05 review.
 
 - [ ] Address bar suggestions from Recent and bookmarks as you type, picked with the arrow keys
 - [ ] Tabs: drag to reorder, duplicate, mute, and pin any tab (today only Cronsole's is pinned)
@@ -120,12 +126,14 @@ Added in the 2026-10-05 review. Today an agent can type a command and open thing
 - [ ] Light theme for the shell, following `prefers-color-scheme` the way document pages already do
 - [ ] Terminal search with `@xterm/addon-search` (MIT) — `- [!]` needs a dependency
 
-**Code health** (from the 2026-10-05 review)
+### Code health
+
+From the 2026-10-05 review.
 
 - [ ] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin
 - [ ] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI
 
-**Distribution and promotion**
+### Distribution and promotion
 
 - [ ] Windows installer with electron-builder, published as a GitHub release
 - [ ] 🔒 Code-signing certificate (costs money)
