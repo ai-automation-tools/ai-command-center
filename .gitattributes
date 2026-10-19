@@ -1,0 +1,5 @@
+# The diagram check hashes app-architecture.json against its build receipt, so a
+# CRLF checkout would read as "changed since the last build". Pin LF.
+docs/diagrams/*.json text eol=lf
+docs/diagrams/*.html text eol=lf
+docs/diagrams/*.png binary

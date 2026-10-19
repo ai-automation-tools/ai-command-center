@@ -25,6 +25,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm test
+      # Warns, never fails: rebuilding needs Chrome + Archify, which CI doesn't have, and the
+      # homepage copies live in another repo (--no-site). A warning means code cited by
+      # docs/diagrams/app-architecture.json changed since its pinned commit;
+      # docs/diagrams/README.md says how to update it.
+      - name: Diagram drift
+        if: runner.os == 'Linux'
+        run: node scripts/build-diagram.mjs --hook --no-site | sed 's/^ISSUE:/::warning title=Diagram drift::ISSUE:/'
 
   audit:
     runs-on: ubuntu-latest
