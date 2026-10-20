@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_UI, cronsoleConfig, initialize, isCronsoleUrl, listTasks, runTask, stdioRpc, taskIdArg, taskRows, taskSummary } from '../src/shared/cronsole.js';
+import { DEFAULT_UI, cronsoleConfig, initialize, isCronsoleUrl, listTasks, runFromUrl, runOutput, runRows, runSummary, runTask, runUrl, stdioRpc, taskHistory, taskIdArg, taskRows, taskSummary } from '../src/shared/cronsole.js';
 
 test('cronsoleConfig reads the server path and the UI origin, http(s) only', () => {
   assert.deepEqual(cronsoleConfig({}), { server: '', ui: DEFAULT_UI });
@@ -114,4 +114,50 @@ test('taskSummary: next run, paused, missing and failed tasks', () => {
   const failed = taskSummary({ ...row, lastRunStatus: 'FAILURE' }, now);
   assert.equal(failed.icon, '✗');
   assert.equal(failed.failed, true);
+});
+
+const RUN = { id: 'e1', status: 'FAILURE', triggeredAt: '2026-10-04T02:00:00.000Z', durationMs: 4200, log: '2 broken links', platformRunId: null };
+
+test('taskHistory asks get_task_history for the last 5 runs; runOutput asks get_run_output for one; tool errors throw', async () => {
+  const { rpc, seen } = fakeServer((msg) => {
+    const { name, arguments: args } = msg.params;
+    if (args.taskId === 'bad') return { result: { isError: true, content: [{ type: 'text', text: 'Task not found' }] } };
+    if (name === 'get_task_history') return { result: { content: [{ type: 'text', text: '1 run' }], structuredContent: { taskId: 't1', returned: 1, runs: [RUN] } } };
+    return { result: { content: [{ type: 'text', text: 'What it did: read → write' }, { type: 'text', text: 'Output:\nok' }], structuredContent: { available: true } } };
+  });
+  assert.deepEqual(await taskHistory(rpc, 't1'), [RUN]);
+  assert.deepEqual(seen.at(-1).params, { name: 'get_task_history', arguments: { taskId: 't1', limit: 5 } });
+  assert.equal(await runOutput(rpc, 't1', 'run_9'), 'What it did: read → write\nOutput:\nok');
+  assert.deepEqual(seen.at(-1).params, { name: 'get_run_output', arguments: { taskId: 't1', runId: 'run_9', maxChars: 20000 } });
+  await assert.rejects(taskHistory(rpc, 'bad'), /Task not found/);
+  await assert.rejects(runOutput(rpc, 'bad', 'run_9'), /Task not found/);
+});
+
+test('runRows: no history is empty, malformed rows are dropped or nulled, at most 5', () => {
+  assert.deepEqual(runRows({ content: [{ type: 'text', text: 'No run history recorded for this task.' }], structuredContent: { runs: [] } }), []);
+  assert.deepEqual(runRows({}), []);
+  assert.deepEqual(runRows({ structuredContent: { runs: 'nope' } }), []);
+  assert.deepEqual(runRows({ structuredContent: { runs: [null, { status: 'SUCCESS' }, { id: 'e2', status: 7, durationMs: 'slow', log: '', platformRunId: 'p1' }] } }),
+    [{ id: 'e2', status: 'UNKNOWN', triggeredAt: null, durationMs: null, log: null, platformRunId: 'p1' }]);
+  assert.equal(runRows({ structuredContent: { runs: Array.from({ length: 9 }, (_, i) => ({ id: `e${i}` })) } }).length, 5);
+  assert.throws(() => runRows({ isError: true, content: [] }), /refused get_task_history/);
+});
+
+test('runUrl and runFromUrl round-trip ids, and refuse anything else', () => {
+  const url = runUrl('task/1', 'run 2');
+  assert.equal(url, 'acc://run/task%2F1/run%202');
+  assert.deepEqual(runFromUrl(url), { taskId: 'task/1', runId: 'run 2' });
+  for (const bad of ['acc://doc/a/b', 'https://run/a/b', 'acc://run/a', 'acc://run/a/b/c', 'acc://run//b', 'acc://run/a/%E0%A4%A', 'acc://run/a/%0Ab']) {
+    assert.throws(() => runFromUrl(bad), bad);
+  }
+});
+
+test('runSummary: when, status and how long; failures and timeouts are marked', () => {
+  const now = Date.parse('2026-10-04T05:00:00.000Z');
+  assert.deepEqual(runSummary(RUN, now), { icon: '✗', text: '3h ago · failure · 4.2 s', title: 'Started: 2026-10-04T02:00:00.000Z\nStatus: FAILURE\nTook: 4.2 s\nClick to show its output', failed: true });
+  assert.equal(runSummary({ ...RUN, status: 'TIMEOUT' }, now).failed, true);
+  const ok = runSummary({ ...RUN, status: 'SUCCESS', durationMs: 300_000, triggeredAt: '2026-10-04T04:59:30.000Z' }, now);
+  assert.equal(ok.icon, '✓');
+  assert.equal(ok.text, 'just now · success · 5 min');
+  assert.equal(runSummary({ ...RUN, status: 'PENDING', durationMs: null, triggeredAt: null }, now).text, 'unknown time · pending');
 });

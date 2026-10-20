@@ -1,5 +1,5 @@
 // Command Center's own document view: acc://doc/<Hub node id> in an ordinary sandboxed
-// tab. Project Hub renders the file (its /api/file); this wraps the result in a plain
+// tab, and the same page around a Cronsole run's output (acc://run). Project Hub renders the file (its /api/file); this wraps the result in a plain
 // page with no scripts, or lists a folder's children. URL paths mirror Hub ids, so a
 // README's relative links and images resolve the way they do on disk.
 
@@ -77,6 +77,22 @@ export function docPage({ title, trail, body }) {
 <html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="dark light">
 <title>${escapeHtml(title)}</title><style>${CSS}</style></head>
 <body><header class="trail">${escapeHtml(trail)}</header><main class="doc">${body}</main></body></html>`;
+}
+
+/**
+ * A Cronsole run's output as a page (acc://run, src/main/cronsole.js). All of it is
+ * another program's output, escaped and shown as text.
+ * @param {{ task: string, run: import('./cronsole.js').CronRun, output: string | null, error?: string | null }} p
+ */
+export function runPage({ task, run, output, error = null }) {
+  const facts = [run.status, run.triggeredAt, run.durationMs !== null && `${run.durationMs} ms`].filter(Boolean).join(' · ');
+  const body = [
+    `<h1>${escapeHtml(task)}</h1>`,
+    `<p class="note">${escapeHtml(facts)}</p>`,
+    error && `<p class="note">Couldn't get the platform's output: ${escapeHtml(error)}</p>`,
+    output ? `<pre>${escapeHtml(output)}</pre>` : '<p class="note">Cronsole recorded no output for this run.</p>',
+  ].filter(Boolean).join('');
+  return docPage({ title: `${task} · run`, trail: `Cronsole › ${task} › ${run.triggeredAt || run.id}`, body });
 }
 
 const CSS = `

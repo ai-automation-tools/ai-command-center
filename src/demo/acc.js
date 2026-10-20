@@ -68,11 +68,27 @@ const CRONSOLE_UI = 'https://cronsole-demo.ai-automation-tools.dev/';
 
 /** @param {number} now */
 const tasks = (now) => [
-  { name: 'Nightly backup', platform: 'windows', schedule: 'Daily 02:00', status: 'ACTIVE', nextRunTime: new Date(now + 6 * HOUR).toISOString(), lastRunAt: new Date(now - 18 * HOUR).toISOString(), lastRunStatus: 'Success' },
-  { name: 'Docs link check', platform: 'claude', schedule: 'Mon 09:00', status: 'ACTIVE', nextRunTime: new Date(now + 50 * HOUR).toISOString(), lastRunAt: new Date(now - 5 * 24 * HOUR).toISOString(), lastRunStatus: 'Failed' },
-  { name: 'Roadmap routine', platform: 'claude', schedule: 'Sun, Wed 20:00', status: 'ACTIVE', nextRunTime: new Date(now + 30 * HOUR).toISOString() },
-  { name: 'Old export job', platform: 'windows', schedule: 'Hourly', status: 'DISABLED' },
+  { id: 'task-backup', name: 'Nightly backup', platform: 'windows', schedule: 'Daily 02:00', status: 'ACTIVE', nextRunTime: new Date(now + 6 * HOUR).toISOString(), lastRunAt: new Date(now - 18 * HOUR).toISOString(), lastRunStatus: 'Success' },
+  { id: 'task-links', name: 'Docs link check', platform: 'claude', schedule: 'Mon 09:00', status: 'ACTIVE', nextRunTime: new Date(now + 50 * HOUR).toISOString(), lastRunAt: new Date(now - 5 * 24 * HOUR).toISOString(), lastRunStatus: 'Failed' },
+  { id: 'task-roadmap', name: 'Roadmap routine', platform: 'claude', schedule: 'Sun, Wed 20:00', status: 'ACTIVE', nextRunTime: new Date(now + 30 * HOUR).toISOString() },
+  { id: 'task-export', name: 'Old export job', platform: 'windows', schedule: 'Hourly', status: 'DISABLED' },
 ];
+
+/** Cronsole's recorded runs of a task, newest first. @param {string} taskId @param {number} now */
+const runs = (taskId, now) => {
+  const t = tasks(now).find((x) => x.id === taskId);
+  if (!t?.lastRunAt) return [];
+  const at = Date.parse(t.lastRunAt);
+  const failed = t.lastRunStatus === 'Failed';
+  return [0, 1, 2].map((i) => ({
+    id: `${taskId}-run-${i}`,
+    status: failed && i === 0 ? 'FAILURE' : 'SUCCESS',
+    triggeredAt: new Date(at - i * 24 * HOUR).toISOString(),
+    durationMs: failed && i === 0 ? 4200 : 61_000 + i * 900,
+    log: failed && i === 0 ? '2 broken links: docs/setup.md -> /install (404)' : 'Done.',
+    platformRunId: null,
+  }));
+};
 
 /** @param {number} now */
 const calls = (now) => [
@@ -161,6 +177,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
   /** @param {string} url */
   const titleOf = (url) => {
     if (isDocUrl(url)) return docIdFromUrl(url).split('/').pop() || url;
+    if (url.startsWith('acc://run/')) return 'Cronsole run';
     try { return new URL(url).hostname || url; } catch { return url; }
   };
   const show = () => {
@@ -376,6 +393,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
     cronsole: {
       info: async () => ({ configured: true, ui: CRONSOLE_UI }),
       tasks: async () => tasks(now()),
+      history: async (/** @type {string} */ taskId) => runs(taskId, now()),
     },
 
     menu: async () => { notify('Menus are native in the desktop app; the demo has none.'); return null; },
