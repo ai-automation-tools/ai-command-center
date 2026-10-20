@@ -14,7 +14,7 @@ import { mcpLog, startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
-import { listExtensions, setupExtensions } from './extensions.js';
+import { extensionsMenu, listExtensions, setupExtensions } from './extensions.js';
 import { smoke } from './smoke.js';
 import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { toUrl } from '../shared/url.js';
@@ -102,7 +102,8 @@ function on(channel, fn) {
   ipcMain.on(channel, (e, ...args) => { if (fromShell(e)) fn(...args); });
 }
 
-function buildMenu() {
+/** @param {Electron.MenuItemConstructorOptions[]} [extensions] the Extensions submenu, once they're set up */
+function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
   /** @param {string} label @param {string} accelerator @param {string} action */
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => send('shortcut', action) });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
@@ -143,6 +144,7 @@ function buildMenu() {
         { label: 'Shell developer tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => shellView?.webContents.toggleDevTools() },
       ],
     },
+    { label: 'Extensions', submenu: extensions },
   ]));
 }
 
@@ -351,6 +353,13 @@ async function createWindow() {
   // Extensions before the shell loads, so <browser-action-list> finds them on first paint.
   try {
     await setupExtensions({ browseSession, shellSession: shellView.webContents.session, window: win, tabs });
+    const window = win;
+    // A tick later: during 'extension-unloaded' the extension is still in the list.
+    const rebuild = () => setImmediate(() => buildMenu(extensionsMenu(browseSession, tabs, window)));
+    rebuild();
+    // Installs from the Web Store and removals change the list.
+    browseSession.extensions.on('extension-loaded', rebuild);
+    browseSession.extensions.on('extension-unloaded', rebuild);
   } catch (err) {
     console.error('[extensions] setup failed; browsing still works without them:', err);
   }

@@ -56,6 +56,28 @@ The prompt makes LastPass and Rakuten a hard gate, so Phase 1 opened with a spik
 - An Electron release that runs preloads in extension service workers, or a library release that drops the MV3 "pending" note. Rerun `npm run spike:extensions` on every Electron major.
 - Mike opening Chrome for LastPass on most days during Phase 2. Then evaluate driving an external Chrome from the browser pane, or [option B](architecture-options.md).
 
+## Update 2026-10-20: the `browser` namespace
+
+The diagnosis above was wrong about the cause. Probing on Electron 44.7 with a throwaway profile showed:
+
+- Electron **does** run session service-worker preloads in extension service workers (electron/electron#44411 merged in January 2025). The library's `crx-mv3-preload` runs, and `chrome.windows` exists before the background script starts. Sandboxing the shell made no difference.
+- Chromium now gives extensions a native `browser` namespace that is a **separate object** from `chrome`, with only the APIs Chromium implements itself. electron-chrome-extensions fills in `chrome` only.
+- LastPass (`zc()`) and Rakuten (`u()`) both use `browser` when it exists, so they read `browser.windows`, get `undefined`, and the worker dies.
+
+**Fix:** `src/preload/extension-browser.cjs`, registered after the library's preloads for service workers and frames, sets `globalThis.browser = chrome` in extension contexts only. It changes the API surface the app provides, not the extensions, so the "don't patch extensions" rule stands. Nobody has reported this upstream yet, so it's worth an issue on electron-browser-shell, and the alias can go once the library fills in `browser` too.
+
+**Spike after the fix** (fresh profile, both from the Web Store):
+
+| Check | Result |
+|:---|:---|
+| Background service worker | ✅ Both start and call the shimmed APIs (`tabs.query`, `cookies.get`, `cookies.onChanged`, `action.setPopup`/`setBadgeText`). |
+| Rakuten | ✅ No errors. `action.setIcon` with `imageData` isn't supported by the library yet, so its icon doesn't change state. |
+| LastPass | ⚠️ Starts. One `document is not defined` later on: it uses `chrome.offscreen.createDocument`, which the library doesn't implement. Login and autofill need a hand check. |
+
+**Ad blockers (checked 2026-10-20):** uBlock Origin Lite 2026.1018 installs and runs, but `pagead2.googlesyndication.com`, `securepubads.g.doubleclick.net` and `google-analytics.com` all still load from a tab. MV3 blockers filter through `declarativeNetRequest`, which Electron doesn't implement, so no MV3 ad blocker from the Web Store will block anything here. Blocking needs to happen in the app (`session.webRequest`), with the caveat in the library's README that Electron's `webRequest` hooks stop `chrome.webRequest` listeners from firing.
+
+Keep the profile path short when spiking with a scratch profile: past Windows' 260-character limit, IndexedDB fails to open, and LastPass reports "No available storage method found".
+
 ---
 
 <p align="center">

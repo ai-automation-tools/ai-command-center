@@ -74,7 +74,7 @@ Found using the app on 2026-10-04 and made release gates the same day.
 
 ### Upstream blocker
 
-- [ ] 🔒 LastPass and Rakuten working in a tab. Blocked on Electron running preloads in extension service workers ([ADR-001](decisions/adr-001-electron-shell.md#spike-result-2026-09-29)). Rerun `npm run spike:extensions` on every Electron major and tick this when both pass. Mike's, because an Electron bump is a dependency change the routine never makes.
+- [ ] 🔒 LastPass and Rakuten working in a tab. Their workers start since the `browser` alias (2026-10-20, [ADR-001](decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace)); still to check by hand: LastPass login and autofill (it uses `chrome.offscreen`, which the library lacks) and Rakuten's activate-on-shop flow. Rerun `npm run spike:extensions` on every Electron major and tick this when both pass. Mike's, because an Electron bump is a dependency change the routine never makes.
 
 ### 🔒 Mike's own checks
 

@@ -39,7 +39,7 @@ before anything goes public.
 ## Standards
 
 - **Security invariants.** Don't weaken any of these:
-  - Browser tabs are `sandbox: true`, `contextIsolation: true`, and get no preload from this app.
+  - Browser tabs are `sandbox: true`, `contextIsolation: true`, and get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages (`preload/extension-browser.cjs`).
   - Pages get no permission that isn't in `src/shared/permissions.js` (fullscreen, pointer lock, sanitized clipboard writes). Don't add media, location, notifications or devices to that list without an ADR.
   - Every IPC handler in `src/main/main.js` goes through `handle()` / `on()`, which refuse any sender but the shell view.
   - Tabs refuse navigation outside `isAllowedNavigation()` (`src/shared/url.js`).
