@@ -130,8 +130,8 @@ Nice to have; found in the 2026-10-05 review.
 
 From the 2026-10-05 review.
 
-- [ ] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin
-- [ ] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI
+- [x] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin — 2026-10-20; `main.js` 590 → 389 lines, `npm run smoke` passes unchanged
+- [x] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI — 2026-10-20; the one count is the "140+" badge in `tests/README.md`, CLAUDE.md points there, README.md had none
 
 ### Distribution and promotion
 
