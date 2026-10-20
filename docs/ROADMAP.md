@@ -81,7 +81,8 @@ Found using the app on 2026-10-04 and made release gates the same day.
 Not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop).
 
 - [ ] Use the app as the main window for 5 working days and fill in the log below
-- [ ] Terminal checked by hand: typing, resize, colors, copy/paste, and `claude` running in it
+- [ ] Terminal checked by hand: typing, resize, colors, copy/paste (keys and right-click), and `claude` running in it
+- [ ] Ad blocking checked by hand on a few ad-heavy sites, and no site you use daily broken by it
 
 | Day | Used as main window? | What broke or got in the way |
 |:---|:--:|:---|
@@ -120,6 +121,9 @@ APIs the neighbours already expose, found in the 2026-10-05 review.
 
 Nice to have; found in the 2026-10-05 review.
 
+- [x] Right-click in the terminal copies a selection or pastes — 2026-10-20; `src/renderer/terminal.js`
+- [x] Manage extensions: an **Extensions** menu with Get extensions…, and per extension Options, Web Store page and Remove (uninstalls for good) — 2026-10-20; `extensionsMenu` in `src/main/extensions.js`
+- [x] Ad and tracker blocking, on by default with a menu toggle: Ghostery's engine with EasyList/EasyPrivacy, since Web Store MV3 blockers can't work in Electron — 2026-10-20, Mike's call on the dependency; `src/main/adblock.js`
 - [ ] Address bar suggestions from Recent and bookmarks as you type, picked with the arrow keys
 - [ ] Tabs: drag to reorder, duplicate, mute, and pin any tab (today only Cronsole's is pinned)
 - [ ] Downloads: `will-download` handled so a finished download shows a toast with Reveal in Explorer, and lands in Recent

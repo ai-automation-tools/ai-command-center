@@ -493,7 +493,7 @@
       "dot": "rose",
       "title": "What keeps pages out",
       "items": [
-        "Browser tabs are sandboxed, get no preload and are denied every permission but fullscreen, pointer lock and clipboard writes",
+        "Browser tabs are sandboxed, get only the extension-API and ad-block preloads and are denied every permission but fullscreen, pointer lock and clipboard writes",
         "Every IPC channel refuses any sender but the shell view",
         "acc://doc serves only ids from Project Hub's index, with no scripts and no framing"
       ]
