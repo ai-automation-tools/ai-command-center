@@ -126,6 +126,8 @@ $m = Get-Content "$env:APPDATA\ai-command-center\mcp.json" | ConvertFrom-Json
 $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 ```
 
+Two of the app's integrations have matching Claude Code skills in [agent-skills](https://github.com/ai-automation-tools/agent-skills): [`Skills/Projects/project-hub`](https://github.com/ai-automation-tools/agent-skills/tree/main/Skills/Projects/project-hub) for the Hub the sidebar reads from, and [`Skills/Projects/cronsole`](https://github.com/ai-automation-tools/agent-skills/tree/main/Skills/Projects/cronsole) for the scheduled tasks behind the Cron tab. Install them where Claude Code in your terminals can see them.
+
 Every call shows in the sidebar's **MCP** tab. Each time Claude Code connects you'll also see two ✗ rows there: `server/discover`, a method this server doesn't offer, and a `405` for the event stream it doesn't serve. Both are expected.
 
 ## 💬 Chat in the app

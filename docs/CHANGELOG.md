@@ -15,6 +15,7 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
+- **Docs:** The README links the Project Hub and Cronsole skills in `ai-automation-tools/agent-skills` from "Drive the app from Claude Code".
 - **Docs:** An app architecture diagram in `docs/diagrams/`, built with [Archify](https://github.com/tt-a1i/archify): shell UI, main process, browser tabs, Project Hub, Cronsole, terminals, the chat panel and the MCP server with its confirm bar, each component linked to the lines it describes at a pinned commit. `scripts/build-diagram.mjs` builds it, copies the HTML and PNG into the homepage repo (`ai-command-center-site`, which embeds it live), and with `--check` reports cited code that changed since the pin; CI warns on drift. *(docs)*
 - **Docs:** The browser demo moves to `ai-command-center-demo.ai-automation-tools.dev`; `ai-command-center.ai-automation-tools.dev` is now the project homepage (served from `ai-command-center-site`). Old demo deep links redirect.
 
