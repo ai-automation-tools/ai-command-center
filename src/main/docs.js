@@ -2,6 +2,9 @@
 // sandboxed tabs under Command Center's own sidebar. The shell's acc://shell lives on
 // the shell's session; tabs can't reach it. See src/shared/docs.js for the page.
 //
+// acc://run/<task>/<run> is a Cronsole run's output on the same page; the app opens
+// those, never a web page (see serveRun).
+//
 // Only ids in Project Hub's own index are served. Text comes from Hub's /api/file
 // (Hub renders Markdown and refuses paths outside its roots); images are read here,
 // and only for a request from a document page, so a web page can't probe for them.
@@ -39,9 +42,29 @@ const notePage = (status, title, text) => new Response(
   { status, headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' } },
 );
 
-/** @param {Electron.Session} session */
-export function serveDocs(session) {
+/**
+ * A Cronsole run's page. Only the app opens one (isAllowedNavigation), and a request a
+ * page makes carries its referrer, so a web page can't fetch or embed one either.
+ * @param {GlobalRequest} req
+ * @param {(url: string) => Promise<string>} runPage
+ */
+async function serveRun(req, runPage) {
+  const referrer = req.headers.get('referer') || req.referrer || '';
+  if (referrer && !/^acc:\/\/run\//i.test(referrer)) return new Response(null, { status: 403, headers: DOC_HEADERS });
+  try {
+    return new Response(await runPage(req.url), { headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' } });
+  } catch (err) {
+    return notePage(502, 'Cronsole run', err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
+ * @param {Electron.Session} session
+ * @param {(url: string) => Promise<string>} runPage acc://run pages, from src/main/cronsole.js
+ */
+export function serveDocs(session, runPage) {
   session.protocol.handle('acc', async (req) => {
+    if (/^acc:\/\/run\//i.test(req.url)) return serveRun(req, runPage);
     let id;
     try {
       id = docIdFromUrl(req.url);

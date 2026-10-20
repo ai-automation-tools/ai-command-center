@@ -7,7 +7,8 @@
 import { app } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { cronsoleConfig, initialize, listTasks, runTask, stdioRpc } from '../shared/cronsole.js';
+import { cronsoleConfig, initialize, listTasks, runFromUrl, runOutput, runTask, stdioRpc, taskHistory, taskIdArg } from '../shared/cronsole.js';
+import { runPage } from '../shared/docs.js';
 
 export function cronsole() {
   /** @type {import('node:child_process').ChildProcess | null} */
@@ -61,6 +62,33 @@ export function cronsole() {
 
     /** Start a task now; the main process asks the user first (cron_run). @param {string} taskId */
     run: async (taskId) => runTask(await client(), taskId),
+
+    /** A task's last few runs, for the sidebar. @param {unknown} taskId */
+    history: async (taskId) => taskHistory(await client(), taskIdArg(taskId)),
+
+    /**
+     * The acc://run page for one run: only a task in list_tasks, and a run in its history.
+     * A run a platform recorded gets that platform's output; Cronsole's own runs, their log.
+     * @param {string} url
+     */
+    async page(url) {
+      const { taskId, runId } = runFromUrl(url);
+      const rpc = await client();
+      const task = (await listTasks(rpc)).find((t) => t.id === taskId);
+      if (!task) throw new Error(`Cronsole has no task with id ${taskId}.`);
+      const run = (await taskHistory(rpc, taskId)).find((r) => r.id === runId);
+      if (!run) throw new Error(`Cronsole no longer lists this run in ${task.name}'s recent history.`);
+      let output = run.log;
+      let error = null;
+      if (run.platformRunId) {
+        try {
+          output = await runOutput(rpc, taskId, run.platformRunId);
+        } catch (err) {
+          error = err instanceof Error ? err.message : String(err);
+        }
+      }
+      return runPage({ task: task.name, run, output, error });
+    },
 
     close() {
       child?.kill();

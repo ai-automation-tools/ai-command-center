@@ -182,7 +182,7 @@ async function createWindow() {
   browseSession.setPermissionRequestHandler((_wc, permission, callback) => callback(isPermissionAllowed(permission)));
   browseSession.setPermissionCheckHandler((_wc, permission) => isPermissionAllowed(permission));
   browseSession.setDevicePermissionHandler(() => false);
-  serveDocs(browseSession);
+  serveDocs(browseSession, (url) => cron.page(url));
   // Hub rescans on its own; reload the tree and drop the doc index when it says so.
   stopEvents = subscribeHubEvents(() => {
     invalidateDocsIndex();
@@ -263,6 +263,7 @@ async function createWindow() {
   // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
   handle('cronsole:info', () => cron.info());
   handle('cronsole:tasks', () => cron.tasks());
+  handle('cronsole:history', (taskId) => cron.history(taskId));
 
   handle('app:info', () => ({
     hubUrl: hub.url,
@@ -509,12 +510,25 @@ function smoke(dir, tabs, terminals, browseSession) {
       return { info: await window.acc.chat.info(), attach, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
-    // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set),
-    // then Open Cronsole twice: one pinned tab, first in the strip, reused.
+    // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set):
+    // the first task with recorded runs unfolds them and its newest opens as an acc://run
+    // page; then Open Cronsole twice: one pinned tab, first in the strip, reused.
     const cronPanel = await wc.executeJavaScript(`(async () => {
       document.querySelector('.side-tabs [data-panel="cron"]').click();
       for (let i = 0; i < 60 && /Asking/.test(document.getElementById('cron-list').textContent); i++) await new Promise((r) => setTimeout(r, 500));
-      const rows = [...document.querySelectorAll('#cron-list .row')];
+      const rows = [...document.querySelectorAll('#cron-list .row.task')];
+      let runs = [];
+      let runsNote = null;
+      for (const row of rows.filter((r) => /Last run:/.test(r.title)).slice(0, 8)) {
+        row.click();
+        for (let i = 0; i < 40 && /Asking/.test(row.nextElementSibling?.textContent || ''); i++) await new Promise((r) => setTimeout(r, 250));
+        runs = [...(row.nextElementSibling?.querySelectorAll('.row.run') || [])];
+        if (runs.length) break;
+        runsNote ??= row.nextElementSibling?.textContent.slice(0, 120) ?? null;
+        row.click();
+      }
+      runs[0]?.click();
+      await new Promise((r) => setTimeout(r, 2000));
       document.getElementById('cron-open').click();
       await new Promise((r) => setTimeout(r, 1500));
       document.getElementById('cron-open').click();
@@ -525,11 +539,20 @@ function smoke(dir, tabs, terminals, browseSession) {
         tasks: rows.length,
         first: rows.slice(0, 3).map((r) => r.querySelector('.name').textContent + ' · ' + r.querySelector('.sub').textContent),
         note: rows.length ? null : document.getElementById('cron-list').textContent.slice(0, 200),
+        runs: runs.slice(0, 2).map((r) => r.querySelector('.name').textContent),
+        runsNote: runs.length ? null : runsNote,
         pinnedTabs: pinned.length,
         pinnedFirst: document.querySelector('#tab-list .tab') === pinned[0],
       };
     })()`);
     console.log(`[smoke] cronsole=${JSON.stringify(cronPanel)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
+    const run = tabs.list().find((t) => t.url.startsWith('acc://run/'));
+    const runTab = run && tabs.tabs.get(run.id);
+    if (runTab) {
+      const page = await runTab.view.webContents.executeJavaScript(
+        `({ title: document.title, facts: document.querySelector('.note')?.textContent, output: document.querySelector('pre')?.textContent.length ?? null, none: /no output/.test(document.body.textContent) })`);
+      console.log(`[smoke] run page=${JSON.stringify(page)}`);
+    }
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());

@@ -91,6 +91,7 @@ contextBridge.exposeInMainWorld('acc', {
   cronsole: {
     info: invoke('cronsole:info'),
     tasks: invoke('cronsole:tasks'),
+    history: invoke('cronsole:history'),
   },
 
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */

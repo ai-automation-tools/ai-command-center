@@ -2,7 +2,7 @@
 // plus Hub's own favorites), Recent, and one search box across all three; plus MCP,
 // the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
-import { taskSummary } from './shared/cronsole.js';
+import { runSummary, runUrl, taskSummary } from './shared/cronsole.js';
 import { PROJECT_HUB_REPO } from './shared/settings.js';
 import { pushEntry } from './shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from './shared/tree.js';
@@ -369,13 +369,52 @@ export class Sidebar {
         q(row, '.name').textContent = t.name;
         q(row, '.sub').textContent = s.sub;
         row.title = s.title;
-        row.addEventListener('click', () => this.openCronsole());
+        row.addEventListener('click', () => this.toggleRuns(row, t.id));
         row.addEventListener('keydown', (e) => { if (e.key === 'Enter') row.click(); });
         host.append(row);
       }
     } catch (err) {
       host.innerHTML = '';
       host.append(note(errText(err), true));
+    }
+  }
+
+  /**
+   * A task's last few runs under its row, from Cronsole's get_task_history; clicking a
+   * run opens its output as a page (acc://run). A second click on the task folds them.
+   * @param {HTMLElement} row
+   * @param {string} taskId
+   */
+  async toggleRuns(row, taskId) {
+    const open = row.nextElementSibling;
+    if (open?.classList.contains('runs')) { open.remove(); return; }
+    const box = document.createElement('div');
+    box.className = 'runs';
+    box.append(note('Asking Cronsole…'));
+    row.after(box);
+    try {
+      /** @type {import('./shared/cronsole.js').CronRun[]} */
+      const runs = await this.api.cronsole.history(taskId);
+      box.innerHTML = '';
+      if (!runs.length) box.append(note('Cronsole has recorded no runs. A task that fires on its own trigger is recorded by its platform: Open Cronsole shows those.'));
+      const now = Date.now();
+      for (const r of runs) {
+        const s = runSummary(r, now);
+        const line = document.createElement('div');
+        line.className = `row run${s.failed ? ' failed' : ''}`;
+        line.tabIndex = 0;
+        line.style.paddingLeft = '28px';
+        line.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub">Show output</span>';
+        q(line, '.icon').textContent = s.icon;
+        q(line, '.name').textContent = s.text;
+        line.title = s.title;
+        line.addEventListener('click', () => this.openUrl(runUrl(taskId, r.id)));
+        line.addEventListener('keydown', (e) => { if (e.key === 'Enter') line.click(); });
+        box.append(line);
+      }
+    } catch (err) {
+      box.innerHTML = '';
+      box.append(note(errText(err), true));
     }
   }
 

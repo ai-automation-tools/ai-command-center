@@ -74,6 +74,8 @@ button, input, select { font: inherit; color: inherit; }
 .cron-tools { display: flex; gap: 6px; }
 .cron-tools button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 5px; padding: 3px 10px; cursor: pointer; }
 .row.task.failed .icon, .row.task.failed .sub { color: var(--bad); }
+.row.run .name { font-size: 12px; color: var(--text-2); }
+.row.run.failed .icon { color: var(--bad); }
 #panel-chat:not([hidden]) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 #chat-log { flex: 1; overflow: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .chat-msg { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }

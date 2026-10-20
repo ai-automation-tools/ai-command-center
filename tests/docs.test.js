@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DOC_HEADERS, docIdFromUrl, docPage, docUrl, escapeHtml, folderBody, imageType, isDocUrl } from '../src/shared/docs.js';
+import { DOC_HEADERS, docIdFromUrl, docPage, docUrl, escapeHtml, folderBody, imageType, isDocUrl, runPage } from '../src/shared/docs.js';
 import { isContainer } from '../src/shared/tree.js';
 import { isAllowedNavigation, toUrl } from '../src/shared/url.js';
 
@@ -60,4 +60,24 @@ test('docPage escapes the title and trail; headers forbid scripts, frames and fo
   assert.doesNotMatch(csp, /script-src/);
   assert.match(csp, /frame-ancestors 'none'/);
   assert.equal(escapeHtml(`"'&`), '&quot;&#39;&amp;');
+});
+
+test('isAllowedNavigation: a Cronsole run page opens from the app only', () => {
+  assert.equal(isAllowedNavigation('acc://run/t1/e1'), true);
+  assert.equal(isAllowedNavigation('acc://run/t1/e1', 'https://evil.example/'), false);
+  assert.equal(isAllowedNavigation('acc://run/t1/e1', 'acc://doc/a.md'), false);
+  assert.equal(isAllowedNavigation('acc://run/t1/e1', 'acc://run/t1/e2'), false);
+  assert.equal(toUrl('acc://run/t1/e1'), 'acc://run/t1/e1');
+});
+
+test('runPage shows the output as escaped text, says when there is none, and why a fetch failed', () => {
+  const run = { id: 'e1', status: 'FAILURE', triggeredAt: '2026-10-04T02:00:00.000Z', durationMs: 4200, log: null, platformRunId: 'p1' };
+  const html = runPage({ task: 'Backup <x>', run, output: '<script>alert(1)</script>' });
+  assert.match(html, /<pre>&lt;script&gt;alert\(1\)&lt;\/script&gt;<\/pre>/);
+  assert.doesNotMatch(html, /<script>|<x>/);
+  assert.match(html, /FAILURE · 2026-10-04T02:00:00.000Z · 4200 ms/);
+  const empty = runPage({ task: 'Backup', run: { ...run, triggeredAt: null, durationMs: null }, output: null, error: 'timed out' });
+  assert.match(empty, /recorded no output/);
+  assert.match(empty, /Couldn't get the platform's output: timed out/);
+  assert.match(empty, /Cronsole › Backup › e1/);
 });
