@@ -76,7 +76,19 @@ export class TerminalPanel {
     term.onTitleChange((title) => {
       /** @type {HTMLElement} */ (tab.querySelector('.title')).textContent = title.split(/[\\/]/).pop() || title;
     });
-    term.attachCustomKeyEventHandler((e) => clipboardKeys(e, term, (text) => this.api.term.write(id, text)));
+    const paste = (/** @type {string} */ text) => this.api.term.write(id, text);
+    term.attachCustomKeyEventHandler((e) => clipboardKeys(e, term, paste));
+    // Right-click works like Windows Terminal: copy the selection if there is one, else paste.
+    pane.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (term.hasSelection()) {
+        navigator.clipboard.writeText(term.getSelection()).catch(() => {});
+        term.clearSelection();
+      } else {
+        navigator.clipboard.readText().then(paste).catch(() => {});
+      }
+      term.focus();
+    });
 
     this.sessions.set(id, { id, term, fit, pane, tab, exited: false, powershell: Boolean(info.powershell) });
     this.activate(id);
