@@ -1,14 +1,17 @@
 // Cronsole's MCP server as a child process, started on first use. It runs on this
 // app's own Electron binary in Node mode, so the only thing configurable is which
-// script, and that comes from the user's environment (ACC_CRONSOLE_MCP), never from
-// the shell UI. The process inherits the environment for CRONSOLE_TOKEN and
-// CRONSOLE_API_URL, the same way Claude Code would start it.
+// script, and that comes from .env or the environment (ACC_CRONSOLE_MCP), never from
+// the shell UI. The process gets the same variables minus the chat key, so it finds
+// CRONSOLE_TOKEN and CRONSOLE_API_URL the way it would under Claude Code.
 
 import { app } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { cronsoleConfig, initialize, listTasks, runFromUrl, runOutput, runTask, stdioRpc, taskHistory, taskIdArg } from '../shared/cronsole.js';
 import { runPage } from '../shared/docs.js';
+import { env } from './env.js';
+
+const { ACC_CHAT_API_KEY, ANTHROPIC_API_KEY, ...childEnv } = env;
 
 export function cronsole() {
   /** @type {import('node:child_process').ChildProcess | null} */
@@ -21,7 +24,7 @@ export function cronsole() {
   const start = (server) => {
     if (!fs.existsSync(server)) throw new Error(`ACC_CRONSOLE_MCP points at ${server}, which doesn't exist.`);
     const proc = spawn(process.execPath, [server], {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...childEnv, ELECTRON_RUN_AS_NODE: '1' },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });
@@ -42,7 +45,7 @@ export function cronsole() {
 
   /** The running server, started on first use. */
   const client = () => {
-    const { server } = cronsoleConfig(process.env);
+    const { server } = cronsoleConfig(env);
     if (!server) throw new Error('Set ACC_CRONSOLE_MCP to the path of Cronsole\'s mcp-server/dist/index.js, then restart the app.');
     if (!ready) {
       ready = start(server);
@@ -54,7 +57,7 @@ export function cronsole() {
   return {
     /** For the sidebar: whether a server is set, and where the UI is. */
     info() {
-      const { server, ui } = cronsoleConfig(process.env);
+      const { server, ui } = cronsoleConfig(env);
       return { configured: Boolean(server), ui };
     },
 

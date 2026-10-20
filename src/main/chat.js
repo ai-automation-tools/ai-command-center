@@ -4,6 +4,7 @@
 // The conversation is saved to chat.json after every turn and read back at start.
 
 import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript } from '../shared/chat.js';
+import { env } from './env.js';
 
 /**
  * @typedef {import('../shared/chat.js').Message} Message
@@ -31,7 +32,7 @@ export function chat({ mcp, send, load, save }) {
   return {
     /** What the panel needs to know: the model, or which variables to set, and the saved conversation. Never the key. */
     info() {
-      const { model, missing } = chatConfig(process.env);
+      const { model, missing } = chatConfig(env);
       return { model, missing, mcp: Boolean(mcp()), history: transcript(messages) };
     },
 
@@ -39,8 +40,8 @@ export function chat({ mcp, send, load, save }) {
     async send(input, attach) {
       const text = chatText(input);
       const kinds = chatAttach(attach);
-      const { apiKey, model, missing } = chatConfig(process.env);
-      if (missing.length) throw new Error(`Set ${missing.join(' and ')} in your environment, then restart the app.`);
+      const { apiKey, model, missing } = chatConfig(env);
+      if (missing.length) throw new Error(`Set ${missing.join(' and ')} in .env, then restart the app.`);
       const server = mcp();
       if (!server) throw new Error("The app's MCP server isn't running, so the chat has no tools.");
       if (busy) throw new Error('Wait for the answer to the last message.');
