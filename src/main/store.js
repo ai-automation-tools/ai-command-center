@@ -8,6 +8,7 @@ import { cleanMessages } from '../shared/chat.js';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
 import { cleanSavedTabs } from '../shared/session.js';
 import { settingsFrom } from '../shared/settings.js';
+import { env } from './env.js';
 
 /** @param {string} name */
 const file = (name) => path.join(app.getPath('userData'), name);
@@ -36,9 +37,9 @@ function writeJson(name, data) {
 }
 
 export const store = {
-  /** settings.json with neutral defaults; ACC_HUB_URL in the environment overrides the file. */
+  /** settings.json with neutral defaults; ACC_HUB_URL in .env or the environment overrides the file. */
   settings() {
-    return settingsFrom(readJson('settings.json', {}), process.env);
+    return settingsFrom(readJson('settings.json', {}), env);
   },
 
   recent() {

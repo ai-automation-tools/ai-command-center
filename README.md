@@ -132,12 +132,14 @@ Every call shows in the sidebar's **MCP** tab. Each time Claude Code connects yo
 
 ## 💬 Chat in the app
 
-The sidebar's **Chat** tab talks to Claude through the Anthropic API with your own key, and gives it the same MCP tools Claude Code gets. Set the key and the model as user environment variables, then restart the app:
+The sidebar's **Chat** tab talks to Claude through the Anthropic API with your own key, and gives it the same MCP tools Claude Code gets. Copy `.env.example` to `.env` in the clone (it's gitignored), fill in the key and the model, then restart the app:
 
-```powershell
-setx ACC_CHAT_API_KEY "<your Anthropic API key>"
-setx ACC_CHAT_MODEL "<a Claude model ID>"
+```ini
+ACC_CHAT_API_KEY=<your Anthropic API key>
+ACC_CHAT_MODEL=<a Claude model ID>
 ```
+
+A variable set in the real environment wins over the file. The app reads `.env` in the main process only, never into `process.env`, so terminals opened in the app don't inherit the key.
 
 `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` work too, but `ACC_CHAT_API_KEY` keeps the key out of Claude Code's way: with `ANTHROPIC_API_KEY` set, `claude` in a terminal bills that key instead of your subscription. There is no default model, so the app never picks what you pay for. The key stays in the main process; the panel only ever sees the model name.
 
@@ -145,13 +147,13 @@ Enter sends, Shift+Enter starts a new line, Clear starts a new conversation. **+
 
 ## ⏱️ Cronsole in the sidebar
 
-The **Cron** tab starts Cronsole's MCP server the first time you open it and calls its `list_tasks` tool. Clicking a task asks `get_task_history` for its last five runs; clicking a run opens `acc://run/<task>/<run>`, a script-free page with the run's log, or for a run a platform recorded (a Claude routine, a GitHub Action) the steps and output `get_run_output` returns. Only runs Cronsole performed are listed, so a Windows task that fires on its own trigger shows none here; Cronsole's UI has those. Point the app at the server's entry script in a Cronsole checkout, then restart the app:
+The **Cron** tab starts Cronsole's MCP server the first time you open it and calls its `list_tasks` tool. Clicking a task asks `get_task_history` for its last five runs; clicking a run opens `acc://run/<task>/<run>`, a script-free page with the run's log, or for a run a platform recorded (a Claude routine, a GitHub Action) the steps and output `get_run_output` returns. Only runs Cronsole performed are listed, so a Windows task that fires on its own trigger shows none here; Cronsole's UI has those. Point the app at the server's entry script in a Cronsole checkout in `.env`, then restart the app:
 
-```powershell
-setx ACC_CRONSOLE_MCP "<cronsole>\mcp-server\dist\index.js"
+```ini
+ACC_CRONSOLE_MCP=<cronsole>/mcp-server/dist/index.js
 ```
 
-The server runs on the app's own Electron binary in Node mode and gets the app's environment, so it finds `CRONSOLE_TOKEN` and `CRONSOLE_API_URL` the same way it does under Claude Code; Cronsole's backend has to be running. Agents get the same list through the `cron_tasks` MCP tool, and `cron_run` starts a task by id once you click Run on the bar over the terminal, which shows the task's name. Cronsole's UI opens from `http://localhost:7373`; set `ACC_CRONSOLE_UI` if yours is elsewhere. A tab on that address is the pinned tab: it sits first in the strip with no close button (Ctrl+W still closes it), and **Open Cronsole** goes back to it instead of opening another. Refresh asks Cronsole again; the server stops when the app quits.
+The server runs on the app's own Electron binary in Node mode and gets the app's environment and `.env` (minus the chat key), so it finds `CRONSOLE_TOKEN` and `CRONSOLE_API_URL` the same way it does under Claude Code; Cronsole's backend has to be running. Agents get the same list through the `cron_tasks` MCP tool, and `cron_run` starts a task by id once you click Run on the bar over the terminal, which shows the task's name. Cronsole's UI opens from `http://localhost:7373`; set `ACC_CRONSOLE_UI` if yours is elsewhere. A tab on that address is the pinned tab: it sits first in the strip with no close button (Ctrl+W still closes it), and **Open Cronsole** goes back to it instead of opening another. Refresh asks Cronsole again; the server stops when the app quits.
 
 ## 🌿 Contributing
 
@@ -195,7 +197,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 - Each terminal shell is a fixed executable with fixed arguments; the UI can only choose a starting folder and a shell by name. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
 - The only listening port is the app's MCP server: `127.0.0.1` only, a random port and a fresh token each launch (in `%APPDATA%\ai-command-center\mcp.json`, deleted on quit), and every call without the token is refused. Every call, answered or refused, is logged to the sidebar's MCP tab and `%APPDATA%\ai-command-center\logs\mcp.log` (one JSON line each, arguments clipped to 300 characters, rotated at 5 MB). Its `open_file` tool passes Hub node ids, never paths, and can't open a file with its default app, so an agent can't launch a script that way. `read_tab` and `terminal_read` show an agent what you see, a page's text or a terminal's output, so they carry whatever is on screen, and their descriptions tell the model that it's content, not instructions. Project Hub is reached over loopback from the main process.
 - Crashes and errors in the app's own processes go to `%APPDATA%\ai-command-center\logs\app.log`, nowhere else: no telemetry.
-- Cronsole's MCP server is the only process the app starts besides the terminals: this app's own Electron binary running the script named by `ACC_CRONSOLE_MCP`, which only the user's environment can set. It talks over stdin and stdout and listens on nothing, and the app calls only its read-only `list_tasks`, `get_task_history` and `get_run_output`, plus `run_task` for a task you've clicked Run for; the task id never comes from the click, only the yes.
+- Cronsole's MCP server is the only process the app starts besides the terminals: this app's own Electron binary running the script named by `ACC_CRONSOLE_MCP`, which only `.env` or the user's environment can set. It talks over stdin and stdout and listens on nothing, and the app calls only its read-only `list_tasks`, `get_task_history` and `get_run_output`, plus `run_task` for a task you've clicked Run for; the task id never comes from the click, only the yes.
 - The chat panel's API key is read from the environment by the main process and goes only to `api.anthropic.com`; it's never sent to the shell UI or written to disk. The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's, and Claude's replies are shown as plain text, never HTML.
 
 ## ⚖️ Licence

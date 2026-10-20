@@ -3,7 +3,7 @@
 // its token, so they're logged and terminal_run waits for its click like any other
 // client's. No Electron here; src/main/chat.js holds one conversation and the IPC.
 //
-// The key and model come from the user's environment at runtime. There is no default
+// The key and model come from .env or the environment at runtime. There is no default
 // model: which one to pay for is the user's call.
 
 export const API_URL = 'https://api.anthropic.com/v1/messages';

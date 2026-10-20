@@ -26,7 +26,8 @@ security invariants, which every change has to keep. In short:
   the command and runs it only after the user clicks Run, and the command never
   leaves the main process.
 - **Secrets stay out of the repo and the renderer.** The chat's API key is read from
-  the environment by the main process and sent only to the model's API. The MCP
+  the gitignored `.env` (or the environment) by the main process, kept out of the
+  terminals' and Cronsole's environment, and sent only to the model's API. The MCP
   token lives in `%APPDATA%\ai-command-center\mcp.json` with owner-only permissions
   and is deleted on quit.
 

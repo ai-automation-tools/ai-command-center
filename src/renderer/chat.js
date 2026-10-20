@@ -51,7 +51,7 @@ export async function startChat(api) {
     const info = await api.chat.info();
     $('chat-model').textContent = info.model;
     if (info.missing.length) {
-      line('note', `To chat, set ${info.missing.join(' and ')} as user environment variables, then restart the app. The key stays in the main process and is never saved by the app.`);
+      line('note', `To chat, set ${info.missing.join(' and ')} in the app's .env file (see .env.example), then restart the app. The key stays in the main process and is never saved by the app.`);
     } else if (!info.mcp) {
       line('note', "The app's MCP server didn't start, so the chat has no tools.");
     } else {
