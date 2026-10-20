@@ -3,8 +3,10 @@
 // installs into this app. See docs/decisions/adr-001-electron-shell.md for the licence
 // choice and what's known not to work.
 
+import { dialog } from 'electron';
+import { fileURLToPath } from 'node:url';
 import { ElectronChromeExtensions } from 'electron-chrome-extensions';
-import { installChromeWebStore, updateExtensions } from 'electron-chrome-web-store';
+import { installChromeWebStore, uninstallExtension, updateExtensions } from 'electron-chrome-web-store';
 
 /**
  * @param {{
@@ -39,6 +41,11 @@ export async function setupExtensions({ browseSession, shellSession, window, tab
   });
   tabs.attachExtensions(extensions);
 
+  // After the library's preloads (which the constructor registers), so `chrome` is filled in.
+  const aliasBrowser = fileURLToPath(new URL('../preload/extension-browser.cjs', import.meta.url));
+  browseSession.registerPreloadScript({ id: 'acc-browser-alias-sw', type: 'service-worker', filePath: aliasBrowser });
+  browseSession.registerPreloadScript({ id: 'acc-browser-alias-frame', type: 'frame', filePath: aliasBrowser });
+
   // The shell's <browser-action-list> loads extension icons over crx://.
   ElectronChromeExtensions.handleCRXProtocol(shellSession);
 
@@ -48,6 +55,61 @@ export async function setupExtensions({ browseSession, shellSession, window, tab
   updateExtensions(browseSession).catch((err) => console.error('[extensions] update check failed:', err));
 
   return extensions;
+}
+
+const WEB_STORE = 'https://chromewebstore.google.com';
+
+/**
+ * The app menu's Extensions submenu: a way to the Web Store, then each installed
+ * extension with its options page, store page and Remove. The toolbar's own right-click
+ * menu can't remove one (electron-chrome-extensions shows Remove only in development).
+ * @param {import('electron').Session} browseSession
+ * @param {import('./tabs.js').Tabs} tabs
+ * @param {import('electron').BaseWindow} window
+ * @returns {import('electron').MenuItemConstructorOptions[]}
+ */
+export function extensionsMenu(browseSession, tabs, window) {
+  const installed = browseSession.extensions.getAllExtensions().sort((a, b) => a.name.localeCompare(b.name));
+  return [
+    { label: 'Get extensions…', click: () => tabs.create(WEB_STORE) },
+    { type: 'separator' },
+    ...(installed.length ? installed.map((ext) => {
+      const options = ext.manifest.options_ui?.page || ext.manifest.options_page;
+      return {
+        label: `${ext.name} ${ext.version}`,
+        submenu: [
+          { label: 'Options', enabled: Boolean(options), click: () => tabs.create(`${ext.url}${options}`) },
+          { label: 'Web Store page', click: () => tabs.create(`${WEB_STORE}/detail/${ext.id}`) },
+          { type: 'separator' },
+          { label: 'Remove…', click: () => removeExtension(browseSession, window, ext) },
+        ],
+      };
+    }) : [{ label: 'None installed', enabled: false }]),
+  ];
+}
+
+/**
+ * @param {import('electron').Session} browseSession
+ * @param {import('electron').BaseWindow} window
+ * @param {import('electron').Extension} ext
+ */
+async function removeExtension(browseSession, window, ext) {
+  const { response } = await dialog.showMessageBox(/** @type {any} */ (window), {
+    type: 'question',
+    buttons: ['Remove', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    message: `Remove ${ext.name}?`,
+    detail: 'It is uninstalled from AI Command Center. You can add it again from the Web Store.',
+  });
+  if (response !== 0) return;
+  try {
+    // Deletes it from Extensions/ as well as unloading it, so it doesn't come back at start.
+    await uninstallExtension(ext.id, { session: browseSession });
+  } catch (err) {
+    console.error(`[extensions] removing ${ext.id} failed:`, err);
+    dialog.showErrorBox('Couldn’t remove the extension', err instanceof Error ? err.message : String(err));
+  }
 }
 
 /** @param {import('electron').Session} browseSession */

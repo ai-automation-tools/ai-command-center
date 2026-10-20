@@ -48,7 +48,7 @@ Condensed from [requirements.md](../decisions/requirements.md), which has the re
 |:---|:---|
 | Platform | Windows 11, PowerShell 7 |
 | Network | No listening ports except the MCP server on loopback |
-| Untrusted content | Tabs sandboxed with no preload from this app; IPC refuses any sender but the shell; page permission requests (camera, microphone, location, notifications and the rest) denied by default |
+| Untrusted content | Tabs sandboxed with no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and (with ad blocking on) Ghostery's cosmetic-filter preload, which asks main for the CSS that hides ad slots; IPC refuses any sender but the shell; page permission requests (camera, microphone, location, notifications and the rest) denied by default |
 | Cold start | Window and terminal usable within a few seconds; the Hub tree may take about 12 s on a cold Hub |
 
 ---

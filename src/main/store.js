@@ -53,13 +53,14 @@ export const store = {
     return next;
   },
 
-  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, bookmarkSource: string, tabs: string[], activeTab: number }} */
+  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, adBlock: boolean, bookmarkSource: string, tabs: string[], activeTab: number }} */
   layout() {
     const d = readJson('layout.json', {});
     return {
       sidebarWidth: Number.isFinite(d.sidebarWidth) ? d.sidebarWidth : 300,
       terminalHeight: Number.isFinite(d.terminalHeight) ? d.terminalHeight : 280,
       terminalOpen: d.terminalOpen !== false,
+      adBlock: d.adBlock !== false,
       bookmarkSource: typeof d.bookmarkSource === 'string' ? d.bookmarkSource : '',
       tabs: cleanSavedTabs(d.tabs),
       activeTab: Number.isInteger(d.activeTab) ? d.activeTab : -1,

@@ -14,7 +14,8 @@ import { mcpLog, startMcp } from './mcp.js';
 import { store } from './store.js';
 import { Tabs } from './tabs.js';
 import { Terminals } from './terminal.js';
-import { listExtensions, setupExtensions } from './extensions.js';
+import { extensionsMenu, listExtensions, setupExtensions } from './extensions.js';
+import { loadBlocker } from './adblock.js';
 import { smoke } from './smoke.js';
 import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { toUrl } from '../shared/url.js';
@@ -102,7 +103,8 @@ function on(channel, fn) {
   ipcMain.on(channel, (e, ...args) => { if (fromShell(e)) fn(...args); });
 }
 
-function buildMenu() {
+/** @param {Electron.MenuItemConstructorOptions[]} [extensions] the Extensions submenu, once they're set up */
+function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
   /** @param {string} label @param {string} accelerator @param {string} action */
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => send('shortcut', action) });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
@@ -143,6 +145,7 @@ function buildMenu() {
         { label: 'Shell developer tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => shellView?.webContents.toggleDevTools() },
       ],
     },
+    { label: 'Extensions', submenu: extensions },
   ]));
 }
 
@@ -354,6 +357,34 @@ async function createWindow() {
   } catch (err) {
     console.error('[extensions] setup failed; browsing still works without them:', err);
   }
+
+  /** @type {import('@ghostery/adblocker-electron').ElectronBlocker | null} */
+  let blocker = null;
+  const window = win;
+  /** @returns {Electron.MenuItemConstructorOptions} */
+  const adBlockItem = () => ({
+    label: blocker ? 'Block ads and trackers' : 'Block ads and trackers (loading lists…)',
+    type: 'checkbox',
+    checked: store.layout().adBlock,
+    enabled: blocker !== null,
+    click: (/** @type {Electron.MenuItem} */ mi) => {
+      store.saveLayout({ adBlock: mi.checked });
+      if (mi.checked) blocker?.enableBlockingInSession(browseSession);
+      else blocker?.disableBlockingInSession(browseSession);
+    },
+  });
+  // A tick later: during 'extension-unloaded' the extension is still in the list.
+  const rebuild = () => setImmediate(() => buildMenu([adBlockItem(), { type: 'separator' }, ...extensionsMenu(browseSession, tabs, window)]));
+  rebuild();
+  // Installs from the Web Store and removals change the list.
+  browseSession.extensions.on('extension-loaded', rebuild);
+  browseSession.extensions.on('extension-unloaded', rebuild);
+  // In the background: a first run downloads the lists, and browsing shouldn't wait for that.
+  loadBlocker().then((b) => {
+    blocker = b;
+    if (store.layout().adBlock) b.enableBlockingInSession(browseSession);
+    rebuild();
+  }, (err) => console.error('[adblock] filter lists failed to load; browsing without blocking:', err));
 
   if (process.env.ACC_SMOKE_DIR) smoke(process.env.ACC_SMOKE_DIR, shellView.webContents, tabs, terminals, browseSession);
   await mcpReady;

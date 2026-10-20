@@ -1,5 +1,5 @@
 // Preload for the shell UI only. Exposes a fixed set of calls on window.acc; browser
-// tabs get no preload from this app, so pages on the web never see any of this.
+// tabs get no preload from this app but the extension-API and ad-block ones, so pages on the web never see any of this.
 
 const { contextBridge, ipcRenderer } = require('electron');
 const { injectBrowserAction } = require('electron-chrome-extensions/browser-action');
