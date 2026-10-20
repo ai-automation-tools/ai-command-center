@@ -42,7 +42,7 @@
 A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over every project folder you work in into one Electron window. The sidebar comes from [Project Hub](https://github.com/ai-automation-tools/project-hub), a small local server that already scans your workspaces and reads your browser bookmarks, so this app reuses it rather than rescanning disk. An MCP server and a chat panel let an agent, Claude Code in one of the app's terminals or Claude in the sidebar, drive the whole window: open tabs and files, read what a page or a terminal shows, and run commands you approve with a click.
 
 > [!WARNING]
-> **Extension support is partial.** Chrome Web Store extensions install and their Manifest V3 background workers run, but electron-chrome-extensions covers only part of the `chrome.*` API: offscreen documents, `action.setIcon` with image data and `declarativeNetRequest` are missing, for instance (so MV3 ad blockers such as uBlock Origin Lite install but block nothing), so some features of an extension may not work. LastPass's login and autofill haven't been checked yet. When one doesn't work, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace).
+> **Extension support is partial.** Chrome Web Store extensions install and their Manifest V3 background workers run, but electron-chrome-extensions covers only part of the `chrome.*` API: offscreen documents, `action.setIcon` with image data and `declarativeNetRequest` are missing, for instance (so Web Store ad blockers such as uBlock Origin Lite block nothing; the app's built-in blocker does that job), so some features of an extension may not work. LastPass's login and autofill haven't been checked yet. When one doesn't work, the ↗ button opens the current page in your default browser. Details in [ADR-001](docs/decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace).
 
 > [!TIP]
 > **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
@@ -54,7 +54,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 
 | Area | What you get |
 |:---|:---|
-| **🌐 Browser** | Tabs, address bar (URLs, `D:\` paths, `localhost`, or a search), back/forward/reload, links and pop-ups open as tabs, context menu, open in default browser. A ☆ in the address bar adds the page to Hub's favorites (again to remove). Chrome Web Store installs work in a tab. |
+| **🌐 Browser** | Tabs, address bar (URLs, `D:\` paths, `localhost`, or a search), back/forward/reload, links and pop-ups open as tabs, context menu, open in default browser. A ☆ in the address bar adds the page to Hub's favorites (again to remove). Chrome Web Store installs work in a tab. Ads and trackers blocked by default (EasyList and EasyPrivacy, through Ghostery's engine); **Extensions → Block ads and trackers** turns it off. |
 | **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Web addresses in the output (`http(s)://…`, `localhost:3000`) open as a tab on click. Ctrl+C copies a selection, Ctrl+V pastes; right-click copies a selection or, with none, pastes. |
 | **📁 Files** | Every workspace from Project Hub; a rescan by Hub shows up on its own. Click a file to read it in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing; clicking through files reuses that tab, Ctrl+click opens another. An HTML file opens as the page itself. Hover or right-click for Terminal here, View here, VS Code, Reveal in Explorer, Copy path and Copy Hub id. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
@@ -191,7 +191,7 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 
 ## 🔒 Security model
 
-- Browser tabs are sandboxed, get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and can't navigate to `javascript:`, `data:` or custom protocol URLs. A page gets no permission it asks for (camera, microphone, location, notifications, MIDI, screen capture, clipboard reads, USB, serial, HID) except fullscreen, pointer lock and sanitized clipboard writes; Electron would grant all of them without a handler.
+- Browser tabs are sandboxed, get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and (with ad blocking on) Ghostery's cosmetic-filter preload, which asks main for the CSS that hides ad slots, and can't navigate to `javascript:`, `data:` or custom protocol URLs. A page gets no permission it asks for (camera, microphone, location, notifications, MIDI, screen capture, clipboard reads, USB, serial, HID) except fullscreen, pointer lock and sanitized clipboard writes; Electron would grant all of them without a handler.
 - Every IPC channel checks that the sender is the shell UI.
 - Document pages (`acc://doc/…`) are served to the sandboxed tabs only, run no scripts (a `default-src 'none'` policy), can't be framed, and can't be reached from a web page. Only files in Project Hub's index are served, so a crafted address can't read anything else. A Cronsole run's page (`acc://run/…`) has the same policy, opens only from the sidebar, and shows the run's output as text.
 - Each terminal shell is a fixed executable with fixed arguments; the UI can only choose a starting folder and a shell by name. An agent's `terminal_run` never starts a process: it types one line into a running PowerShell after you click Run, the main process keeps the command (the click only picks the terminal), and newlines, control and invisible characters are refused so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
@@ -205,6 +205,8 @@ Ctrl+L and Ctrl+R stay with PowerShell when the terminal has focus.
 GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 The browser's Chrome extension support comes from [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell), which is available under GPL-3.0 or a paid licence. This project uses the GPL terms, so the app is GPL too: you can use, change and share it, and anything you distribute that's built from it has to ship its source under the same licence. The reasoning is in [ADR-001](docs/decisions/adr-001-electron-shell.md#consequences).
+
+Ad blocking uses [Ghostery's adblocker](https://github.com/ghostery/adblocker) (MPL-2.0, GPL-compatible) with the EasyList and EasyPrivacy filter lists.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

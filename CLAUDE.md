@@ -17,6 +17,7 @@ HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 |:---|:---|
 | Runtime | Electron 44, one `BaseWindow`: a shell `WebContentsView` plus one sandboxed `WebContentsView` per browser tab |
 | Extensions | electron-chrome-extensions 4.9 (GPL-3.0) + electron-chrome-web-store 0.13 |
+| Ad blocking | @ghostery/adblocker-electron 2.20 (MPL-2.0), owns the browse session's `webRequest` `onBeforeRequest`/`onHeadersReceived` |
 | Terminal | node-pty 1.1 (prebuilt N-API binaries, bundled ConPTY) + xterm.js 6 |
 | Code | Plain JavaScript ES modules with JSDoc types. No bundler, no TypeScript build, no framework. The preload is CommonJS. |
 | Tests | `node:test` over the pure helpers in `src/shared/` |
@@ -39,7 +40,7 @@ before anything goes public.
 ## Standards
 
 - **Security invariants.** Don't weaken any of these:
-  - Browser tabs are `sandbox: true`, `contextIsolation: true`, and get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages (`preload/extension-browser.cjs`).
+  - Browser tabs are `sandbox: true`, `contextIsolation: true`, and get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and (with ad blocking on) Ghostery's cosmetic-filter preload, which asks main for the CSS that hides ad slots (`preload/extension-browser.cjs`).
   - Pages get no permission that isn't in `src/shared/permissions.js` (fullscreen, pointer lock, sanitized clipboard writes). Don't add media, location, notifications or devices to that list without an ADR.
   - Every IPC handler in `src/main/main.js` goes through `handle()` / `on()`, which refuse any sender but the shell view.
   - Tabs refuse navigation outside `isAllowedNavigation()` (`src/shared/url.js`).

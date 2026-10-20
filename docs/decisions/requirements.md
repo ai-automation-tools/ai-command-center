@@ -50,7 +50,7 @@ Source: the original build prompt, kept outside this repo. Ranked on 2026-09-29,
 | **Platform** | Windows 11, PowerShell 7, no WSL. |
 | **Network exposure** | Nothing listens on a port. Hub is reached over loopback from the main process; the MCP server in Phase 2 binds `127.0.0.1` only and needs a token. |
 | **Secrets** | None in the repo. Extensions and site data live in `%APPDATA%\ai-command-center`. |
-| **Untrusted pages** | Browser tabs are sandboxed, get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and every IPC channel refuses any sender but the shell. |
+| **Untrusted pages** | Browser tabs are sandboxed, get no preload from this app but the extension-API ones, which act only on `chrome-extension://` pages, and (with ad blocking on) Ghostery's cosmetic-filter preload, which asks main for the CSS that hides ad slots, and every IPC channel refuses any sender but the shell. |
 | **Cold start** | Window and terminal usable within a few seconds; the Hub tree may take ~12 s on a cold Hub scan. |
 
 ---

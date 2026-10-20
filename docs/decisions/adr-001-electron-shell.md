@@ -76,6 +76,8 @@ The diagnosis above was wrong about the cause. Probing on Electron 44.7 with a t
 
 **Ad blockers (checked 2026-10-20):** uBlock Origin Lite 2026.1018 installs and runs, but `pagead2.googlesyndication.com`, `securepubads.g.doubleclick.net` and `google-analytics.com` all still load from a tab. MV3 blockers filter through `declarativeNetRequest`, which Electron doesn't implement, so no MV3 ad blocker from the Web Store will block anything here. Blocking needs to happen in the app (`session.webRequest`), with the caveat in the library's README that Electron's `webRequest` hooks stop `chrome.webRequest` listeners from firing.
 
+**Decided 2026-10-20 (Mike): built-in blocking with `@ghostery/adblocker-electron`** (MPL-2.0, GPL-compatible), on by default with a menu toggle, in `src/main/adblock.js`. It owns the browse session's `onBeforeRequest` and `onHeadersReceived`; Electron allows one listener per event, so nothing else in the app may register them. Checked with LastPass and Rakuten installed: both workers still start, and the three ad and analytics URLs above fail while ordinary requests load.
+
 Keep the profile path short when spiking with a scratch profile: past Windows' 260-character limit, IndexedDB fails to open, and LastPass reports "No available storage method found".
 
 ---
