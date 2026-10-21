@@ -81,8 +81,9 @@ export function limitArg(value, fallback) {
 }
 
 /**
- * Address-bar text for an agent's new tab, as a URL. Only web pages and local files:
- * extension pages and about: pages stay the user's to open.
+ * Address-bar text for an agent's new tab, as a URL. Web pages only: a local file would
+ * let an agent read any file on disk through read_tab, so files reach an agent through
+ * Hub's index (open_file) instead; extension and about: pages stay the user's to open.
  * @param {unknown} value
  */
 export function tabUrlArg(value) {
@@ -90,7 +91,7 @@ export function tabUrlArg(value) {
     throw new Error(`url must be a non-empty string of at most ${MAX_URL} characters`);
   }
   const url = toUrl(value);
-  if (!/^(https?|file):/i.test(url)) throw new Error('open_tab opens http, https and file URLs only');
+  if (!/^https?:/i.test(url)) throw new Error('open_tab opens http and https URLs only; use open_file for files in Project Hub');
   return url;
 }
 
@@ -228,7 +229,7 @@ export function readOnlyTools(src) {
 export function navigationTools(src) {
   return new Map([
     ['open_tab', {
-      description: 'Open a browser tab in AI Command Center. Takes what the address bar takes: a URL, a Windows path, localhost:<port>, a host name, or words to search for. http, https and file pages only.',
+      description: 'Open a browser tab in AI Command Center. Takes what the address bar takes: a URL, localhost:<port>, a host name, or words to search for. http and https pages only; for a file in Project Hub use open_file.',
       annotations: { ...OPENS, openWorldHint: true },
       inputSchema: {
         type: 'object',

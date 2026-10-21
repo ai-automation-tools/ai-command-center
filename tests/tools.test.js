@@ -115,20 +115,21 @@ test('tools/list on the navigation tools offers open_tab and open_file', async (
 test('open_tab takes address-bar text, activates unless background, and returns the tab id', async () => {
   const { t, calls } = nav();
   assert.deepEqual((await call(t, 'open_tab', { url: 'example.com' })).structuredContent, { id: 7, url: 'https://example.com' });
-  await call(t, 'open_tab', { url: 'D:\\work\\app\\index.html', background: true });
+  await call(t, 'open_tab', { url: 'http://localhost:3000', background: true });
   await call(t, 'open_tab', { url: 'localhost:3000' });
   await call(t, 'open_tab', { url: 'electron docs' });
   assert.deepEqual(calls, [
     ['tab', 'https://example.com', true],
-    ['tab', 'file:///D:/work/app/index.html', false],
+    ['tab', 'http://localhost:3000', false],
     ['tab', 'http://localhost:3000', true],
     ['tab', 'https://www.google.com/search?q=electron%20docs', true],
   ]);
 });
 
-test('open_tab refuses extension and about: pages, blank or huge input, and a bad background', async () => {
+test('open_tab refuses local files, extension and about: pages, blank or huge input, and a bad background', async () => {
   const { t, calls } = nav();
   for (const args of [undefined, {}, { url: '' }, { url: '   ' }, { url: 42 }, { url: 'x'.repeat(8193) },
+    { url: 'file:///C:/fixture.txt' }, { url: 'D:\\work\\app\\.env' }, { url: 'C:/Users/me/notes.txt' }, { url: 'FILE:///c:/x' },
     { url: 'about:blank' }, { url: 'chrome-extension://abc/options.html' }, { url: 'https://x.dev', background: 'yes' }]) {
     assert.equal((await call(t, 'open_tab', args)).isError, true, JSON.stringify(args)?.slice(0, 80));
   }

@@ -19,18 +19,21 @@ const MAX_CLOSED = 10;
  * @param {(url: string) => void} openTab
  */
 function guardPage(wc, openTab) {
+  // A page that hasn't committed a URL yet (a pop-up from window.open('')) still asks as
+  // a page: an empty `from` would read as the app and let it reach file: or acc://.
+  const from = () => wc.getURL() || 'about:blank';
   wc.setWindowOpenHandler(({ url, disposition }) => {
-    if (!isAllowedNavigation(url, wc.getURL())) return { action: 'deny' };
+    if (!isAllowedNavigation(url, from())) return { action: 'deny' };
     if (disposition === 'new-window') return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true } };
     openTab(url);
     return { action: 'deny' };
   });
   wc.on('did-create-window', (win) => guardPage(win.webContents, openTab));
   wc.on('will-navigate', (e, target) => {
-    if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
+    if (!isAllowedNavigation(target, from())) e.preventDefault();
   });
   wc.on('will-redirect', (e, target) => {
-    if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
+    if (!isAllowedNavigation(target, from())) e.preventDefault();
   });
 }
 
