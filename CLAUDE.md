@@ -57,7 +57,7 @@ before anything goes public.
 - **Nothing personal in tracked files.** Per-machine values (the Hub URL, the quick links) live in `%APPDATA%\ai-command-center\settings.json`, read with neutral defaults by `src/shared/settings.js`. Tests use `example.com` hosts.
 - **Logic goes in `src/shared/`, with a test.** Main and renderer code stays thin enough to be covered by the smoke run.
 - **Keyboard.** Ctrl+L and Ctrl+R belong to PowerShell when the terminal has focus. Don't add them to the app menu. Everything else a browser expects (Ctrl+T/W/F, Ctrl+Tab, Ctrl+1 to 9, zoom) is in the menu.
-- **Docs move with code.** Update `README.md`, `src/README.md`, `docs/` and this file when a change makes them untrue. Every ticked roadmap item gets a `docs/CHANGELOG.md` line in the same commit, tagged with its phase in italics.
+- **Docs move with code.** Update `docs/guide/`, `README.md`, `src/README.md`, the rest of `docs/` and this file when a change makes them untrue. Keep the root README short: one-line descriptions, commands and tables; detail goes in `docs/guide/`. Every ticked roadmap item gets a `docs/CHANGELOG.md` line in the same commit, tagged with its phase in italics.
 - **Commits:** plain imperative sentences, no Conventional Commit prefixes.
 - **Licence:** GPL-3.0-or-later. A new runtime dependency must have a GPL-3.0-compatible licence (MIT, BSD, Apache-2.0, LGPL, GPL); say which in the PR body.
 - **Never commit** `.env*`, `node_modules/`, `.smoke/`, or any absolute local path (a user profile or workspace drive path). The repo is public, so anything committed is published.
