@@ -8,7 +8,7 @@
 
 import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { describeCall, refusedCall } from './mcplog.js';
+import { describeCall, expectedCall, refusedCall } from './mcplog.js';
 
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 const MAX_BODY = 1024 * 1024;
@@ -129,12 +129,23 @@ export function createMcpServer({ token, tools, version, onCall = () => {} }) {
     // on any other site is refused even before the token is checked.
     if (req.headers.origin !== undefined && !isLoopbackOrigin(req.headers.origin)) return refuse(403, 'Forbidden origin');
     if (!bearerMatches(req.headers.authorization, token)) return refuse(401, 'Missing or wrong token');
+    // Past the token, two refusals are the transport spec's way of steering a client, and
+    // are logged as part of the handshake rather than as failures.
+    /** @param {number} status @param {string} reason @param {string} note */
+    const steer = (status, reason, note) => {
+      onCall(expectedCall(status, note));
+      reply(status, { error: reason });
+    };
     const asked = req.headers['mcp-protocol-version'];
-    if (asked !== undefined && !PROTOCOL_VERSIONS.includes(String(asked))) return refuse(400, 'Unsupported MCP-Protocol-Version');
+    if (asked !== undefined && !PROTOCOL_VERSIONS.includes(String(asked))) {
+      return steer(400, 'Unsupported MCP-Protocol-Version', `Asked for MCP ${String(asked).slice(0, 40)}; told to fall back to ${PROTOCOL_VERSIONS[0]} or older`);
+    }
     if (new URL(req.url || '/', 'http://x').pathname !== '/mcp') return refuse(404, 'Not found');
     // No server-to-client stream (GET) and no sessions to end (DELETE).
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST');
+      if (req.method === 'GET') return steer(405, 'Method not allowed', 'Asked for an event stream; there is none, so replies come back over POST');
+      if (req.method === 'DELETE') return steer(405, 'Method not allowed', 'Asked to end a session; there are none to end');
       return refuse(405, 'Method not allowed');
     }
 

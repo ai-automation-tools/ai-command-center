@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMcpServer } from '../src/shared/mcp.js';
-import { describeCall, logLine, pushEntry, refusedCall } from '../src/shared/mcplog.js';
+import { describeCall, expectedCall, logLine, pushEntry, refusedCall } from '../src/shared/mcplog.js';
 
 const call = (/** @type {string} */ name, /** @type {unknown} */ args) => ({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
 
@@ -68,6 +68,20 @@ test('mcp.log on disk gets terminal_run commands as a length; the panel entry ke
   assert.equal(line.includes('git push'), false);
   assert.equal(JSON.parse(line).args, '{"command":"[48 chars]","cwd":"D:/w"}');
   assert.equal('argsAtRest' in JSON.parse(line), false);
+});
+
+test('initialize records the client by name and version, stripped and clipped', () => {
+  const init = (/** @type {unknown} */ clientInfo) => describeCall({ msg: { jsonrpc: '2.0', id: 0, method: 'initialize', params: { clientInfo } }, out: { result: {} }, ms: 0 }).client;
+  assert.equal(init({ name: 'claude-code', version: '2.1.307' }), 'claude-code 2.1.307');
+  assert.equal(init({ name: 'codex' }), 'codex');
+  assert.equal(init({ name: 'evil\u001b[31m\nname', version: 7 }), 'evil[31mname');
+  assert.equal(init({ name: 'x'.repeat(200) })?.length, 60);
+  assert.equal(init(undefined), undefined);
+  assert.equal(init({ name: '' }), undefined);
+});
+
+test('expectedCall is a handshake note, not a failure', () => {
+  assert.deepEqual(expectedCall(405, 'no stream', 3), { at: 3, method: '(handshake)', ok: true, ms: 0, status: 405, note: 'no stream' });
 });
 
 test('query strings and fragments are cut from logged URLs and errors', () => {

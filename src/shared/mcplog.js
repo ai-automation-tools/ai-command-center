@@ -13,12 +13,16 @@ const AT_REST_ONLY_LENGTH = { terminal_run: ['command'] };
 /**
  * @typedef {{
  *   at: number, method: string, tool?: string, args?: string, argsAtRest?: string,
- *   ok: boolean, ms: number, status?: number, error?: string,
- * }} LogEntry argsAtRest: what mcp.log gets in place of args, when that differs
+ *   ok: boolean, ms: number, status?: number, error?: string, client?: string, note?: string,
+ * }} LogEntry argsAtRest: what mcp.log gets in place of args, when that differs;
+ *   client: who connected, from initialize's clientInfo; note: an expected non-200 answer
  */
 
 /** @param {string} s @param {number} max */
 const clip = (s, max) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+
+/** A client's own words, without control characters, clipped. @param {unknown} v @param {number} max */
+const plain = (v, max) => (typeof v === 'string' ? clip(v.replace(/[\u0000-\u001f\u007f-\u009f]/g, '').trim(), max) : '');
 
 /**
  * Web addresses with their query string and fragment cut, where tokens and session ids
@@ -39,6 +43,12 @@ export function describeCall({ msg, out, ms, at = Date.now() }) {
   const method = typeof msg?.method === 'string' ? clip(msg.method, 100) : '(invalid)';
   /** @type {LogEntry} */
   const entry = { at, method, ok: true, ms };
+  if (method === 'initialize') {
+    // Self-reported, so it names the client, it doesn't prove who it is.
+    const info = msg.params?.clientInfo;
+    const name = plain(info?.name, 60);
+    if (name) entry.client = [name, plain(info.version, 30)].filter(Boolean).join(' ');
+  }
   if (method === 'tools/call') {
     if (typeof msg.params?.name === 'string') entry.tool = clip(msg.params.name, 100);
     const args = msg.params?.arguments;
@@ -68,6 +78,18 @@ export function describeCall({ msg, out, ms, at = Date.now() }) {
  */
 export function refusedCall(status, reason, at = Date.now()) {
   return { at, method: '(refused)', ok: false, ms: 0, status, error: reason };
+}
+
+/**
+ * A request answered with an error status that's part of a normal connection, not a
+ * failure: Claude Code first probes with a newer protocol version (400 tells it to fall
+ * back) and asks for an event stream with GET (405 tells it there is none).
+ * @param {number} status
+ * @param {string} note
+ * @returns {LogEntry}
+ */
+export function expectedCall(status, note, at = Date.now()) {
+  return { at, method: '(handshake)', ok: true, ms: 0, status, note: plain(note, MAX_ERROR) };
 }
 
 /**
