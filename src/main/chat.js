@@ -4,7 +4,7 @@
 // The conversation is saved after every turn, to the active workspace's file
 // (chat.json for Default), and read back at start and on a workspace switch.
 
-import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript } from '../shared/chat.js';
+import { ATTACH_TOOLS, chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript, trayItem } from '../shared/chat.js';
 import { env } from './env.js';
 
 /**
@@ -23,6 +23,9 @@ export function chat({ mcp, send, load, save, clear }) {
   let busy = false;
   /** The running turn's Stop. @type {AbortController | null} */
   let stopper = null;
+  /** The context tray: attachments read but not sent yet, by id. What's here is what goes. @type {Map<number, { kind: string, text: string, isError: false }>} */
+  const tray = new Map();
+  let trayId = 0;
 
   /** Saving is best-effort: a full disk shouldn't turn an answered message into an error. */
   const persist = () => {
@@ -40,15 +43,36 @@ export function chat({ mcp, send, load, save, clear }) {
       return { model, missing, mcp: Boolean(mcp()), history: transcript(messages) };
     },
 
-    /** @param {unknown} input @param {unknown} [attach] 'page' and/or 'terminal', read through read_tab and terminal_read */
-    async send(input, attach) {
+    /**
+     * + page or + terminal: read it now, through read_tab or terminal_read (logged like
+     * any MCP call), and keep the snapshot for the next message. A second read of the
+     * same kind replaces the first. Returns what the tray shows, the exact text included.
+     * @param {unknown} kind
+     */
+    async attach(kind) {
+      const [k] = chatAttach([kind]);
+      if (!k) throw new Error('Attachments are page and terminal only.');
+      const server = mcp();
+      if (!server) throw new Error("The app's MCP server isn't running, so nothing can be attached.");
+      const out = await mcpClient(server.url, server.token).call(ATTACH_TOOLS[k], {});
+      if (out.isError) throw new Error(`Couldn't attach the ${k}: ${out.text}`);
+      for (const [id, t] of tray) if (t.kind === k) tray.delete(id);
+      const id = ++trayId;
+      tray.set(id, { kind: k, text: out.text, isError: false });
+      return { id, ...trayItem(k, out.text) };
+    },
+
+    /** @param {unknown} input @param {unknown} [ids] the tray rows still showing, in order */
+    async send(input, ids = []) {
       const text = chatText(input);
-      const kinds = chatAttach(attach);
+      if (!Array.isArray(ids) || ids.some((id) => !tray.has(id))) throw new Error('An attachment is no longer in the tray; add it again.');
       const { apiKey, model, missing } = chatConfig(env);
       if (missing.length) throw new Error(`Set ${missing.join(' and ')} in .env, then restart the app.`);
       const server = mcp();
       if (!server) throw new Error("The app's MCP server isn't running, so the chat has no tools.");
       if (busy) throw new Error('Wait for the answer to the last message.');
+      const attached = [...new Set(ids)].map((id) => /** @type {{ kind: string, text: string, isError: false }} */ (tray.get(id)));
+      tray.clear();
       busy = true;
       const ctrl = new AbortController();
       stopper = ctrl;
@@ -57,7 +81,7 @@ export function chat({ mcp, send, load, save, clear }) {
         await runTurn({
           messages,
           text,
-          attach: kinds,
+          attached,
           model,
           tools: await client.list(ctrl.signal),
           post: messagesApi(apiKey),
@@ -88,11 +112,13 @@ export function chat({ mcp, send, load, save, clear }) {
     reload() {
       if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
       messages = load();
+      tray.clear();
     },
 
     reset() {
       if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
       messages = [];
+      tray.clear();
       clear();
     },
   };

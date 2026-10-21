@@ -221,14 +221,26 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       s.dispatchEvent(new Event('input'));
       await new Promise((r) => setTimeout(r, 300));
       document.querySelector('.side-tabs [data-panel="chat"]').click();
-      const page = document.getElementById('chat-attach-page');
-      page.click();
-      const attach = page.getAttribute('aria-pressed');
-      page.click();
-      return { info: await window.acc.chat.info(), attach, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
+      // + page reads the active tab into the context tray; the row says what it is and
+      // holds the exact text that would go; ✕ takes it out.
+      const tray = document.getElementById('chat-tray');
+      document.getElementById('chat-attach-page').click();
+      for (let i = 0; i < 50 && tray.hidden; i++) await new Promise((r) => setTimeout(r, 100));
+      const row = tray.querySelector('.tray-item');
+      const shownRow = row && {
+        label: row.querySelector('.tray-label').textContent,
+        detail: row.querySelector('.tray-detail').textContent,
+        exact: row.querySelector('pre').textContent.slice(0, 80),
+        dest: document.getElementById('chat-tray-dest').textContent,
+      };
+      row?.querySelector('.tray-remove').click();
+      return { info: await window.acc.chat.info(), shownRow, removed: tray.hidden, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
-    check('the Chat tab opens, toggles + page, and never gets the key', chatPanel.attach === 'true' && Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
+    check('the Chat tab opens and never gets the key', Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
+    const tr = chatPanel.shownRow;
+    check('+ page puts the tab in the context tray with its exact text and destination, and ✕ removes it',
+      Boolean(tr && tr.label.startsWith('Page: ') && /characters/.test(tr.detail) && tr.exact.startsWith('{') && /api\.anthropic\.com/.test(tr.dest) && chatPanel.removed), tr);
     // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set):
     // the first task with recorded runs unfolds them and its newest opens as an acc://run
     // page; then Open Cronsole twice: one pinned tab, first in the strip, reused.

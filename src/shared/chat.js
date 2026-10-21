@@ -92,6 +92,30 @@ export function chatAttach(value) {
 }
 
 /**
+ * How the context tray shows an attachment before it's sent: what it is, where it came
+ * from, how big it is, and the exact text that will go (the tool's JSON, unchanged).
+ * @param {keyof typeof ATTACH_TOOLS} kind
+ * @param {string} text what read_tab or terminal_read returned
+ */
+export function trayItem(kind, text) {
+  /** @type {any} */
+  let o = {};
+  try {
+    o = JSON.parse(text) ?? {};
+  } catch { /* shown as text */ }
+  const body = typeof o.text === 'string' ? o.text : text;
+  if (kind === 'page') {
+    const title = typeof o.title === 'string' && o.title.trim() ? o.title.trim() : 'Untitled page';
+    const url = typeof o.url === 'string' ? o.url : '';
+    const size = `${body.length.toLocaleString('en')} characters${o.truncated === true ? ', cut to fit' : ''}`;
+    return { kind, label: `Page: ${title}`, detail: [url, size].filter(Boolean).join(' · '), text };
+  }
+  const lines = body ? body.split('\n').length : 0;
+  const which = Number.isInteger(o.terminal) ? `Terminal ${o.terminal}` : 'Terminal';
+  return { kind, label: which, detail: `last ${lines} line${lines === 1 ? '' : 's'}`, text };
+}
+
+/**
  * The user's text with each attachment above it in an <attached …> block, or a note
  * that it couldn't be read, so Claude can say so rather than guess.
  * @param {string} text
@@ -374,10 +398,12 @@ export function transcript(messages) {
  *   callTool: (name: string, input: unknown, signal?: AbortSignal) => Promise<ToolOutcome>,
  *   onEvent?: (e: ChatEvent) => void,
  *   maxSteps?: number,
- *   attach?: (keyof typeof ATTACH_TOOLS)[],
+ *   attached?: ({ kind: string } & ToolOutcome)[],
  *   budget?: number,
  *   signal?: AbortSignal,
- * }} opts signal: the user's Stop; the turn rejects, and the conversation stays valid to send on
+ * }} opts attached: the context tray's snapshots, read when they were added and sent as
+ * they are, so what the tray showed is what goes. signal: the user's Stop; the turn rejects, and the
+ * conversation stays valid to send on
  */
 export async function runTurn(opts) {
   try {
@@ -405,7 +431,7 @@ export function closeToolUses(messages) {
 }
 
 /** @param {Parameters<typeof runTurn>[0]} opts */
-async function turn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attach = [], budget = TOKEN_BUDGET, signal }) {
+async function turn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attached = [], budget = TOKEN_BUDGET, signal }) {
   /** A tool call shown in the panel like any other. @param {string} name @param {unknown} input */
   const use = async (name, input) => {
     onEvent({ type: 'tool', name, input });
@@ -417,10 +443,7 @@ async function turn({ messages, text, model, tools, post, callTool, onEvent = ()
     onEvent({ type: 'result', name, ok: !out.isError, text: out.text.slice(0, SHOWN_RESULT) });
     return out;
   };
-  /** @type {({ kind: string } & ToolOutcome)[]} */
-  const parts = [];
-  for (const kind of attach) parts.push({ kind, ...(await use(ATTACH_TOOLS[kind], {})) });
-  addUserText(messages, withAttachments(text, parts));
+  addUserText(messages, withAttachments(text, attached));
   const apiTools = toApiTools(tools);
   for (let step = 0; step < maxSteps; step++) {
     signal?.throwIfAborted();

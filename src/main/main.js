@@ -348,7 +348,8 @@ async function createWindow() {
     clear: () => store.clearChat(spaces.active),
   });
   handle('chat:info', () => conversation.info());
-  handle('chat:send', (text, attach) => conversation.send(text, attach));
+  handle('chat:attach', (kind) => conversation.attach(kind));
+  handle('chat:send', (text, ids) => conversation.send(text, ids));
   handle('chat:reset', () => conversation.reset());
   handle('chat:stop', () => conversation.stop());
 
