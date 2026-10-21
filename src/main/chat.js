@@ -1,7 +1,8 @@
 // The chat panel's one conversation, held in the main process so the API key never
 // reaches the shell UI. The turn logic is in src/shared/chat.js; tools go through the
 // app's MCP server, so every call the chat makes is logged like any other client's.
-// The conversation is saved to chat.json after every turn and read back at start.
+// The conversation is saved after every turn, to the active workspace's file
+// (chat.json for Default), and read back at start and on a workspace switch.
 
 import { chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript } from '../shared/chat.js';
 import { env } from './env.js';
@@ -77,6 +78,16 @@ export function chat({ mcp, send, load, save, clear }) {
     /** The Stop button: aborts the model request and any tool call, which withdraws a pending confirm bar. */
     stop() {
       stopper?.abort();
+    },
+
+    get busy() {
+      return busy;
+    },
+
+    /** Load the conversation again, after the workspace changed. */
+    reload() {
+      if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
+      messages = load();
     },
 
     reset() {

@@ -65,6 +65,7 @@ const SHELLS = [
 ];
 
 const CRONSOLE_UI = 'https://cronsole-demo.ai-automation-tools.dev/';
+const DEMO_SPACE = { active: 'default', list: [{ id: 'default', name: 'Default', folder: '', hubId: '' }], folder: '', terminals: [], live: false };
 
 /** @param {number} now */
 const tasks = (now) => [
@@ -331,7 +332,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
         terms.set(id, { line: '', prompt });
         out(id, `\x1b[90m${shell.label} · demo session: nothing runs, a few commands answer. Try npm test.\x1b[0m\r\n\r\n${prompt}`);
         addRecent({ type: 'terminal', target: cwd, label: cwd });
-        return { id, cwd, shell: shell.label, powershell: shell.powershell };
+        return { id, cwd, shell: shell.label, powershell: shell.powershell, ws: 'default' };
       },
       kill: async (/** @type {number} */ id) => { terms.delete(id); },
       write: (/** @type {number} */ id, /** @type {string} */ data) => type(id, data),
@@ -389,6 +390,15 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       },
       reset: async () => {},
       onEvent: listen('chat'),
+    },
+
+    // One workspace: the demo has no folders to add.
+    workspace: {
+      info: async () => DEMO_SPACE,
+      switch: async () => DEMO_SPACE,
+      add: async () => { notify('Workspaces open real folders; that needs the desktop app.'); return DEMO_SPACE; },
+      remove: async () => DEMO_SPACE,
+      onChanged: listen('workspace'),
     },
 
     cronsole: {

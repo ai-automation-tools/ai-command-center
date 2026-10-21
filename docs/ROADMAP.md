@@ -106,7 +106,7 @@ From a project audit on 2026-10-20 (the report stays outside the repo). These co
 
 Selecting a project should set the folder, terminals, tabs and conversation together, rather than adding more sidebar panels.
 
-- [ ] Named workspaces: a workspace is a Hub root plus its open tabs, terminal folders and conversation, saved in `workspaces.json` with a schema version. Switching restores them and never re-runs a command
+- [x] Named workspaces: a workspace is a Hub root plus its open tabs, terminal folders and conversation, saved in `workspaces.json` with a schema version. Switching restores them and never re-runs a command — 2026-10-20; Files → right-click a folder → Open as workspace, switched from the name at the top of the sidebar. Tabs close and reopen; terminals stay alive, hidden, and saved folders open as fresh shells. One conversation per workspace (Default keeps `chat.json`). `src/shared/workspaces.js`, 10 tests; `npm run smoke` does a round trip
 - [ ] Command palette (Ctrl+K): actions, workspaces, files, tabs and terminals from one box
 - [ ] Context tray: before a message goes, show exactly what's attached (page text, terminal lines) and where it's going, with a remove ✕ on each
 - [ ] Connections view: Hub, Cronsole, each shell, the chat model and the MCP server, each with its state, a Retry and what to set when it's missing

@@ -158,6 +158,13 @@ export class Tabs {
     this.send('tab:activated', id);
   }
 
+  /** Close every tab without adding them to Reopen closed tab: a workspace switch. */
+  closeAll() {
+    const n = this.closed.length;
+    for (const id of [...this.tabs.keys()]) this.close(id);
+    this.closed.length = n;
+  }
+
   /** @param {number} id */
   close(id) {
     const tab = this.tabs.get(id);

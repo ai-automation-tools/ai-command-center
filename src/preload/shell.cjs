@@ -89,6 +89,14 @@ contextBridge.exposeInMainWorld('acc', {
     onEvent: listen('chat:event'),
   },
 
+  workspace: {
+    info: invoke('workspace:info'),
+    switch: invoke('workspace:switch'),
+    add: invoke('workspace:add'),
+    remove: invoke('workspace:remove'),
+    onChanged: listen('workspace:changed'),
+  },
+
   cronsole: {
     info: invoke('cronsole:info'),
     tasks: invoke('cronsole:tasks'),

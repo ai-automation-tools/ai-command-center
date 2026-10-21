@@ -39,6 +39,8 @@ export class Sidebar {
     this.viewDoc = viewDoc;
     /** @type {{ base: string, home: string, tree: HubNode[] } | null} */
     this.scan = null;
+    /** The workspace's Hub folder id the Files tree starts at; '' for the whole tree. */
+    this.root = '';
     /** @type {ReturnType<typeof flatten>} */
     this.fileIndex = [];
     /** @type {ReturnType<typeof flattenBookmarks>} */
@@ -109,6 +111,20 @@ export class Sidebar {
     this.el.status.title = `Project Hub: ${h.ok ? 'ready' : h.state}`;
   }
 
+  /** The Files tree from the last scan, from the workspace's folder down when it has one. */
+  renderFiles() {
+    if (!this.scan) return;
+    const all = flatten(this.scan.tree);
+    const top = this.root ? all.find((e) => e.node.id === this.root)?.node : undefined;
+    const nodes = top ? top.children || [] : this.scan.tree;
+    // Search covers what the tree shows.
+    this.fileIndex = top ? flatten(nodes) : all;
+    this.el.files.innerHTML = '';
+    const list = document.createElement('div');
+    for (const node of nodes) list.append(this.fileRow(node, 0));
+    this.el.files.append(list);
+  }
+
   /** @param {boolean} [fresh] */
   async loadFiles(fresh = false) {
     // A warm rescan (a change event) re-renders in place; only an empty panel gets the
@@ -118,11 +134,7 @@ export class Sidebar {
     }
     try {
       this.scan = await this.api.hub.scan(fresh);
-      this.fileIndex = flatten(this.scan.tree);
-      this.el.files.innerHTML = '';
-      const list = document.createElement('div');
-      for (const node of this.scan.tree) list.append(this.fileRow(node, 0));
-      this.el.files.append(list);
+      this.renderFiles();
     } catch (err) {
       this.el.files.innerHTML = '';
       this.el.files.append(note(`${errText(err)}\n\nStart Project Hub (${PROJECT_HUB_REPO}), or point settings.json or ACC_HUB_URL at it, then press Retry.`, true));
@@ -217,8 +229,27 @@ export class Sidebar {
       const dir = terminalDir(node, this.scan);
       if (dir) this.openTerminal(dir);
     }
+    if (action === 'workspace' && path) this.addWorkspace(node, path);
     if (action === 'copy-path' && path) copy(path.replaceAll('/', '\\'));
     if (action === 'copy-id') copy(node.id);
+  }
+
+  /** @param {HubNode} node @param {string} path */
+  async addWorkspace(node, path) {
+    try {
+      await this.api.workspace.add({ folder: path.replaceAll('/', '\\'), name: node.name, hubId: node.id });
+    } catch (err) {
+      toast(errText(err));
+    }
+  }
+
+  /**
+   * Scope the Files tree to a workspace's Hub folder; '' shows everything.
+   * @param {string} hubId
+   */
+  setRoot(hubId) {
+    this.root = hubId;
+    if (this.scan) this.renderFiles();
   }
 
   /** @param {HubNode} node @param {'code' | 'reveal'} how */

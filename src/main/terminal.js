@@ -28,7 +28,7 @@ export class Terminals {
     /** @type {Map<number, import('node-pty').IPty>} */
     this.sessions = new Map();
     /** What list_terminals reports; kept after exit until the UI closes the tab. */
-    /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean }>} */
+    /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean, ws: string }>} */
     this.meta = new Map();
     /** Raw pty output per session, newest OUTPUT_MAX_CHARS, for terminal_read. */
     /** @type {Map<number, string>} */
@@ -49,8 +49,8 @@ export class Terminals {
   }
 
   /**
-   * @param {{ cwd?: string, cols?: number, rows?: number, shell?: string }} opts
-   * @returns {{ id: number, cwd: string, shell: string, profile: string, powershell: boolean }}
+   * @param {{ cwd?: string, cols?: number, rows?: number, shell?: string, ws?: string }} opts ws: the workspace it opens in
+   * @returns {{ id: number, cwd: string, shell: string, profile: string, powershell: boolean, ws: string }}
    */
   create(opts = {}) {
     const cwd = safeCwd(opts.cwd);
@@ -78,7 +78,7 @@ export class Terminals {
       this.send('term:exit', id, exitCode);
     });
     this.sessions.set(id, p);
-    const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell };
+    const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell, ws: opts.ws || '' };
     this.meta.set(id, { ...info, exited: false });
     this.output.set(id, '');
     return info;
@@ -104,9 +104,18 @@ export class Terminals {
     return this.meta.get(id);
   }
 
-  /** Where terminal_run opens by default: the folder the active terminal started in, else home. */
-  defaultFolder() {
-    return (this.activeId !== null && this.meta.get(this.activeId)?.cwd) || os.homedir();
+  /**
+   * Where terminal_run opens by default: the folder the active terminal started in, else
+   * the workspace's folder, else home.
+   * @param {string} [fallback]
+   */
+  defaultFolder(fallback) {
+    return (this.activeId !== null && this.meta.get(this.activeId)?.cwd) || fallback || os.homedir();
+  }
+
+  /** The starting folders of a workspace's running terminals, oldest first. @param {string} ws */
+  folders(ws) {
+    return [...this.meta.values()].filter((m) => m.ws === ws && !m.exited).map((m) => m.cwd);
   }
 
   /** @param {number} id @param {string} data */

@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { cleanMessages } from '../shared/chat.js';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
-import { cleanSavedTabs } from '../shared/session.js';
 import { settingsFrom } from '../shared/settings.js';
+import { chatFileName, cleanWorkspaces } from '../shared/workspaces.js';
 import { env } from './env.js';
 
 /** @param {string} name */
@@ -53,7 +53,7 @@ export const store = {
     return next;
   },
 
-  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, adBlock: boolean, bookmarkSource: string, tabs: string[], activeTab: number }} */
+  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, adBlock: boolean, bookmarkSource: string }} */
   layout() {
     const d = readJson('layout.json', {});
     return {
@@ -62,8 +62,6 @@ export const store = {
       terminalOpen: d.terminalOpen !== false,
       adBlock: d.adBlock !== false,
       bookmarkSource: typeof d.bookmarkSource === 'string' ? d.bookmarkSource : '',
-      tabs: cleanSavedTabs(d.tabs),
-      activeTab: Number.isInteger(d.activeTab) ? d.activeTab : -1,
     };
   },
 
@@ -72,18 +70,29 @@ export const store = {
     writeJson('layout.json', { ...store.layout(), ...patch });
   },
 
-  /** chat.json: the chat panel's last conversation, attached page and terminal text included. Empty if the file is missing or malformed. */
-  chat() {
-    return cleanMessages(readJson('chat.json', []));
+  /** workspaces.json; before it exists, a Default workspace holding the tabs layout.json saved. */
+  workspaces() {
+    const d = readJson('layout.json', {});
+    return cleanWorkspaces(readJson('workspaces.json', null), { tabs: d.tabs, activeTab: d.activeTab });
   },
 
-  /** @param {import('../shared/chat.js').Message[]} messages */
-  saveChat(messages) {
-    writeJson('chat.json', messages);
+  /** @param {import('../shared/workspaces.js').Workspaces} state */
+  saveWorkspaces(state) {
+    writeJson('workspaces.json', state);
   },
 
-  /** Clear: the file goes, not just its contents. */
-  clearChat() {
-    fs.rmSync(file('chat.json'), { force: true });
+  /** A workspace's conversation (chat.json for Default), attached page and terminal text included. Empty if the file is missing or malformed. @param {string} ws */
+  chat(ws) {
+    return cleanMessages(readJson(chatFileName(ws), []));
+  },
+
+  /** @param {string} ws @param {import('../shared/chat.js').Message[]} messages */
+  saveChat(ws, messages) {
+    writeJson(chatFileName(ws), messages);
+  },
+
+  /** Clear: the file goes, not just its contents. @param {string} ws */
+  clearChat(ws) {
+    fs.rmSync(file(chatFileName(ws)), { force: true });
   },
 };

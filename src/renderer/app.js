@@ -15,6 +15,9 @@ const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.get
 
 const info = await api.info();
 const cron = await api.cronsole.info();
+/** @typedef {{ active: string, list: { id: string, name: string, folder: string, hubId: string }[], folder: string, terminals: string[], live: boolean }} SpaceInfo */
+/** @type {SpaceInfo} */
+let space = await api.workspace.info();
 const layout = info.layout;
 const appEl = $('app');
 const mainEl = $('main');
@@ -83,9 +86,10 @@ function setTerminalOpen(open) {
   requestAnimationFrame(() => { reportBounds(); terminals.fitActive(); });
 }
 
-/** @param {string} [cwd] @param {string} [shell] */
+/** @param {string} [cwd] the workspace's folder when left out @param {string} [shell] */
 async function openTerminal(cwd, shell) {
   setTerminalOpen(true);
+  cwd ||= space.folder || undefined;
   try {
     return await terminals.open(cwd, shell);
   } catch (err) {
@@ -382,6 +386,45 @@ api.tabs.onFound((/** @type {number} */ id, /** @type {{ active: number, total: 
 
 const sidebar = new Sidebar({ api, layout, openUrl, openTerminal: (cwd) => openTerminal(cwd), viewDoc, openCronsole });
 
+// ---- workspaces --------------------------------------------------------------
+
+const spaceBtn = $('workspace');
+
+/**
+ * Show a workspace: its name, its Files folder and its terminals. Main has already
+ * swapped the tabs and the conversation. A workspace with no terminals running yet
+ * opens fresh shells in its saved folders; nothing is typed into them.
+ * @param {SpaceInfo} w
+ */
+async function showSpace(w) {
+  space = w;
+  const cur = w.list.find((x) => x.id === w.active);
+  spaceBtn.textContent = `🧭 ${cur && w.active !== 'default' ? cur.name : 'Command Center'}`;
+  spaceBtn.title = `Workspace: ${cur?.name || 'Default'}${w.folder ? ` (${w.folder})` : ''}. Click to switch; right-click a folder in Files to add one.`;
+  sidebar.setRoot(cur?.hubId || '');
+  terminals.showWorkspace(w.active);
+  if (w.live || !layout.terminalOpen) return;
+  for (const dir of w.terminals.length ? w.terminals : [w.folder]) await openTerminal(dir || undefined);
+}
+api.workspace.onChanged((/** @type {SpaceInfo} */ w) => showSpace(w));
+
+spaceBtn.addEventListener('click', async () => {
+  const cur = space.list.find((x) => x.id === space.active);
+  const picked = await api.menu([
+    ...space.list.map((w) => ({ id: `go:${w.id}`, label: `${w.id === space.active ? '✓ ' : '    '}${w.name}` })),
+    '-',
+    ...(cur && cur.id !== 'default' ? [{ id: 'remove', label: `Remove "${cur.name}" (its folder stays)` }] : []),
+    { id: 'add', label: 'Add a workspace: right-click a folder in Files…' },
+  ]);
+  try {
+    if (picked?.startsWith('go:')) await api.workspace.switch(picked.slice(3));
+    if (picked === 'remove') await api.workspace.remove(space.active);
+    if (picked === 'add') sidebar.show('files');
+  } catch (err) {
+    toast(err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err));
+  }
+});
+
 // ---- shortcuts ---------------------------------------------------------------
 
 api.onShortcut((/** @type {string} */ action) => {
@@ -422,7 +465,7 @@ api.onShortcut((/** @type {string} */ action) => {
 
 reportBounds();
 api.tabs.restore();
-if (layout.terminalOpen) openTerminal();
+showSpace(space);
 api.hub.favorites().then((f) => { favorites = f.roots || []; syncStar(); }).catch(() => {});
 sidebar.load();
 startChat(api);
