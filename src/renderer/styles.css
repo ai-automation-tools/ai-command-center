@@ -70,6 +70,16 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .row .name { overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .row .sub { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; font-size: 11px; max-width: 45%; }
 .row .acts { display: none; gap: 2px; flex: none; }
+
+/* Command palette (Ctrl+K). The browser tab is hidden while it shows, since a tab is a separate view drawn over the shell. */
+#palette { width: min(640px, 92vw); max-height: 60vh; margin: 10vh auto auto; padding: 0; border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel); color: var(--text); box-shadow: 0 16px 48px #000a; }
+#palette[open] { display: flex; flex-direction: column; }
+#palette::backdrop { background: #0008; }
+#palette-input { margin: 10px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 14px; outline: none; }
+#palette-input:focus { border-color: var(--accent); }
+#palette-list { overflow-y: auto; padding-bottom: 6px; }
+.pal-row { padding-left: 10px; height: 30px; }
+.pal-row.active { background: var(--panel-2); border-left-color: var(--accent); }
 .row:hover .acts, .row:focus-within .acts { display: flex; }
 .row .acts button { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; height: 20px; cursor: pointer; color: var(--text-2); font-size: 11px; }
 .row .acts button:hover { color: var(--text); border-color: var(--line-2); }

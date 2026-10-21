@@ -56,6 +56,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 |:---|:---|
 | **🌐 Browser** | Tabs, address bar (URLs, `D:\` paths, `localhost`, or a search), back/forward/reload, links open as tabs (a sign-in pop-up such as "Sign in with Google" gets its own small window so it can hand the login back), context menu, open in default browser. A ☆ in the address bar adds the page to Hub's favorites (again to remove). Chrome Web Store installs work in a tab. Ads and trackers blocked by default (EasyList and EasyPrivacy, through Ghostery's engine); **Extensions → Block ads and trackers** turns it off. |
 | **💻 Terminal** | PowerShell 7 in tabs along the bottom; the ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead. "Terminal here" on any sidebar folder opens one there. Web addresses in the output (`http(s)://…`, `localhost:3000`) open as a tab on click. Ctrl+C copies a selection, Ctrl+V pastes; right-click copies a selection or, with none, pastes. |
+| **⚡ Command palette** | **Ctrl+K** opens one box over everything: the open tabs and terminals, the workspaces, every action in the menus (with its shortcut), and, once you type, the Files tree. Every word you type has to match; ↑↓ pick, Enter goes, Esc closes. |
 | **🧭 Workspaces** | Right-click a folder in Files and pick **Open as workspace**: the Files tree starts at that folder, new terminals open in it, and the workspace keeps its own tabs, terminals and chat conversation. The name at the top of the sidebar switches between them (or removes one; the folder stays). Switching closes the tabs and reopens the other workspace's; terminals keep running, hidden, and a workspace's saved folders open as fresh shells, so nothing is ever re-run. **Default** is the whole tree, as before. Saved in `%APPDATA%\ai-command-center\workspaces.json`. |
 | **📁 Files** | Every workspace from Project Hub; a rescan by Hub shows up on its own. Click a file to read it in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing; clicking through files reuses that tab, Ctrl+click opens another. An HTML file opens as the page itself. Hover or right-click for Terminal here, View here, VS Code, Reveal in Explorer, Copy path and Copy Hub id. |
 | **🔖 Bookmarks** | Your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites. |
@@ -172,6 +173,7 @@ Branch from `main`, keep `npm run lint` and `npm test` green (CI runs both on ev
 | F5, or Ctrl+R in a page | Reload |
 | Ctrl+plus / Ctrl+minus / Ctrl+0 | Zoom in / out / reset (remembered per site) |
 | Ctrl+\` / Ctrl+Shift+\` | Toggle terminal / new terminal |
+| Ctrl+K | Command palette: actions, workspaces, tabs, terminals and files in one box |
 | Ctrl+Shift+F | Search everything |
 | Ctrl+B | Toggle sidebar |
 | F12 / Ctrl+Shift+I | Page devtools / shell devtools |

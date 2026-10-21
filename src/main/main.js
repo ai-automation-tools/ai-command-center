@@ -139,6 +139,7 @@ function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
       submenu: [
         item('Toggle terminal', 'CmdOrCtrl+`', 'toggle-terminal'),
         item('New terminal', 'CmdOrCtrl+Shift+`', 'new-terminal'),
+        item('Command palette', 'CmdOrCtrl+K', 'palette'),
         item('Search everything', 'CmdOrCtrl+Shift+F', 'focus-search'),
         item('Toggle sidebar', 'CmdOrCtrl+B', 'toggle-sidebar'),
         { type: 'separator' },

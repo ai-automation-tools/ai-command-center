@@ -147,6 +147,15 @@ export class TerminalPanel {
     s?.term.focus();
   }
 
+  /** The showing workspace's terminals, for the command palette: id, tab title, starting folder. */
+  list() {
+    return [...this.sessions.values()].filter((s) => s.ws === this.ws).map((s) => ({
+      id: s.id,
+      title: /** @type {HTMLElement} */ (s.tab.querySelector('.title')).textContent || '',
+      cwd: s.tab.title,
+    }));
+  }
+
   /** Terminals in the showing workspace. */
   get size() { return [...this.sessions.values()].filter((s) => s.ws === this.ws).length; }
 }
