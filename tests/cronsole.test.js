@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_UI, cronsoleConfig, initialize, isCronsoleUrl, listTasks, runFromUrl, runOutput, runRows, runSummary, runTask, runUrl, stdioRpc, taskHistory, taskIdArg, taskRows, taskSummary } from '../src/shared/cronsole.js';
+import { DEFAULT_UI, cronsoleConfig, failedTasks, initialize, isCronsoleUrl, listTasks, runFromUrl, runOutput, runRows, runSummary, runTask, runUrl, stdioRpc, taskHistory, taskIdArg, taskRows, taskSummary } from '../src/shared/cronsole.js';
 
 test('cronsoleConfig reads the server path and the UI origin, http(s) only', () => {
   assert.deepEqual(cronsoleConfig({}), { server: '', ui: DEFAULT_UI });
@@ -114,6 +114,20 @@ test('taskSummary: next run, paused, missing and failed tasks', () => {
   const failed = taskSummary({ ...row, lastRunStatus: 'FAILURE' }, now);
   assert.equal(failed.icon, '✗');
   assert.equal(failed.failed, true);
+});
+
+test('failedTasks counts active tasks whose last run failed', () => {
+  const t = /** @type {import('../src/shared/cronsole.js').CronTask} */ ({ ...TASK });
+  const tasks = [
+    t,
+    { ...t, id: 'a', lastRunStatus: 'FAILURE' },
+    { ...t, id: 'b', lastRunStatus: 'error: exit 1' },
+    { ...t, id: 'c', lastRunStatus: 'FAILURE', status: 'DISABLED' },
+    { ...t, id: 'd', lastRunStatus: 'FAILURE', status: 'MISSING' },
+    { ...t, id: 'e', lastRunStatus: null },
+  ];
+  assert.deepEqual(failedTasks(tasks).map((x) => x.id), ['a', 'b']);
+  assert.deepEqual(failedTasks([]), []);
 });
 
 const RUN = { id: 'e1', status: 'FAILURE', triggeredAt: '2026-10-04T02:00:00.000Z', durationMs: 4200, log: '2 broken links', platformRunId: null };

@@ -2,7 +2,7 @@
 // plus Hub's own favorites), Recent, and one search box across all three; plus MCP,
 // the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
-import { runSummary, runUrl, taskSummary } from './shared/cronsole.js';
+import { failedTasks, runSummary, runUrl, taskSummary } from './shared/cronsole.js';
 import { diffAreas, gitUrl } from './shared/git.js';
 import { devUrl } from './shared/devservers.js';
 import { PROJECT_HUB_REPO } from './shared/settings.js';
@@ -105,7 +105,8 @@ export class Sidebar {
 
   async load() {
     this.checkHub();
-    window.setInterval(() => this.checkHub(), 60_000);
+    this.checkCron();
+    window.setInterval(() => { this.checkHub(); this.checkCron(); }, 60_000);
     this.recent = await this.api.recent.list();
     this.renderRecent();
     this.calls = await this.api.mcp.log();
@@ -119,6 +120,34 @@ export class Sidebar {
     const h = await this.api.hub.health();
     this.el.status.className = `dot ${h.ok ? 'ok' : 'bad'}`;
     this.el.status.title = `Project Hub: ${h.ok ? 'ready' : h.state}. Click for Connections.`;
+  }
+
+  /**
+   * The Cron tab's count of failing tasks, on the Hub dot's timer. Only when Cronsole is
+   * set up, since the first ask starts its MCP server; a failed ask clears the count.
+   */
+  async checkCron() {
+    try {
+      if (!(await this.api.cronsole.info()).configured) return;
+      this.showCronFailures(failedTasks(await this.api.cronsole.tasks()));
+    } catch {
+      this.showCronFailures([]);
+    }
+  }
+
+  /** @param {import('./shared/cronsole.js').CronTask[]} failed */
+  showCronFailures(failed) {
+    const btn = /** @type {HTMLElement | null} */ (document.querySelector('.side-tabs [data-panel="cron"]'));
+    if (!btn) return;
+    btn.textContent = 'Cron';
+    btn.title = "Cronsole's scheduled tasks";
+    if (!failed.length) return;
+    const badge = document.createElement('span');
+    badge.className = 'tab-badge';
+    badge.textContent = String(failed.length);
+    btn.append(badge);
+    const names = failed.slice(0, 10).map((t) => t.name).join('\n');
+    btn.title = `${failed.length} Cronsole task${failed.length === 1 ? '' : 's'} failed the last run:\n${names}${failed.length > 10 ? '\n…' : ''}`;
   }
 
   /** The Files tree from the last scan, from the workspace's folder down when it has one. */
@@ -531,7 +560,7 @@ export class Sidebar {
     return row;
   }
 
-  // Cronsole's tasks, asked for when the tab is first opened: the first ask starts its MCP server.
+  // Cronsole's tasks, asked for when the tab is first opened and on Refresh.
   async loadCron() {
     this.cronLoaded = true;
     const host = this.el.cronList;
@@ -539,6 +568,7 @@ export class Sidebar {
     host.append(note('Asking Cronsole…'));
     try {
       const tasks = await this.api.cronsole.tasks();
+      this.showCronFailures(failedTasks(tasks));
       host.innerHTML = '';
       if (!tasks.length) host.append(note('Cronsole has no tasks.'));
       const now = Date.now();
