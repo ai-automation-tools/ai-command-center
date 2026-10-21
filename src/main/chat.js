@@ -13,9 +13,10 @@ import { env } from './env.js';
  *   send: (channel: string, ...args: unknown[]) => void,
  *   load: () => Message[],
  *   save: (messages: Message[]) => void,
+ *   clear: () => void,
  * }} opts
  */
-export function chat({ mcp, send, load, save }) {
+export function chat({ mcp, send, load, save, clear }) {
   /** @type {Message[]} */
   let messages = load();
   let busy = false;
@@ -79,9 +80,9 @@ export function chat({ mcp, send, load, save }) {
     },
 
     reset() {
-      if (busy) throw new Error('Wait for the answer to the last message.');
+      if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
       messages = [];
-      persist();
+      clear();
     },
   };
 }

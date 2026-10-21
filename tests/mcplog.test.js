@@ -59,3 +59,20 @@ test('the server reports refused, answered and notification calls through onCall
     ['notifications/initialized', undefined, true, undefined],
   ]);
 });
+
+test('mcp.log on disk gets terminal_run commands as a length; the panel entry keeps them', () => {
+  const e = describeCall({ msg: call('terminal_run', { command: 'git push https://user:sentinel-token@x.dev/r.git', cwd: 'D:/w' }), out: { result: { content: [] } }, ms: 1, at: 0 });
+  assert.match(String(e.args), /git push/, 'the in-memory panel shows what ran');
+  const line = logLine(e);
+  assert.equal(line.includes('sentinel'), false);
+  assert.equal(line.includes('git push'), false);
+  assert.equal(JSON.parse(line).args, '{"command":"[48 chars]","cwd":"D:/w"}');
+  assert.equal('argsAtRest' in JSON.parse(line), false);
+});
+
+test('query strings and fragments are cut from logged URLs and errors', () => {
+  const e = describeCall({ msg: call('open_tab', { url: 'https://x.dev/cb?code=sentinel-1#t=2' }), out: { result: { isError: true, content: [{ type: 'text', text: 'failed https://x.dev/a?token=sentinel-2' }] } }, ms: 0 });
+  assert.equal(JSON.stringify(e).includes('sentinel'), false);
+  assert.match(String(e.args), /https:\/\/x\.dev\/cb\?…/);
+  assert.equal(e.error, 'failed https://x.dev/a?…');
+});

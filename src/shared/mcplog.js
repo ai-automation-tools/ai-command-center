@@ -6,15 +6,28 @@ export const LOG_KEEP = 200;
 const MAX_ARGS = 300;
 const MAX_ERROR = 300;
 
+// Arguments kept out of mcp.log on disk, as their length only: a command can carry a
+// password or token. The sidebar's panel, which is in memory only, still shows them.
+const AT_REST_ONLY_LENGTH = { terminal_run: ['command'] };
+
 /**
  * @typedef {{
- *   at: number, method: string, tool?: string, args?: string,
+ *   at: number, method: string, tool?: string, args?: string, argsAtRest?: string,
  *   ok: boolean, ms: number, status?: number, error?: string,
- * }} LogEntry
+ * }} LogEntry argsAtRest: what mcp.log gets in place of args, when that differs
  */
 
 /** @param {string} s @param {number} max */
 const clip = (s, max) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+
+/**
+ * Web addresses with their query string and fragment cut, where tokens and session ids
+ * usually ride: https://x.dev/cb?code=abc becomes https://x.dev/cb?…
+ * @param {string} text
+ */
+export function stripQueries(text) {
+  return text.replace(/(https?:\/\/[^\s"'?#]+)[?#][^\s"']*/gi, '$1?…');
+}
 
 /**
  * One request and what came of it. `msg` is whatever the client sent (trust nothing);
@@ -28,12 +41,21 @@ export function describeCall({ msg, out, ms, at = Date.now() }) {
   const entry = { at, method, ok: true, ms };
   if (method === 'tools/call') {
     if (typeof msg.params?.name === 'string') entry.tool = clip(msg.params.name, 100);
-    if (msg.params?.arguments !== undefined) entry.args = clip(JSON.stringify(msg.params.arguments) ?? '', MAX_ARGS);
+    const args = msg.params?.arguments;
+    if (args !== undefined) {
+      entry.args = clip(stripQueries(JSON.stringify(args) ?? ''), MAX_ARGS);
+      const hidden = AT_REST_ONLY_LENGTH[/** @type {keyof typeof AT_REST_ONLY_LENGTH} */ (entry.tool)];
+      if (hidden && args && typeof args === 'object' && !Array.isArray(args)) {
+        const rest = { ...args };
+        for (const k of hidden) if (typeof rest[k] === 'string') rest[k] = `[${rest[k].length} chars]`;
+        entry.argsAtRest = clip(stripQueries(JSON.stringify(rest)), MAX_ARGS);
+      }
+    }
   }
   const error = out?.error?.message ?? (out?.result?.isError ? out.result.content?.[0]?.text : undefined);
   if (error !== undefined) {
     entry.ok = false;
-    entry.error = clip(String(error), MAX_ERROR);
+    entry.error = clip(stripQueries(String(error)), MAX_ERROR);
   }
   return entry;
 }
@@ -48,9 +70,13 @@ export function refusedCall(status, reason, at = Date.now()) {
   return { at, method: '(refused)', ok: false, ms: 0, status, error: reason };
 }
 
-/** @param {LogEntry} entry */
+/**
+ * The mcp.log line: argsAtRest, when there is one, stands in for args.
+ * @param {LogEntry} entry
+ */
 export function logLine(entry) {
-  return `${JSON.stringify({ ...entry, at: new Date(entry.at).toISOString() })}\n`;
+  const { argsAtRest, ...rest } = entry;
+  return `${JSON.stringify({ ...rest, ...(argsAtRest !== undefined && { args: argsAtRest }), at: new Date(entry.at).toISOString() })}\n`;
 }
 
 /**
