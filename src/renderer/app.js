@@ -4,6 +4,8 @@
 import { Sidebar, toast } from './sidebar.js';
 import { startChat } from './chat.js';
 import { TerminalPanel } from './terminal.js';
+import { createPalette } from './palette.js';
+import { defaultAction, search } from './shared/tree.js';
 import { docUrl, isDocUrl } from './shared/docs.js';
 import { cycleTab, pickTab } from './shared/session.js';
 import { isCronsoleUrl } from './shared/cronsole.js';
@@ -421,13 +423,79 @@ spaceBtn.addEventListener('click', async () => {
     if (picked === 'remove') await api.workspace.remove(space.active);
     if (picked === 'add') sidebar.show('files');
   } catch (err) {
-    toast(err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err));
+    toast(errText(err));
   }
 });
 
-// ---- shortcuts ---------------------------------------------------------------
+// ---- shortcuts and the command palette -------------------------------------------
 
-api.onShortcut((/** @type {string} */ action) => {
+/** What the palette lists as actions: label, shortcut, and the action runAction takes. */
+const ACTIONS = [
+  ['New tab', 'Ctrl+T', 'new-tab'],
+  ['Close tab', 'Ctrl+W', 'close-tab'],
+  ['Reopen closed tab', 'Ctrl+Shift+T', 'reopen-tab'],
+  ['Focus address bar', 'Alt+D', 'focus-address'],
+  ['Reload page', 'F5', 'reload'],
+  ['Find in page', 'Ctrl+F', 'find'],
+  ['Zoom in', 'Ctrl+=', 'zoom-in'],
+  ['Zoom out', 'Ctrl+-', 'zoom-out'],
+  ['Reset zoom', 'Ctrl+0', 'zoom-reset'],
+  ['Page developer tools', 'F12', 'devtools'],
+  ['New terminal', 'Ctrl+Shift+`', 'new-terminal'],
+  ['Toggle terminal', 'Ctrl+`', 'toggle-terminal'],
+  ['Toggle sidebar', 'Ctrl+B', 'toggle-sidebar'],
+  ['Search everything', 'Ctrl+Shift+F', 'focus-search'],
+  ['Open Cronsole', 'pinned tab', 'open-cronsole'],
+  ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Chat', 'Cron'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
+];
+
+const palette = createPalette({
+  items: () => [
+    // An empty box lists what's open first, then the actions.
+    ...space.list.map((w) => ({
+      kind: /** @type {const} */ ('workspace'),
+      label: `Workspace: ${w.name}`,
+      detail: `${w.folder || 'the whole Project Hub tree'}${w.id === space.active ? ' · current' : ''}`,
+      run: () => api.workspace.switch(w.id).catch((/** @type {unknown} */ err) => toast(errText(err))),
+    })),
+    ...[...tabEls.keys()].map((id) => {
+      const t = tabState.get(id) || {};
+      return { kind: /** @type {const} */ ('tab'), label: t.title || t.url || 'New tab', detail: t.url || '', run: () => api.tabs.activate(id) };
+    }),
+    ...terminals.list().map((t) => ({
+      kind: /** @type {const} */ ('terminal'),
+      label: t.title,
+      detail: t.cwd,
+      run: () => { setTerminalOpen(true); terminals.activate(t.id); },
+    })),
+    ...ACTIONS.map(([label, keys, action]) => ({ kind: /** @type {const} */ ('action'), label, detail: keys, run: () => runAction(action) })),
+  ],
+  // Folders view as a listing; everything else does what a click in Files does.
+  files: (q) => search(sidebar.fileIndex, q, 20).map(({ node, path }) => ({
+    kind: /** @type {const} */ ('file'),
+    label: node.name,
+    detail: path,
+    run: () => { const a = defaultAction(node); sidebar.fileAction(node, a === 'expand' ? 'view' : a); },
+  })),
+  onOpen: () => api.tabs.setHidden(true),
+  // The empty new-tab page keeps the tab view hidden.
+  onClose: () => { if (activeTab !== null) api.tabs.setHidden(false); },
+});
+
+/** @param {unknown} err */
+function errText(err) {
+  return err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err);
+}
+
+/** A menu shortcut or a palette action. @param {string} action */
+function runAction(action) {
+  if (action === 'palette') palette.open();
+  if (action === 'open-cronsole') openCronsole();
+  if (action.startsWith('panel-')) {
+    appEl.classList.remove('no-sidebar');
+    requestAnimationFrame(reportBounds);
+    sidebar.show(action.slice(6));
+  }
   if (action === 'new-tab') newTab();
   if (action === 'close-tab' && activeTab !== null) api.tabs.close(activeTab);
   if (action === 'focus-address') address.focus();
@@ -459,7 +527,8 @@ api.onShortcut((/** @type {string} */ action) => {
     const id = pickTab(tabOrder(), action === 'tab-last' ? 9 : Number(action.slice(4)));
     if (id !== null) api.tabs.activate(id);
   }
-});
+}
+api.onShortcut(runAction);
 
 // ---- start -------------------------------------------------------------------
 

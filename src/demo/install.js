@@ -25,7 +25,7 @@ function notify(text) {
   setTimeout(() => t.remove(), 5000);
 }
 
-/** @type {any} */ (window).acc = demoApi({
+const acc = demoApi({
   notify,
   askAfterMs: 6000,
   onTab(tab) {
@@ -37,3 +37,15 @@ function notify(text) {
     /** @type {HTMLElement} */ (page.querySelector('.url')).textContent = tab.url;
   },
 });
+
+// The app's Ctrl+K comes from its native menu; the demo has none, so catch the key here.
+/** @type {((action: string) => void)[]} */
+const shortcuts = [];
+const onShortcut = acc.onShortcut;
+acc.onShortcut = (/** @type {(action: string) => void} */ fn) => { shortcuts.push(fn); return onShortcut(fn); };
+document.addEventListener('keydown', (e) => {
+  if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'k') return;
+  e.preventDefault();
+  for (const fn of shortcuts) fn('palette');
+});
+/** @type {any} */ (window).acc = acc;

@@ -274,6 +274,27 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       console.log(`[smoke] run page=${JSON.stringify(page)}`);
       check('Cronsole: a run opens as a page', Boolean(page.title), page, { live: true });
     }
+    // The command palette: Ctrl+K's menu action opens it, typing filters, Enter runs the pick.
+    wc.send('shortcut', 'palette');
+    await wait(500);
+    await shot('palette.png', wc);
+    const pal = await wc.executeJavaScript(`(async () => {
+      const dlg = document.getElementById('palette');
+      const input = document.getElementById('palette-input');
+      const open = dlg.open;
+      const all = document.querySelectorAll('#palette-list .pal-row').length;
+      const kinds = [...document.querySelectorAll('#palette-list .pal-row .icon')].map((i) => i.textContent);
+      input.value = 'show recent';
+      input.dispatchEvent(new Event('input'));
+      const first = document.querySelector('#palette-list .pal-row.active .name')?.textContent;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 200));
+      return { open, all, tabs: kinds.filter((k) => k === '🌐').length, terminals: kinds.filter((k) => k === '>_').length, first, closed: !dlg.open,
+        panel: document.querySelector('.side-tabs [aria-selected="true"]')?.dataset.panel };
+    })()`);
+    console.log(`[smoke] palette=${JSON.stringify(pal)}`);
+    check('Ctrl+K opens the palette with tabs and terminals, and Enter runs the top match', pal.open && pal.tabs === tabs.list().length && pal.terminals > 0
+      && pal.first === 'Show Recent' && pal.closed && pal.panel === 'recent', pal);
     // A workspace round trip: its own tabs and terminal, and everything back on return.
     const spaceRun = await wc.executeJavaScript(`(async () => {
       const pause = () => new Promise((r) => setTimeout(r, 2500));
