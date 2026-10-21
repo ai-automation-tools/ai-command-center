@@ -57,6 +57,14 @@
 - **Recent:** pages, files and terminals you've opened.
 - **Search** (Ctrl+Shift+F): one box across files, bookmarks and Recent.
 
+## 🔌 Connections
+
+- Click the dot next to "Command Center" at the top of the sidebar, or pick **Connections** from the palette or the View menu.
+- One row each for Project Hub, Cronsole, every shell the app knows, the chat model and the MCP server.
+- Each row shows working, not set up or failing, a detail line, and what to set when it's missing.
+- **Retry** checks one row again; **Check all** checks everything. A shell installed since the app started shows up on Retry, no restart needed.
+- The chat row never calls the API (that would cost a request). It says the key is set, not that it works.
+
 ## 🤖 MCP, 💬 Chat and ⏱️ Cron
 
 These have their own pages: [claude-code.md](claude-code.md), [chat.md](chat.md) and [cronsole.md](cronsole.md).

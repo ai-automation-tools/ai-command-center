@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions } from './extensions.js';
+import { cleanOutput } from '../shared/output.js';
 
 /** @typedef {import('./tabs.js').Tabs} Tabs */
 /** @typedef {import('./terminal.js').Terminals} Terminals */
@@ -145,9 +146,12 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       console.log(`[smoke] mcp terminal_run bar=${JSON.stringify(shown)} result=${JSON.stringify(ranOut)}`);
       check('terminal_run shows the exact command on the bar and runs on Run', shown === 'Write-Output "acc-smoke $env:ACC_MCP_URL"' && ranOut?.ran === true, { shown, ranOut });
       // The loop closed: the terminal's output and the page's text, read back.
-      await wait(1500);
-      const sessions = await call('list_terminals', {});
+      // Wait for the output: a fresh PowerShell can take several seconds to print on a busy
+      // machine. Polled from the buffer directly, so the MCP log gets one terminal_read.
+      const printed = /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/;
+      for (let i = 0; i < 30 && !printed.test(cleanOutput(terminals.read(ranOut?.terminal)?.raw || '')); i++) await wait(500);
       const output = await call('terminal_read', { lines: 5 });
+      const sessions = await call('list_terminals', {});
       console.log(`[smoke] mcp list_terminals=${JSON.stringify(sessions)}`);
       console.log(`[smoke] mcp terminal_read terminal=${output.terminal} text=${JSON.stringify(output.text?.slice(-200))}`);
       check('terminal_read reads back what the command printed, with the MCP address it was given', output.terminal === ranOut?.terminal && /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/.test(output.text || ''), output.text?.slice(-200));
@@ -215,6 +219,10 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
     console.log(`[smoke] mcp log panel=${JSON.stringify(panel)} file=${JSON.stringify(logged)}`);
     check('MCP calls show in the panel and in mcp.log', panel.includes('terminal_run') && logged.some((/** @type {string} */ l) => l.startsWith('terminal_run:')), { panel, logged });
     // The Chat tab: what it tells the user (model and missing variables only; the key never leaves main).
+    // + page reads the active tab, so make that example.com rather than whatever an earlier check left.
+    const example = tabs.list().find((t) => /^https:\/\/example\.com/.test(t.url));
+    if (example) tabs.activate(example.id);
+    await wait(300);
     const chatPanel = await wc.executeJavaScript(`(async () => {
       const s = document.getElementById('search');
       s.value = '';
@@ -225,7 +233,7 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       // holds the exact text that would go; ✕ takes it out.
       const tray = document.getElementById('chat-tray');
       document.getElementById('chat-attach-page').click();
-      for (let i = 0; i < 50 && tray.hidden; i++) await new Promise((r) => setTimeout(r, 100));
+      for (let i = 0; i < 150 && tray.hidden; i++) await new Promise((r) => setTimeout(r, 100));
       const row = tray.querySelector('.tray-item');
       const shownRow = row && {
         label: row.querySelector('.tray-label').textContent,
@@ -234,7 +242,7 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         dest: document.getElementById('chat-tray-dest').textContent,
       };
       row?.querySelector('.tray-remove').click();
-      return { info: await window.acc.chat.info(), shownRow, removed: tray.hidden, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
+      return { info: await window.acc.chat.info(), shownRow, removed: tray.hidden, shown: document.getElementById('chat-log').textContent.slice(-200) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
     check('the Chat tab opens and never gets the key', Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
@@ -307,20 +315,45 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
     console.log(`[smoke] palette=${JSON.stringify(pal)}`);
     check('Ctrl+K opens the palette with tabs and terminals, and Enter runs the top match', pal.open && pal.tabs === tabs.list().length && pal.terminals > 0
       && pal.first === 'Show Recent' && pal.closed && pal.panel === 'recent', pal);
+    // Connections: the status dot opens it, every row has a state, and Retry rechecks one row.
+    const conn = await wc.executeJavaScript(`(async () => {
+      const wait = async (ok) => { for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 100)); };
+      const dlg = document.getElementById('connections');
+      document.getElementById('hub-status').click();
+      // Each group fills in on its own; Cronsole's (listing every task) is the slow one.
+      const settled = () => dlg.querySelector('.conn-row') && !dlg.querySelector('.conn-row.checking');
+      for (let i = 0; i < 300 && !settled(); i++) await new Promise((r) => setTimeout(r, 100));
+      const rows = [...dlg.querySelectorAll('.conn-row')].map((r) => r.dataset.id + ':' + r.className.replace('conn-row ', ''));
+      dlg.querySelector('.conn-row[data-id="mcp"] .conn-retry')?.click();
+      await new Promise((r) => setTimeout(r, 50));
+      await wait(settled);
+      const mcpAfter = dlg.querySelector('.conn-row[data-id="mcp"]')?.className;
+      const open = dlg.open;
+      document.getElementById('connections-close').click();
+      return { open, rows, mcpAfter, closed: !dlg.open };
+    })()`);
+    console.log(`[smoke] connections=${JSON.stringify(conn)}`);
+    const ids = conn.rows.map((/** @type {string} */ r) => r.split(':').slice(0, -1).join(':'));
+    check('the status dot opens Connections: Hub, Cronsole, each shell, chat and MCP, and Retry rechecks a row',
+      conn.open && conn.closed && ['hub', 'cronsole', 'shell:pwsh', 'chat', 'mcp'].every((id) => ids.includes(id))
+      && conn.rows.includes('mcp:ok') && conn.mcpAfter === 'conn-row ok', conn);
     // A workspace round trip: its own tabs and terminal, and everything back on return.
     const spaceRun = await wc.executeJavaScript(`(async () => {
-      const pause = () => new Promise((r) => setTimeout(r, 2500));
       const seen = () => ({
         tabs: document.querySelectorAll('#tab-list .tab').length,
         terms: [...document.querySelectorAll('#term-tabs .term-tab')].filter((t) => !t.hidden).map((t) => t.title),
       });
+      // Poll rather than guess: a fresh shell can take a few seconds to start on a busy machine.
+      const settle = async (/** @type {(s: any) => boolean} */ done) => {
+        for (let i = 0; i < 100 && !done(seen()); i++) await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 500));
+        return seen();
+      };
       const before = seen();
       const added = await window.acc.workspace.add({ folder: ${JSON.stringify(os.tmpdir())}, name: 'Smoke space' });
-      await pause();
-      const inside = { active: added.active, ...seen(), button: document.getElementById('workspace').textContent };
+      const inside = { active: added.active, ...(await settle((s) => s.tabs === 0 && s.terms.length > 0)), button: document.getElementById('workspace').textContent };
       await window.acc.workspace.switch('default');
-      await pause();
-      const back = seen();
+      const back = await settle((s) => s.tabs === before.tabs && s.terms.length === before.terms.length);
       const left = (await window.acc.workspace.remove(added.active)).list.length;
       return { before, inside, back, left };
     })()`);

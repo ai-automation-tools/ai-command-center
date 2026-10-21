@@ -43,6 +43,12 @@ export class Terminals {
     this.shell = this.profiles[0].file;
   }
 
+  /** Look for the shells again, so one installed since the app started shows up without a restart. */
+  rescanShells() {
+    this.profiles = shellProfiles(process.env, (f) => fs.existsSync(f));
+    return this.list();
+  }
+
   /** The installed shells, for the new-terminal menu. */
   list() {
     return this.profiles.map(({ id, label, powershell }) => ({ id, label, powershell }));

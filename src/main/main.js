@@ -26,6 +26,7 @@ import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
 import { addWorkspace, drivePath, removeWorkspace, saveWorkspace, workspaceSummary } from '../shared/workspaces.js';
+import { chatRow, cronsoleRow, hubRow, mcpRow, shellRows } from '../shared/connections.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -112,7 +113,7 @@ function on(channel, fn) {
 
 /** @param {Electron.MenuItemConstructorOptions[]} [extensions] the Extensions submenu, once they're set up */
 function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
-  /** @param {string} label @param {string} accelerator @param {string} action */
+  /** @param {string} label @param {string | undefined} accelerator @param {string} action */
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => send('shortcut', action) });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     {
@@ -140,6 +141,7 @@ function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
         item('Toggle terminal', 'CmdOrCtrl+`', 'toggle-terminal'),
         item('New terminal', 'CmdOrCtrl+Shift+`', 'new-terminal'),
         item('Command palette', 'CmdOrCtrl+K', 'palette'),
+        item('Connections', undefined, 'connections'),
         item('Search everything', 'CmdOrCtrl+Shift+F', 'focus-search'),
         item('Toggle sidebar', 'CmdOrCtrl+B', 'toggle-sidebar'),
         { type: 'separator' },
@@ -357,6 +359,29 @@ async function createWindow() {
   handle('cronsole:info', () => cron.info());
   handle('cronsole:tasks', () => cron.tasks());
   handle('cronsole:history', (taskId) => cron.history(taskId));
+
+  // The Connections view: Hub, Cronsole, each shell, the chat model and the MCP server.
+  // Given a row's id it checks that one again (Retry), given a group ('shells') every row in it, and with none, all of them.
+  handle('connections:check', async (id) => {
+    const want = (/** @type {string} */ key) => !id || id === key || (key === 'shells' && String(id).startsWith('shell:'));
+    const cronRow = async () => {
+      const info = cron.info();
+      if (!info.configured) return cronsoleRow(info, null);
+      try {
+        return cronsoleRow(info, { count: (await cron.tasks()).length });
+      } catch (err) {
+        return cronsoleRow(info, { error: err instanceof Error ? err.message : String(err) });
+      }
+    };
+    const groups = await Promise.all([
+      want('hub') ? hub.health().then((h) => [hubRow(hub.url, h)]) : [],
+      want('cronsole') ? cronRow().then((r) => [r]) : [],
+      want('shells') ? shellRows(terminals.rescanShells()) : [],
+      want('chat') ? [chatRow(conversation.info())] : [],
+      want('mcp') ? [mcpRow(mcp)] : [],
+    ]);
+    return groups.flat().filter((r) => !id || r.id === id || (id === 'shells' && r.id.startsWith('shell:')));
+  });
 
   handle('app:info', () => ({
     hubUrl: hub.url,

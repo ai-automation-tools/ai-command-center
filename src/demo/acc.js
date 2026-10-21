@@ -8,6 +8,7 @@ import { docIdFromUrl, isDocUrl } from '../shared/docs.js';
 import { pushRecent } from '../shared/recent.js';
 import { toggleFavorite } from '../shared/favorites.js';
 import { trayItem } from '../shared/chat.js';
+import { chatRow, cronsoleRow, hubRow, mcpRow, shellRows } from '../shared/connections.js';
 import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
@@ -411,6 +412,16 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       history: async (/** @type {string} */ taskId) => runs(taskId, now()),
     },
 
+    // Made-up states: what a machine with Hub up, Git Bash missing and no chat key would show.
+    connections: {
+      check: async (/** @type {string | undefined} */ id) => [
+        hubRow('http://127.0.0.1:4273', { ok: true, state: 'ready' }),
+        cronsoleRow({ configured: true, ui: CRONSOLE_UI }, { count: tasks(now()).length }),
+        ...shellRows([{ id: 'pwsh' }, { id: 'powershell' }, { id: 'cmd' }]),
+        chatRow({ model: '', missing: ['ACC_CHAT_API_KEY', 'ACC_CHAT_MODEL'] }),
+        mcpRow({ url: 'http://127.0.0.1:52011/mcp' }),
+      ].filter((r) => !id || r.id === id || (id === 'shells' && r.id.startsWith('shell:'))),
+    },
     menu: async () => { notify('Menus are native in the desktop app; the demo has none.'); return null; },
     extensions: { list: async () => [] },
     onShortcut: listen('shortcut'),
