@@ -30,12 +30,15 @@ export function toUrl(input) {
  * handlers, the shell's acc://shell) is refused before it reaches the browser pane.
  * Command Center's document pages (acc://doc) open from the app itself, with no `from`,
  * or from another document page; a web page can't navigate to one. A Cronsole run's
- * output (acc://run) opens from the app only.
+ * output (acc://run) opens from the app only. A local file (file:) opens from the app
+ * (the address bar, a restored tab) or from another local file, never from a web or
+ * extension page.
  * @param {string} url
  * @param {string} [from] URL of the page asking, when a page asks
  */
 export function isAllowedNavigation(url, from = '') {
   if (/^acc:\/\/doc\//i.test(url)) return !from || /^acc:\/\/doc\//i.test(from);
   if (/^acc:\/\/run\//i.test(url)) return !from;
-  return /^(https?|file|chrome-extension|about):/i.test(url);
+  if (/^file:/i.test(url)) return !from || /^file:/i.test(from);
+  return /^(https?|chrome-extension|about):/i.test(url);
 }

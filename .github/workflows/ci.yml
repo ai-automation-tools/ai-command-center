@@ -42,4 +42,5 @@ jobs:
           node-version: 24
       # adm-zip (via electron-chrome-web-store) is pinned to a patched release by the
       # package.json override. See docs/decisions/adr-001-electron-shell.md.
-      - run: npm audit --omit=dev
+      # The whole graph: Electron is a devDependency but it's the runtime that ships.
+      - run: npm audit

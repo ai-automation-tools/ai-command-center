@@ -25,13 +25,27 @@ function httpUrl(value) {
 }
 
 /**
+ * Hub's address: on this machine only, unless ACC_HUB_REMOTE=1 says a remote Hub is
+ * meant. The app sends Hub file ids and favorites and opens what it answers, so a
+ * typo'd or planted remote address shouldn't be enough.
+ * @param {unknown} value
+ * @param {boolean} remoteOk
+ */
+function hubAddress(value, remoteOk) {
+  const url = httpUrl(value);
+  if (!url) return null;
+  return remoteOk || /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/i.test(new URL(url).origin) ? url : null;
+}
+
+/**
  * @param {unknown} raw the parsed file, or anything else
- * @param {Record<string, string | undefined>} [env] ACC_HUB_URL wins over the file
+ * @param {Record<string, string | undefined>} [env] ACC_HUB_URL wins over the file; ACC_HUB_REMOTE=1 allows a non-loopback Hub
  * @returns {Settings}
  */
 export function settingsFrom(raw, env = {}) {
   const d = /** @type {Record<string, any>} */ (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {});
-  const hubUrl = httpUrl(env.ACC_HUB_URL) || httpUrl(d.hubUrl) || DEFAULT_HUB_URL;
+  const remoteOk = env.ACC_HUB_REMOTE === '1';
+  const hubUrl = hubAddress(env.ACC_HUB_URL, remoteOk) || hubAddress(d.hubUrl, remoteOk) || DEFAULT_HUB_URL;
   /** @type {{ label: string, url: string }[]} */
   const quickLinks = [];
   for (const l of Array.isArray(d.quickLinks) ? d.quickLinks : []) {

@@ -27,7 +27,7 @@ HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 ```powershell
 npm run lint     # node --check on every .js/.cjs/.mjs in src, scripts, tests
 npm test         # unit tests (count in tests/README.md)
-npm run smoke    # launches the real app, opens a page and a terminal, screenshots to .smoke/, quits (needs a desktop session)
+npm run smoke    # the real app on a throwaway profile: named checks, .smoke/summary.json, exit 1 on a failure (needs a desktop session; -- --live adds the Hub and Cronsole checks)
 npm run demo     # builds the browser demo (renderer + src/demo's fake window.acc) into _site/
 ```
 
@@ -45,7 +45,7 @@ before anything goes public.
   - Every IPC handler in `src/main/main.js` goes through `handle()` / `on()`, which refuse any sender but the shell view.
   - Tabs refuse navigation outside `isAllowedNavigation()` (`src/shared/url.js`).
   - Each terminal shell is a fixed executable with fixed arguments in `src/shared/shells.js`. The renderer only picks a starting folder and a profile id. No IPC message, MCP call or URL may pass a shell path or arguments.
-  - `terminal_run` types into a running PowerShell session only after the user clicks Run on the confirm bar. The command stays in the main process (the click only names a terminal), and `commandArg()` refuses newlines, control and invisible characters. Don't add a way around the click.
+  - `terminal_run` types into a new PowerShell session, opened for that command in the folder the bar named, only after the user clicks Run on the confirm bar. The command and folder stay in the main process, `isFreshRunTarget()` refuses any other terminal (ADR-003's 2026-10-20 update), and `commandArg()` refuses newlines, control and invisible characters. Don't add a way around the click.
   - `acc://shell/` serves mapped folders only, with a path-escape check. Don't widen the map.
   - `acc://doc/` is served on the browse session only (`src/main/docs.js`): ids from Hub's index only, `DOC_HEADERS` on every response (no scripts, no framing), image bytes only to a document referrer, and `isAllowedNavigation()` refuses it from any page that isn't itself a document. `acc://run/<task>/<run>` (a Cronsole run's output) is served the same way, only for a task in `list_tasks` and a run in its history, and opens from the app only: no page may navigate to it, and a request with any referrer but another run page is refused.
   - The chat panel's API key and model are read from `.env` or the environment by the main process (`src/main/env.js`, `src/main/chat.js`). `.env` stays gitignored and out of `process.env`, so the key never goes to the renderer, the terminals, Cronsole's child process, the app's own files or the repo, and there is no default model ID. The chat's tools go through the MCP server with its token, never around it.

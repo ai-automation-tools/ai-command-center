@@ -81,4 +81,9 @@ export const store = {
   saveChat(messages) {
     writeJson('chat.json', messages);
   },
+
+  /** Clear: the file goes, not just its contents. */
+  clearChat() {
+    fs.rmSync(file('chat.json'), { force: true });
+  },
 };

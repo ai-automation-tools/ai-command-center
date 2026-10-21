@@ -14,6 +14,18 @@ const MAX_TEXT = 20_000;
 const SHOWN_RESULT = 300;
 // Older turns go once the conversation passes this many (estimated) tokens.
 export const TOKEN_BUDGET = 50_000;
+// Deadlines, so a stalled request can't keep the panel busy until a restart. A tool call
+// can wait on the confirm bar for 5 minutes, so it gets a little longer than that.
+export const MODEL_DEADLINE_MS = 5 * 60_000;
+export const TOOL_DEADLINE_MS = 6 * 60_000;
+export const STOPPED = 'Stopped by the user before this finished; whether it ran is unknown.';
+
+/**
+ * The caller's signal (Stop) and a deadline, as one signal.
+ * @param {AbortSignal | undefined} signal
+ * @param {number} ms
+ */
+const withDeadline = (signal, ms) => (signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms));
 
 const SYSTEM = [
   "You are the chat panel inside AI Command Center, a desktop app with browser tabs, PowerShell terminals and a sidebar over the user's project files (from Project Hub).",
@@ -136,28 +148,32 @@ export function addUserText(messages, text) {
  */
 export function mcpClient(url, token, fetchFn = fetch) {
   let id = 0;
-  /** @param {string} method @param {object} params */
-  const rpc = async (method, params) => {
+  /** @param {string} method @param {object} params @param {AbortSignal} [signal] */
+  const rpc = async (method, params, signal) => {
     const res = await fetchFn(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }),
+      // Aborting closes the connection, which withdraws a confirm bar the call waits on.
+      signal: withDeadline(signal, TOOL_DEADLINE_MS),
     });
     if (!res.ok) throw new Error(`MCP server answered ${res.status}`);
     return res.json();
   };
   return {
-    /** @returns {Promise<McpTool[]>} */
-    async list() {
-      const r = await rpc('tools/list', {});
+    /** @param {AbortSignal} [signal] @returns {Promise<McpTool[]>} */
+    async list(signal) {
+      const r = await rpc('tools/list', {}, signal);
       if (r.error) throw new Error(r.error.message);
       return r.result.tools;
     },
-    /** @param {string} name @param {unknown} args @returns {Promise<ToolOutcome>} */
-    async call(name, args) {
+    /** @param {string} name @param {unknown} args @param {AbortSignal} [signal] @returns {Promise<ToolOutcome>} */
+    async call(name, args, signal) {
       try {
-        return toolOutcome(await rpc('tools/call', { name, arguments: args ?? {} }));
+        return toolOutcome(await rpc('tools/call', { name, arguments: args ?? {} }, signal));
       } catch (err) {
+        // Stop ends the turn; a deadline is just this call failing, which Claude hears about.
+        if (signal?.aborted) throw err;
         return { text: err instanceof Error ? err.message : String(err), isError: true };
       }
     },
@@ -170,14 +186,16 @@ export function mcpClient(url, token, fetchFn = fetch) {
  * the whole reply. A plain JSON reply is read too.
  * @param {string} apiKey
  * @param {typeof fetch} [fetchFn]
- * @returns {(body: object, onText?: (text: string) => void) => Promise<Reply>}
+ * @returns {(body: object, onText?: (text: string) => void, signal?: AbortSignal) => Promise<Reply>}
  */
 export function messagesApi(apiKey, fetchFn = fetch) {
-  return async (body, onText) => {
+  return async (body, onText, signal) => {
     const res = await fetchFn(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': API_VERSION },
       body: JSON.stringify({ ...body, stream: true }),
+      // Covers reading the stream too: aborting the fetch errors the body.
+      signal: withDeadline(signal, MODEL_DEADLINE_MS),
     });
     if (res.ok && res.body && res.headers.get('content-type')?.includes('text/event-stream')) {
       return readStream(/** @type {AsyncIterable<Uint8Array>} */ (/** @type {unknown} */ (res.body)), onText);
@@ -352,20 +370,50 @@ export function transcript(messages) {
  *   text: string,
  *   model: string,
  *   tools: McpTool[],
- *   post: (body: object, onText: (text: string) => void) => Promise<Reply>,
- *   callTool: (name: string, input: unknown) => Promise<ToolOutcome>,
+ *   post: (body: object, onText: (text: string) => void, signal?: AbortSignal) => Promise<Reply>,
+ *   callTool: (name: string, input: unknown, signal?: AbortSignal) => Promise<ToolOutcome>,
  *   onEvent?: (e: ChatEvent) => void,
  *   maxSteps?: number,
  *   attach?: (keyof typeof ATTACH_TOOLS)[],
  *   budget?: number,
- * }} opts
+ *   signal?: AbortSignal,
+ * }} opts signal: the user's Stop; the turn rejects, and the conversation stays valid to send on
  */
-export async function runTurn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attach = [], budget = TOKEN_BUDGET }) {
+export async function runTurn(opts) {
+  try {
+    await turn(opts);
+  } catch (err) {
+    if (opts.signal?.aborted) closeToolUses(opts.messages);
+    throw err;
+  }
+}
+
+/**
+ * After a stopped turn: every tool_use in the last assistant message gets a tool_result
+ * saying it was stopped, or the next request would be refused.
+ * @param {Message[]} messages
+ */
+export function closeToolUses(messages) {
+  const last = messages[messages.length - 1];
+  if (last?.role !== 'assistant' || typeof last.content === 'string') return;
+  /** @type {Block[]} */
+  const results = [];
+  for (const b of last.content) {
+    if (b.type === 'tool_use') results.push({ type: 'tool_result', tool_use_id: b.id, content: STOPPED, is_error: true });
+  }
+  if (results.length) messages.push({ role: 'user', content: results });
+}
+
+/** @param {Parameters<typeof runTurn>[0]} opts */
+async function turn({ messages, text, model, tools, post, callTool, onEvent = () => {}, maxSteps = MAX_STEPS, attach = [], budget = TOKEN_BUDGET, signal }) {
   /** A tool call shown in the panel like any other. @param {string} name @param {unknown} input */
   const use = async (name, input) => {
     onEvent({ type: 'tool', name, input });
-    const out = await callTool(name, input)
-      .catch((/** @type {unknown} */ err) => ({ text: err instanceof Error ? err.message : String(err), isError: true }));
+    const out = await callTool(name, input, signal)
+      .catch((/** @type {unknown} */ err) => {
+        if (signal?.aborted) throw err;
+        return { text: err instanceof Error ? err.message : String(err), isError: true };
+      });
     onEvent({ type: 'result', name, ok: !out.isError, text: out.text.slice(0, SHOWN_RESULT) });
     return out;
   };
@@ -375,13 +423,14 @@ export async function runTurn({ messages, text, model, tools, post, callTool, on
   addUserText(messages, withAttachments(text, parts));
   const apiTools = toApiTools(tools);
   for (let step = 0; step < maxSteps; step++) {
+    signal?.throwIfAborted();
     const dropped = trimHistory(messages, budget);
     if (dropped) onEvent({ type: 'note', text: `Dropped the ${dropped} oldest messages to keep the conversation under ${budget.toLocaleString('en')} tokens.` });
     let streamed = false;
     const reply = await post({ model, max_tokens: MAX_TOKENS, system: SYSTEM, messages, tools: apiTools }, (t) => {
       streamed = true;
       onEvent({ type: 'delta', text: t });
-    });
+    }, signal);
     // An empty assistant message would be refused next time; the next text joins the user turn instead.
     if (reply.content.length) messages.push({ role: 'assistant', content: reply.content });
     if (!streamed) for (const b of reply.content) if (b.type === 'text' && b.text) onEvent({ type: 'text', text: b.text });

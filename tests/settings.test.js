@@ -15,7 +15,7 @@ test('settingsFrom takes the file hub URL, trimmed, http(s) only, and the enviro
   assert.equal(settingsFrom({ hubUrl: ' http://localhost:5000/ ' }).hubUrl, 'http://localhost:5000');
   assert.equal(settingsFrom({ hubUrl: 'file:///C:/hub' }).hubUrl, DEFAULT_HUB_URL);
   assert.equal(settingsFrom({ hubUrl: 'not a url' }).hubUrl, DEFAULT_HUB_URL);
-  assert.equal(settingsFrom({ hubUrl: 'http://localhost:5000' }, { ACC_HUB_URL: 'https://hub.example:9/' }).hubUrl, 'https://hub.example:9');
+  assert.equal(settingsFrom({ hubUrl: 'http://localhost:5000' }, { ACC_HUB_URL: 'http://127.0.0.1:9/' }).hubUrl, 'http://127.0.0.1:9');
   assert.equal(settingsFrom({ hubUrl: 'http://localhost:5000' }, { ACC_HUB_URL: 'javascript:1' }).hubUrl, 'http://localhost:5000');
 });
 
@@ -38,4 +38,12 @@ test('settingsFrom keeps only well-formed quick links, capped, and the default l
   assert.equal(settingsFrom({ hubUrl: 'http://localhost:5000', quickLinks: 'nope' }).quickLinks[0].url, 'http://localhost:5000');
   const many = settingsFrom({ quickLinks: Array.from({ length: 20 }, (_, i) => ({ label: `l${i}`, url: `https://l${i}.example` })) });
   assert.equal(many.quickLinks.length, 12);
+});
+
+test('a Hub that is not on this machine needs ACC_HUB_REMOTE=1', () => {
+  assert.equal(settingsFrom({ hubUrl: 'https://hub.example:9/' }).hubUrl, DEFAULT_HUB_URL);
+  assert.equal(settingsFrom({}, { ACC_HUB_URL: 'http://localhost.evil.example:4273' }).hubUrl, DEFAULT_HUB_URL);
+  assert.equal(settingsFrom({}, { ACC_HUB_URL: 'http://192.168.1.5:4273' }).hubUrl, DEFAULT_HUB_URL);
+  assert.equal(settingsFrom({ hubUrl: 'https://hub.example:9/' }, { ACC_HUB_REMOTE: '1' }).hubUrl, 'https://hub.example:9');
+  assert.equal(settingsFrom({}, { ACC_HUB_URL: 'http://[::1]:4273', ACC_HUB_REMOTE: '0' }).hubUrl, 'http://[::1]:4273');
 });

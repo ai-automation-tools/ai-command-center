@@ -9,6 +9,7 @@ import path from 'node:path';
 import pty from 'node-pty';
 import { pickShell, shellProfiles } from '../shared/shells.js';
 import { appendOutput } from '../shared/output.js';
+import { childEnv } from './env.js';
 
 /** @param {unknown} dir */
 function safeCwd(dir) {
@@ -26,8 +27,6 @@ export class Terminals {
     this.send = send;
     /** @type {Map<number, import('node-pty').IPty>} */
     this.sessions = new Map();
-    /** Session ids running PowerShell, the only ones terminal_run types into. */
-    this.powershell = new Set();
     /** What list_terminals reports; kept after exit until the UI closes the tab. */
     /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean }>} */
     this.meta = new Map();
@@ -62,7 +61,7 @@ export class Terminals {
       cols: clamp(opts.cols, 20, 500, 100),
       rows: clamp(opts.rows, 5, 200, 30),
       cwd,
-      env: { ...process.env, TERM_PROGRAM: 'ai-command-center', ...this.env },
+      env: childEnv(process.env, { TERM_PROGRAM: 'ai-command-center', ...this.env }),
       useConpty: true,
       // The bundled conpty.dll path kills without forking node-pty's console-list helper,
       // which crashes (AttachConsole failed) and keeps the app alive when it quits.
@@ -74,13 +73,11 @@ export class Terminals {
     });
     p.onExit(({ exitCode }) => {
       this.sessions.delete(id);
-      this.powershell.delete(id);
       const m = this.meta.get(id);
       if (m) m.exited = true;
       this.send('term:exit', id, exitCode);
     });
     this.sessions.set(id, p);
-    if (profile.powershell) this.powershell.add(id);
     const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell };
     this.meta.set(id, { ...info, exited: false });
     this.output.set(id, '');
@@ -102,9 +99,14 @@ export class Terminals {
     return pick === undefined ? null : { id: pick, raw: this.output.get(pick) ?? null };
   }
 
-  /** @param {number} id */
-  isPowerShell(id) {
-    return this.powershell.has(id);
+  /** @param {number} id what list_terminals reports for one session, or undefined */
+  info(id) {
+    return this.meta.get(id);
+  }
+
+  /** Where terminal_run opens by default: the folder the active terminal started in, else home. */
+  defaultFolder() {
+    return (this.activeId !== null && this.meta.get(this.activeId)?.cwd) || os.homedir();
   }
 
   /** @param {number} id @param {string} data */
@@ -126,7 +128,6 @@ export class Terminals {
     const p = this.sessions.get(id);
     if (!p) return;
     this.sessions.delete(id);
-    this.powershell.delete(id);
     try { p.kill(); } catch { /* already gone */ }
   }
 

@@ -20,11 +20,12 @@ security invariants, which every change has to keep. In short:
   is on a short allowlist.
 - **Nothing listens on the network** except the app's own MCP server, bound to
   `127.0.0.1` with a random port and a per-launch token. Calls without the token, or
-  with a non-loopback `Host` header, are refused and logged.
+  with a non-loopback `Host` or `Origin` header, are refused and logged. Malformed
+  requests get a JSON-RPC error, never an unhandled exception.
 - **No shell path or argument crosses a trust boundary.** Terminal shells are fixed
   profiles; the UI picks a folder and a profile id. An agent's `terminal_run` shows
-  the command and runs it only after the user clicks Run, and the command never
-  leaves the main process.
+  the command and folder and runs it only after the user clicks Run, in a new
+  terminal opened for it; the command never leaves the main process.
 - **Secrets stay out of the repo and the renderer.** The chat's API key is read from
   the gitignored `.env` (or the environment) by the main process, kept out of the
   terminals' and Cronsole's environment, and sent only to the model's API. The MCP

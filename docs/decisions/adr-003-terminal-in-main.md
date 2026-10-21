@@ -32,6 +32,12 @@
 - **Keyboard ownership.** PowerShell uses Ctrl+L (clear) and Ctrl+R (history search), so the app menu doesn't take them. Browser tabs map Ctrl+L and Ctrl+R themselves; the address bar also answers to Alt+D. Ctrl+C copies when text is selected and interrupts otherwise; Ctrl+V pastes.
 - **Two-way door.** Swapping the renderer or the pty library touches `src/main/terminal.js` and `src/renderer/terminal.js` only.
 
+## Update 2026-10-20: where `terminal_run` types
+
+Until now an approved command went into the active terminal, picked by the renderer when Run was clicked. That terminal could hold half-typed input, be running `claude` or another program that would take the line as its own input, or have changed folder, and switching tabs while the bar was up changed the target after the bar had named it.
+
+**Now:** the main process fixes the command and the folder (the agent's `cwd`, else the folder the active terminal started in, else home) when the ask is made, and the bar names both. Run opens a new PowerShell terminal in that folder; main types the command only if the id that comes back is a terminal opened after the ask, still running PowerShell, in that folder (`isFreshRunTarget` in `src/shared/confirm.js`), and refuses otherwise. The click-to-run rule is unchanged. The cost is a terminal tab per run; a managed runner with exit codes (roadmap Milestone D) is the longer-term answer.
+
 ---
 
 <p align="center">

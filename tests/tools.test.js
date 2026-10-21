@@ -115,20 +115,21 @@ test('tools/list on the navigation tools offers open_tab and open_file', async (
 test('open_tab takes address-bar text, activates unless background, and returns the tab id', async () => {
   const { t, calls } = nav();
   assert.deepEqual((await call(t, 'open_tab', { url: 'example.com' })).structuredContent, { id: 7, url: 'https://example.com' });
-  await call(t, 'open_tab', { url: 'D:\\work\\app\\index.html', background: true });
+  await call(t, 'open_tab', { url: 'http://localhost:3000', background: true });
   await call(t, 'open_tab', { url: 'localhost:3000' });
   await call(t, 'open_tab', { url: 'electron docs' });
   assert.deepEqual(calls, [
     ['tab', 'https://example.com', true],
-    ['tab', 'file:///D:/work/app/index.html', false],
+    ['tab', 'http://localhost:3000', false],
     ['tab', 'http://localhost:3000', true],
     ['tab', 'https://www.google.com/search?q=electron%20docs', true],
   ]);
 });
 
-test('open_tab refuses extension and about: pages, blank or huge input, and a bad background', async () => {
+test('open_tab refuses local files, extension and about: pages, blank or huge input, and a bad background', async () => {
   const { t, calls } = nav();
   for (const args of [undefined, {}, { url: '' }, { url: '   ' }, { url: 42 }, { url: 'x'.repeat(8193) },
+    { url: 'file:///C:/fixture.txt' }, { url: 'D:\\work\\app\\.env' }, { url: 'C:/Users/me/notes.txt' }, { url: 'FILE:///c:/x' },
     { url: 'about:blank' }, { url: 'chrome-extension://abc/options.html' }, { url: 'https://x.dev', background: 'yes' }]) {
     assert.equal((await call(t, 'open_tab', args)).isError, true, JSON.stringify(args)?.slice(0, 80));
   }
@@ -162,19 +163,28 @@ test('open_file reports Hub refusing or being down as a tool error', async () =>
   assert.match(res.content[0].text, /403/);
 });
 
-/** @param {(command: string) => Promise<{ terminal: number } | null>} runCommand */
+/** @param {(command: string, cwd?: string) => Promise<{ terminal: number, cwd: string } | null>} runCommand */
 function term(runCommand) {
-  /** @type {string[]} */
+  /** @type {any[]} */
   const asked = [];
-  const t = terminalTools(/** @type {any} */ ({ runCommand: (/** @type {string} */ c) => { asked.push(c); return runCommand(c); } }));
+  const t = terminalTools(/** @type {any} */ ({ runCommand: (/** @type {string} */ c, /** @type {string} */ d) => { asked.push(d === undefined ? c : [c, d]); return runCommand(c, d); } }));
   return { t, asked };
 }
 
-test('terminal_run asks with the trimmed command and reports the terminal it ran in', async () => {
-  const { t, asked } = term(async () => ({ terminal: 3 }));
+test('terminal_run asks with the trimmed command and reports the terminal and folder it ran in', async () => {
+  const { t, asked } = term(async (_c, d) => ({ terminal: 3, cwd: d ?? 'C:\\Users\\me' }));
   const res = await call(t, 'terminal_run', { command: '  git status; npm test  ' });
-  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, command: 'git status; npm test' });
-  assert.deepEqual(asked, ['git status; npm test']);
+  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, cwd: 'C:\\Users\\me', command: 'git status; npm test' });
+  await call(t, 'terminal_run', { command: 'npm test', cwd: ' D:/work/app ' });
+  assert.deepEqual(asked, ['git status; npm test', ['npm test', 'D:/work/app']]);
+});
+
+test('terminal_run refuses a relative, network or hidden-character cwd without asking', async () => {
+  const { t, asked } = term(async () => ({ terminal: 1, cwd: 'x' }));
+  for (const cwd of ['work', '..\\x', '\\\\server\\share', '//server/share', 'C:', 'D:\\a\nb', 5, '']) {
+    assert.equal((await call(t, 'terminal_run', { command: 'ls', cwd })).isError, true, JSON.stringify(cwd));
+  }
+  assert.deepEqual(asked, []);
 });
 
 test('terminal_run is a tool error when the user denies or does not answer', async () => {

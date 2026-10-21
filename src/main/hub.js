@@ -11,11 +11,19 @@ const HUB = store.settings().hubUrl;
 const TIMEOUT_MS = 30_000; // a cold scan of every workspace takes ~12 s
 const RETRY_MS = 3_000; // Hub's /api/events stream advertises retry: 3000
 
+/** Reads and drops a body Hub sends but nobody needs, so the connection is freed. @param {Response} res */
+const drain = (res) => res.arrayBuffer().then(() => undefined);
+
 /**
+ * One Hub request, its body read by `read` (JSON by default) inside the same deadline,
+ * so a body that stalls still times out, and the timer is cleared once it's in.
+ * @template [T=any]
  * @param {string} path
  * @param {RequestInit} [init]
+ * @param {(res: Response) => Promise<T>} [read]
+ * @returns {Promise<T>}
  */
-async function hubFetch(path, init = {}) {
+async function hubFetch(path, init = {}, read = (res) => res.json()) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -24,21 +32,25 @@ async function hubFetch(path, init = {}) {
       const text = await res.text().catch(() => '');
       throw new Error(`Project Hub ${path} returned ${res.status}${text ? `: ${text}` : ''}`);
     }
-    return res;
+    return await read(res);
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') throw new Error(`Project Hub didn't answer ${path} within ${TIMEOUT_MS / 1000} s`);
     if (err instanceof TypeError) throw new Error(`Project Hub isn't reachable at ${HUB}. Is it running?`);
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
+
+/** The favorite toggle in flight; the next one waits for it (each reads, edits and PUTs the whole list). */
+let favoriteQueue = Promise.resolve();
 
 export const hub = {
   url: HUB,
 
   async health() {
     try {
-      const res = await hubFetch('/api/health');
-      return /** @type {{ ok: boolean, state: string }} */ (await res.json());
+      return /** @type {{ ok: boolean, state: string }} */ (await hubFetch('/api/health'));
     } catch (err) {
       return { ok: false, state: err instanceof Error ? err.message : String(err) };
     }
@@ -46,41 +58,44 @@ export const hub = {
 
   /** @param {boolean} [fresh] */
   async scan(fresh = false) {
-    const res = await hubFetch(`/api/scan${fresh ? '?fresh=1' : ''}`);
-    const d = await res.json();
+    const d = await hubFetch(`/api/scan${fresh ? '?fresh=1' : ''}`);
     return { base: d.base, home: d.home, tree: d.tree, scannedAt: d.scannedAt, nodes: d.nodes };
   },
 
   /** Browser bookmarks Hub reads from Chrome, Edge and Brave profiles on disk. */
   /** @param {string} [source] */
   async webmarks(source) {
-    const res = await hubFetch(`/api/webmarks${source ? `?source=${encodeURIComponent(source)}` : ''}`);
-    return await res.json();
+    return hubFetch(`/api/webmarks${source ? `?source=${encodeURIComponent(source)}` : ''}`);
   },
 
   /** Hub's own favorites (paths and links Mike starred in Hub). */
   async favorites() {
-    const res = await hubFetch('/api/favorites');
-    return await res.json();
+    return hubFetch('/api/favorites');
   },
 
   /**
    * Toggle a web page in Hub's favorites: read the list, add or remove the page, and
    * PUT the whole list back (Hub's endpoint replaces it). Returns the new roots and
-   * whether the page is now starred.
+   * whether the page is now starred. Toggles run one at a time, so two quick clicks
+   * can't both read the old list and lose one change. (Another Hub client editing at the
+   * same moment still can; Hub has no revision check to stop that.)
    * @param {string} url
    * @param {string} name
    * @returns {Promise<{ starred: boolean, roots: unknown }>}
    */
-  async favorite(url, name) {
-    const { roots } = await this.favorites();
-    const next = toggleFavorite(roots, { url, name });
-    await hubFetch('/api/favorites', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ roots: next.roots }),
+  favorite(url, name) {
+    const run = favoriteQueue.then(async () => {
+      const { roots } = await this.favorites();
+      const next = toggleFavorite(roots, { url, name });
+      await hubFetch('/api/favorites', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ roots: next.roots }),
+      }, drain);
+      return next;
     });
-    return next;
+    favoriteQueue = run.then(() => {}, () => {});
+    return run;
   },
 
   /**
@@ -90,8 +105,7 @@ export const hub = {
    * @returns {Promise<{ html: string }>}
    */
   async file(id) {
-    const res = await hubFetch(`/api/file?${new URLSearchParams({ path: id })}`);
-    return await res.json();
+    return hubFetch(`/api/file?${new URLSearchParams({ path: id })}`);
   },
 
   /**
@@ -104,7 +118,7 @@ export const hub = {
     const q = new URLSearchParams({ path: id });
     if (how === 'code') q.set('in', 'code');
     if (how === 'reveal') q.set('reveal', '1');
-    await hubFetch(`/api/open?${q}`);
+    await hubFetch(`/api/open?${q}`, {}, drain);
   },
 };
 

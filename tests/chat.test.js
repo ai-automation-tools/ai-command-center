@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { API_URL, API_VERSION, addUserText, chatAttach, chatConfig, chatText, cleanMessages, estimateTokens, mcpClient, messagesApi, readStream, runTurn, toApiTools, toolOutcome, transcript, trimHistory, withAttachments } from '../src/shared/chat.js';
+import { API_URL, API_VERSION, STOPPED, addUserText, chatAttach, chatConfig, chatText, cleanMessages, estimateTokens, mcpClient, messagesApi, readStream, runTurn, toApiTools, toolOutcome, transcript, trimHistory, withAttachments } from '../src/shared/chat.js';
 import { createMcpServer } from '../src/shared/mcp.js';
 
 test('chatConfig reads the key and model from the environment, with no default model', () => {
@@ -352,4 +352,46 @@ test('transcript replays a saved conversation with attachments folded', () => {
     { type: 'user', text: 'and?' },
   ]);
   assert.deepEqual(transcript([]), []);
+});
+
+/** A promise that rejects with the signal's reason when it aborts. @param {AbortSignal | undefined} signal */
+const hang = (signal) => new Promise((_r, reject) => signal?.addEventListener('abort', () => reject(signal.reason)));
+
+test('Stop during the model request rejects the turn and leaves the conversation sendable', async () => {
+  /** @type {any[]} */
+  const messages = [];
+  const ctrl = new AbortController();
+  const turn = runTurn({ messages, text: 'hi', model: 'm', tools: [], post: (_b, _t, signal) => hang(signal), callTool: async () => ({ text: '', isError: false }), signal: ctrl.signal });
+  ctrl.abort();
+  await assert.rejects(turn);
+  assert.deepEqual(messages, [{ role: 'user', content: 'hi' }]);
+});
+
+test('Stop during a tool call answers the open tool_use as stopped, so the next request is valid', async () => {
+  /** @type {any[]} */
+  const messages = [];
+  const ctrl = new AbortController();
+  /** @type {AbortSignal | undefined} */
+  let toolSignal;
+  const post = async () => ({ content: [{ type: 'tool_use', id: 'u1', name: 'terminal_run', input: { command: 'npm test' } }], stop_reason: 'tool_use' });
+  const turn = runTurn({
+    messages, text: 'run tests', model: 'm', tools: [], post, signal: ctrl.signal,
+    callTool: (_n, _i, signal) => { toolSignal = signal; return hang(signal); },
+  });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(toolSignal, ctrl.signal, 'the tool call gets the Stop signal');
+  ctrl.abort();
+  await assert.rejects(turn);
+  assert.deepEqual(messages.at(-1), { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'u1', content: STOPPED, is_error: true }] });
+});
+
+test('a tool call that fails on its own (a deadline) is reported to Claude, not treated as Stop', async () => {
+  /** @type {any[]} */
+  const messages = [];
+  let posts = 0;
+  const post = async () => (posts++ === 0
+    ? { content: [{ type: 'tool_use', id: 'u1', name: 'list_tabs', input: {} }], stop_reason: 'tool_use' }
+    : { content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' });
+  await runTurn({ messages, text: 'x', model: 'm', tools: [], post, signal: new AbortController().signal, callTool: async () => { throw new Error('timed out'); } });
+  assert.deepEqual(messages[2].content[0], { type: 'tool_result', tool_use_id: 'u1', content: 'timed out', is_error: true });
 });

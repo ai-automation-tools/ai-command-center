@@ -504,7 +504,7 @@
       "items": [
         "Look with no click: list_tabs, read_tab, sidebar_search, recent, list_terminals, terminal_read, cron_tasks",
         "Navigate: open_tab, and open_file by Hub node id (VS Code or Explorer, never the default app)",
-        "Act only after Run: terminal_run types one line into a PowerShell, cron_run asks Cronsole's run_task"
+        "Act only after Run: terminal_run types one line into a new PowerShell opened for it, cron_run asks Cronsole's run_task"
       ]
     },
     {

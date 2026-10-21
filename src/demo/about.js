@@ -66,7 +66,7 @@ export const ABOUT_HTML = `<article class="demo-doc">
   <table>
     <thead><tr><th>Area</th><th>What you get</th></tr></thead>
     <tbody>
-      <tr><td><b>🌐 Browser</b></td><td>Tabs and an address bar that takes URLs, <code>D:\\</code> paths, <code>localhost</code> or a search. Links and pop-ups open as tabs, and Chrome Web Store extensions install in a tab.</td></tr>
+      <tr><td><b>🌐 Browser</b></td><td>Tabs and an address bar that takes URLs, <code>D:\\</code> paths, <code>localhost</code> or a search. Links open as tabs, sign-in pop-ups as small windows, and Chrome Web Store extensions install in a tab.</td></tr>
       <tr><td><b>💻 Terminal</b></td><td>PowerShell 7 in tabs along the bottom, or Windows PowerShell, Command Prompt and Git Bash. "Terminal here" on a sidebar folder opens one in that folder.</td></tr>
       <tr><td><b>📁 Files</b></td><td>Every workspace Project Hub knows about. Click a file and it opens in a tab: Markdown rendered, code as code, images inline. Right-click for VS Code, Explorer or Copy path.</td></tr>
       <tr><td><b>🔖 Bookmarks</b></td><td>Your Chrome, Edge or Brave bookmarks, read straight from disk, or Hub's own favorites.</td></tr>

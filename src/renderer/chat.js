@@ -9,6 +9,14 @@ export async function startChat(api) {
   const log = $('chat-log');
   const input = /** @type {HTMLTextAreaElement} */ ($('chat-input'));
   const sendBtn = /** @type {HTMLButtonElement} */ ($('chat-send'));
+  const stopBtn = /** @type {HTMLButtonElement} */ ($('chat-stop'));
+  /** While a turn runs, Stop takes Send's place. @param {boolean} on */
+  const busy = (on) => {
+    sendBtn.disabled = on;
+    sendBtn.hidden = on;
+    stopBtn.hidden = !on;
+  };
+  stopBtn.addEventListener('click', () => api.chat.stop());
   // Toggles: what's pressed is read by the main process (read_tab, terminal_read) and
   // goes above the next message; the text never passes through this file.
   const attachBtns = { page: $('chat-attach-page'), terminal: $('chat-attach-terminal') };
@@ -72,7 +80,7 @@ export async function startChat(api) {
     line('user', [...attach.map((k) => `[+ ${k}]`), text].join(' '));
     input.value = '';
     for (const b of Object.values(attachBtns)) b.setAttribute('aria-pressed', 'false');
-    sendBtn.disabled = true;
+    busy(true);
     thinking = line('note', 'Thinking…');
     try {
       await api.chat.send(text, attach);
@@ -82,7 +90,7 @@ export async function startChat(api) {
       thinking?.remove();
       thinking = null;
       streaming = null;
-      sendBtn.disabled = false;
+      busy(false);
       input.focus();
     }
   });

@@ -9,9 +9,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { cronsoleConfig, initialize, listTasks, runFromUrl, runOutput, runTask, stdioRpc, taskHistory, taskIdArg } from '../shared/cronsole.js';
 import { runPage } from '../shared/docs.js';
-import { env } from './env.js';
-
-const { ACC_CHAT_API_KEY, ANTHROPIC_API_KEY, ...childEnv } = env;
+import { childEnv, env } from './env.js';
 
 export function cronsole() {
   /** @type {import('node:child_process').ChildProcess | null} */
@@ -24,7 +22,7 @@ export function cronsole() {
   const start = (server) => {
     if (!fs.existsSync(server)) throw new Error(`ACC_CRONSOLE_MCP points at ${server}, which doesn't exist.`);
     const proc = spawn(process.execPath, [server], {
-      env: { ...childEnv, ELECTRON_RUN_AS_NODE: '1' },
+      env: childEnv(env, { ELECTRON_RUN_AS_NODE: '1' }),
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });

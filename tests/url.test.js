@@ -33,3 +33,11 @@ test('isAllowedNavigation refuses script and data URLs', () => {
   assert.equal(isAllowedNavigation('data:text/html,hi'), false);
   assert.equal(isAllowedNavigation('vscode://file/D:/x'), false);
 });
+
+test('isAllowedNavigation: a local file opens from the app or another local file, never from a web or extension page', () => {
+  assert.equal(isAllowedNavigation('file:///D:/x.html', 'file:///D:/index.html'), true);
+  assert.equal(isAllowedNavigation('file:///C:/Users/me/.ssh/id_rsa', 'https://evil.example/'), false);
+  assert.equal(isAllowedNavigation('FILE:///C:/x', 'http://localhost:3000/'), false);
+  assert.equal(isAllowedNavigation('file:///C:/x', 'chrome-extension://abc/popup.html'), false);
+  assert.equal(isAllowedNavigation('file:///C:/x', 'about:blank'), false);
+});

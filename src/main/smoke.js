@@ -1,5 +1,8 @@
 // `npm run smoke`: the end-to-end run scripts/smoke.js drives. Kept out of main.js so
 // the main process stays thin; main.js calls it only when ACC_SMOKE_DIR is set.
+// Each observation is a named check. Checks that need Project Hub or Cronsole count only
+// with ACC_SMOKE_LIVE=1 (npm run smoke -- --live); without it they're reported, not
+// failed. The verdict goes to <dir>/summary.json and the process exit code.
 
 import { app } from 'electron';
 import fs from 'node:fs';
@@ -20,11 +23,51 @@ import { listExtensions } from './extensions.js';
  * @param {Electron.Session} browseSession
  */
 export function smoke(dir, wc, tabs, terminals, browseSession) {
+  const live = process.env.ACC_SMOKE_LIVE === '1';
+  /** @type {{ name: string, result: 'pass' | 'fail' | 'skip' | 'warn', detail?: string }[]} */
+  const results = [];
+  /**
+   * @param {string} name
+   * @param {unknown} ok
+   * @param {unknown} [detail]
+   * @param {{ live?: boolean, warnOnly?: boolean }} [opts] live: needs Hub or Cronsole; warnOnly: flaky, never fails the run
+   */
+  const check = (name, ok, detail, { live: needsLive = false, warnOnly = false } = {}) => {
+    const result = ok ? 'pass' : warnOnly ? 'warn' : needsLive && !live ? 'skip' : 'fail';
+    results.push({ name, result, ...(detail !== undefined && { detail: String(typeof detail === 'string' ? detail : JSON.stringify(detail)).slice(0, 300) }) });
+    console.log(`[smoke] ${result.toUpperCase()} ${name}${ok ? '' : ` (${String(typeof detail === 'string' ? detail : JSON.stringify(detail)).slice(0, 200)})`}`);
+  };
+  /** A screenshot, which can fail on a hidden or locked display; never fails the run. @param {string} file @param {Electron.WebContents} from */
+  const shot = async (file, from) => {
+    try {
+      fs.writeFileSync(path.join(dir, file), (await from.capturePage()).toPNG());
+    } catch (err) {
+      check(`screenshot ${file}`, false, err instanceof Error ? err.message : err, { warnOnly: true });
+    }
+  };
+  const finish = () => {
+    const failed = results.filter((r) => r.result === 'fail').length;
+    const summary = { live, passed: results.filter((r) => r.result === 'pass').length, failed, skipped: results.filter((r) => r.result === 'skip').length, warnings: results.filter((r) => r.result === 'warn').length, checks: results };
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'summary.json'), JSON.stringify(summary, null, 2));
+    console.log(`[smoke] ${failed ? 'FAILED' : 'passed'}: ${summary.passed} passed, ${failed} failed, ${summary.skipped} skipped (live checks need --live), ${summary.warnings} warnings. ${path.join(dir, 'summary.json')}`);
+    process.exitCode = failed ? 1 : 0;
+    app.quit();
+  };
   wc.on('console-message', (e) => console.log(`[shell:${e.level}] ${e.message}`));
   wc.on('preload-error', (_e, p, err) => console.log(`[shell:preload-error] ${p}: ${err.message}`));
   // Extension service workers log here, not to any page; the extension spike needs it.
   browseSession.serviceWorkers.on('console-message', (_e, d) => console.log(`[sw:${d.level}] ${d.sourceUrl}:${d.lineNumber} ${String(d.message).slice(0, 300)}`));
   wc.once('did-finish-load', async () => {
+    try {
+      await run();
+    } catch (err) {
+      check('the run finished', false, err instanceof Error ? err.stack || err.message : err);
+    }
+    finish();
+  });
+
+  async function run() {
     const wait = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
     await wait(4000);
     // ACC_SMOKE_INSTALL=<id>,<id>: install Web Store extensions first (the extension spike).
@@ -53,9 +96,13 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       return { expandedRows: expanded, searchResults: results, groups, terminals, hubDot: document.getElementById('hub-status').className };
     })()`);
     console.log(`[smoke] shell checks=${JSON.stringify(checks)}`);
+    check('a terminal opened at start', checks.terminals >= 1, checks);
+    check('Hub: the Files tree loads and expands', checks.expandedRows > 1 && /ok/.test(checks.hubDot), checks, { live: true });
+    check('Hub: the search box finds README files', checks.searchResults > 0, checks, { live: true });
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, 'tab.png'), (await tab.view.webContents.capturePage()).toPNG());
+    await shot('tab.png', tab.view.webContents);
     console.log(`[smoke] tab url=${tab.view.webContents.getURL()} title=${tab.view.webContents.getTitle()}`);
+    if (!process.env.ACC_SMOKE_URL) check('a tab loads example.com', /^https:\/\/example\.com/.test(tab.view.webContents.getURL()) && /Example/.test(tab.view.webContents.getTitle()), tab.view.webContents.getURL());
     console.log(`[smoke] tab bounds=${JSON.stringify(tab.view.getBounds())}`);
     console.log(`[smoke] extensions=${JSON.stringify(listExtensions(browseSession))}`);
     // The MCP server as a client would find it: no token must fail, the file's token must work.
@@ -65,6 +112,7 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       const without = (await fetch(url, { method: 'POST', body })).status;
       const withToken = (await fetch(url, { method: 'POST', body, headers: { Authorization: `Bearer ${token}` } })).status;
       console.log(`[smoke] mcp ${url} without-token=${without} with-token=${withToken}`);
+      check('MCP refuses a call without the token and answers with it', without === 401 && withToken === 200, { without, withToken });
       const call = (/** @type {string} */ name, /** @type {object} */ args) => fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -72,10 +120,14 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       }).then((r) => r.json()).then((r) => r.result?.structuredContent ?? r);
       const opened = await call('open_tab', { url: 'example.org', background: true });
       console.log(`[smoke] mcp open_tab=${JSON.stringify(opened)}`);
+      check('open_tab opens a tab', Number.isInteger(opened?.id) && /example\.org/.test(opened?.url), opened);
       const listed = await call('list_tabs', {});
       const found = await call('sidebar_search', { query: 'README', limit: 5 });
       const recent = await call('recent', { limit: 3 });
       console.log(`[smoke] mcp list_tabs=${JSON.stringify(listed)}`);
+      check('list_tabs lists the opened tab', listed?.tabs?.some((/** @type {any} */ t) => t.id === opened?.id), listed);
+      check('sidebar_search answers', Array.isArray(found?.bookmarks) && Array.isArray(found?.recent), found?.errors);
+      check('Hub: sidebar_search finds files', found?.files?.length > 0, found?.errors, { live: true });
       console.log(`[smoke] mcp sidebar_search files=${found.files?.length} bookmarks=${found.bookmarks?.length} recent=${found.recent?.length} errors=${JSON.stringify(found.errors)}`);
       console.log(`[smoke] mcp recent items=${recent.items?.length}`);
       // terminal_run waits on the confirm bar; click Run the way a person would.
@@ -88,16 +140,21 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         document.getElementById('confirm-run').click();
         return text;
       })()`);
-      console.log(`[smoke] mcp terminal_run bar=${JSON.stringify(shown)} result=${JSON.stringify(await ran)}`);
+      const ranOut = await ran;
+      console.log(`[smoke] mcp terminal_run bar=${JSON.stringify(shown)} result=${JSON.stringify(ranOut)}`);
+      check('terminal_run shows the exact command on the bar and runs on Run', shown === 'Write-Output "acc-smoke $env:ACC_MCP_URL"' && ranOut?.ran === true, { shown, ranOut });
       // The loop closed: the terminal's output and the page's text, read back.
       await wait(1500);
       const sessions = await call('list_terminals', {});
       const output = await call('terminal_read', { lines: 5 });
       console.log(`[smoke] mcp list_terminals=${JSON.stringify(sessions)}`);
       console.log(`[smoke] mcp terminal_read terminal=${output.terminal} text=${JSON.stringify(output.text?.slice(-200))}`);
+      check('terminal_read reads back what the command printed, with the MCP address it was given', output.terminal === ranOut?.terminal && /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/.test(output.text || ''), output.text?.slice(-200));
+      check('list_terminals shows the new terminal as active', sessions?.terminals?.some((/** @type {any} */ s) => s.id === ranOut?.terminal && s.active), sessions);
       console.log(`[smoke] terminal raw tail=${JSON.stringify(terminals.read()?.raw?.slice(-400))}`);
       const page = await call('read_tab', { tab: tab.view.webContents.id });
       console.log(`[smoke] mcp read_tab title=${JSON.stringify(page.title)} chars=${page.text?.length} truncated=${page.truncated} start=${JSON.stringify(page.text?.slice(0, 60))}`);
+      if (!process.env.ACC_SMOKE_URL) check('read_tab reads the page text', /Example Domain/.test(page.title || '') && page.text?.length > 0, page.title);
       // cron_tasks answers with the list, or says what to set when Cronsole isn't configured.
       const cronOut = await fetch(url, {
         method: 'POST',
@@ -105,6 +162,8 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'cron_tasks', arguments: {} } }),
       }).then((r) => r.json());
       console.log(`[smoke] mcp cron_tasks tasks=${cronOut.result?.structuredContent?.tasks?.length ?? null} error=${JSON.stringify(cronOut.result?.isError ? cronOut.result.content?.[0]?.text?.slice(0, 80) : null)}`);
+      check('cron_tasks answers with a list or says what to set', Array.isArray(cronOut.result?.structuredContent?.tasks) || cronOut.result?.isError === true, cronOut.error);
+      check('Cronsole: cron_tasks lists tasks', cronOut.result?.structuredContent?.tasks?.length > 0, cronOut.result?.content?.[0]?.text?.slice(0, 120), { live: true });
       // Find in page on example.com: type a word and read the match count.
       tabs.activate(tab.id);
       const finder = await wc.executeJavaScript(`(async () => {
@@ -118,8 +177,9 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         return { count, hidden: document.getElementById('find-form').hidden };
       })()`);
       console.log(`[smoke] find=${JSON.stringify(finder)}`);
+      if (!process.env.ACC_SMOKE_URL) check('find in page counts matches and closes', /^[1-9]\d*\/[1-9]\d*$/.test(finder.count) && finder.hidden, finder);
     } catch (err) {
-      console.log(`[smoke] mcp FAILED: ${err instanceof Error ? err.message : err}`);
+      check('the MCP checks ran', false, err instanceof Error ? err.message : err);
     }
     // The shell menu's profiles, a non-PowerShell session, and a Files click landing
     // on a document page (the right-click menu itself is native and needs a person).
@@ -131,21 +191,28 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       md?.click();
       return { shells, cmd: [cmd.shell, cmd.powershell], clicked: md?.querySelector('.name')?.textContent ?? null };
     })()`);
-    await wait(3000);
+    // Hub renders the file first; give it up to 10 s rather than a fixed wait.
+    for (let i = 0; i < 40 && !tabs.list().some((t) => t.url.startsWith('acc://doc/')); i++) await wait(250);
+    await wait(1000);
     console.log(`[smoke] shells=${JSON.stringify(shellChecks)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
+    check('the shell menu offers PowerShell 7, and Command Prompt starts as not-PowerShell', shellChecks.shells.includes('pwsh') && shellChecks.cmd[1] === false, shellChecks);
     const doc = tabs.list().find((t) => t.url.startsWith('acc://doc/'));
     const docTab = doc && tabs.tabs.get(doc.id);
     if (docTab) {
       const page = await docTab.view.webContents.executeJavaScript(
         `({ title: document.title, headings: document.querySelectorAll('h1, h2').length, images: [...document.images].map((i) => [i.src.slice(0, 60), i.naturalWidth]).slice(0, 3), sidebar: Boolean(document.querySelector('aside, nav#sidebar')) })`);
       console.log(`[smoke] doc page=${JSON.stringify(page)}`);
-      fs.writeFileSync(path.join(dir, 'doc.png'), (await docTab.view.webContents.capturePage()).toPNG());
+      check('Hub: a Markdown file opens as a document page without a second sidebar', page.headings > 0 && !page.sidebar, page, { live: true });
+      await shot('doc.png', docTab.view.webContents);
+    } else {
+      check('Hub: a Markdown file opens as a document page', false, 'no acc://doc tab', { live: true });
     }
     // The MCP calls above, in the sidebar's MCP panel and at the end of mcp.log.
     const panel = await wc.executeJavaScript(`[...document.querySelectorAll('#panel-mcp .row .name')].map((n) => n.textContent.split(' ')[0]).slice(0, 8)`);
     const logged = fs.readFileSync(path.join(app.getPath('userData'), 'logs', 'mcp.log'), 'utf8').trim().split('\n').slice(-8)
       .map((l) => { const e = JSON.parse(l); return `${e.tool || e.method}:${e.ok ? 'ok' : e.status || 'err'}`; });
     console.log(`[smoke] mcp log panel=${JSON.stringify(panel)} file=${JSON.stringify(logged)}`);
+    check('MCP calls show in the panel and in mcp.log', panel.includes('terminal_run') && logged.some((/** @type {string} */ l) => l.startsWith('terminal_run:')), { panel, logged });
     // The Chat tab: what it tells the user (model and missing variables only; the key never leaves main).
     const chatPanel = await wc.executeJavaScript(`(async () => {
       const s = document.getElementById('search');
@@ -160,6 +227,7 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       return { info: await window.acc.chat.info(), attach, shown: document.getElementById('chat-log').textContent.slice(0, 160) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
+    check('the Chat tab opens, toggles + page, and never gets the key', chatPanel.attach === 'true' && Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
     // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set):
     // the first task with recorded runs unfolds them and its newest opens as an acc://run
     // page; then Open Cronsole twice: one pinned tab, first in the strip, reused.
@@ -196,17 +264,18 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       };
     })()`);
     console.log(`[smoke] cronsole=${JSON.stringify(cronPanel)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
+    check('Cronsole: the Cron tab lists tasks and Open Cronsole keeps one pinned tab first', cronPanel.tasks > 0 && cronPanel.pinnedTabs === 1 && cronPanel.pinnedFirst, cronPanel.note ?? cronPanel.info, { live: true });
     const run = tabs.list().find((t) => t.url.startsWith('acc://run/'));
     const runTab = run && tabs.tabs.get(run.id);
     if (runTab) {
       const page = await runTab.view.webContents.executeJavaScript(
         `({ title: document.title, facts: document.querySelector('.note')?.textContent, output: document.querySelector('pre')?.textContent.length ?? null, none: /no output/.test(document.body.textContent) })`);
       console.log(`[smoke] run page=${JSON.stringify(page)}`);
+      check('Cronsole: a run opens as a page', Boolean(page.title), page, { live: true });
     }
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
-    fs.writeFileSync(path.join(dir, 'shell.png'), (await wc.capturePage()).toPNG());
+    await shot('shell.png', wc);
     console.log(`[smoke] screenshots in ${dir}`);
-    app.quit();
-  });
+  }
 }

@@ -21,7 +21,7 @@ import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
-import { Confirmations } from '../shared/confirm.js';
+import { Confirmations, isFreshRunTarget } from '../shared/confirm.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
@@ -43,6 +43,10 @@ const SERVE = [
 protocol.registerSchemesAsPrivileged([
   { scheme: 'acc', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
+
+// ACC_USER_DATA: run on another profile (npm run smoke's throwaway one). Before the
+// single-instance lock, which is per profile, so a smoke run works beside the real app.
+if (process.env.ACC_USER_DATA) app.setPath('userData', process.env.ACC_USER_DATA);
 
 // One instance: a second launch focuses the first. exit(), not quit(): quit() is async,
 // so whenReady would still run and start a second MCP server over the first's mcp.json.
@@ -84,7 +88,9 @@ function serveShell() {
  * @param {Electron.IpcMainInvokeEvent | Electron.IpcMainEvent} e
  */
 function fromShell(e) {
-  return shellView !== null && e.sender === shellView.webContents;
+  // The shell's main frame on acc://shell, not just its webContents: a subframe can't speak for it.
+  return shellView !== null && e.sender === shellView.webContents
+    && e.senderFrame === shellView.webContents.mainFrame && Boolean(e.senderFrame?.url.startsWith('acc://shell/'));
 }
 
 /**
@@ -230,18 +236,24 @@ async function createWindow() {
     readTerminal: (id) => terminals.read(id),
     openTab: (url, activate) => tabs.create(url, { activate }),
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
-    runCommand: async (command) => {
-      const terminal = await confirmations.ask({ command });
-      if (terminal === null || !terminals.isPowerShell(terminal)) return null;
+    // The command and folder are fixed here, before the bar shows them. The shell opens a
+    // new PowerShell terminal there on Run and answers with its id; anything but that
+    // fresh terminal refuses (isFreshRunTarget), so the approval can't change target.
+    runCommand: async (command, cwd, signal) => {
+      const dir = cwd ?? terminals.defaultFolder();
+      if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
+      const sinceId = terminals.nextId;
+      const terminal = await confirmations.ask({ command, cwd: dir }, signal);
+      if (typeof terminal !== 'number' || !isFreshRunTarget(terminals.info(terminal), { sinceId, cwd: dir })) return null;
       // \r is Enter; PSReadLine takes \n as a continuation line.
       terminals.write(terminal, `${command}\r`);
-      return { terminal };
+      return { terminal, cwd: dir };
     },
     listCronTasks: () => cron.tasks(),
-    runCronTask: async (id) => {
+    runCronTask: async (id, signal) => {
       const task = (await cron.tasks()).find((t) => t.id === id);
       if (!task) throw new Error(`Cronsole has no task with id ${id}`);
-      if (await confirmations.ask({ task: task.name }) !== true) return null;
+      if (await confirmations.ask({ task: task.name }, signal) !== true) return null;
       return cron.run(id);
     },
   };
@@ -258,10 +270,11 @@ async function createWindow() {
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
   // The chat panel: Claude with this app's MCP server as its tools.
-  const conversation = chat({ mcp: () => mcp, send, load: store.chat, save: store.saveChat });
+  const conversation = chat({ mcp: () => mcp, send, load: store.chat, save: store.saveChat, clear: store.clearChat });
   handle('chat:info', () => conversation.info());
   handle('chat:send', (text, attach) => conversation.send(text, attach));
   handle('chat:reset', () => conversation.reset());
+  handle('chat:stop', () => conversation.stop());
 
   // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
   handle('cronsole:info', () => cron.info());
@@ -416,5 +429,6 @@ app.on('quit', () => {
   mcp?.close();
   cron.close();
   stopEvents?.();
-  setImmediate(() => app.exit(0));
+  // process.exitCode: the smoke run's verdict; 0 otherwise.
+  setImmediate(() => app.exit(Number(process.exitCode ?? 0)));
 });
