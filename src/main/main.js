@@ -25,6 +25,7 @@ import { Confirmations, isFreshRunTarget } from '../shared/confirm.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
+import { addWorkspace, drivePath, removeWorkspace, saveWorkspace, workspaceSummary } from '../shared/workspaces.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -205,6 +206,74 @@ async function createWindow() {
   });
   const terminals = new Terminals(send);
 
+  // Workspaces (workspaces.json): switching swaps the tabs and the conversation, and shows
+  // that workspace's terminals. Terminals keep running while hidden; a workspace's saved
+  // folders open as fresh shells, so a switch never re-runs a command.
+  let spaces = store.workspaces();
+  /** Workspaces shown this run: their saved terminal folders follow the live ones. */
+  const visited = new Set([spaces.active]);
+  const current = () => spaces.list.find((w) => w.id === spaces.active) ?? spaces.list[0];
+  // The smoke run neither restores nor saves, so it can't disturb the real profile.
+  const persistSpaces = () => { if (!process.env.ACC_SMOKE_DIR) store.saveWorkspaces(spaces); };
+  persistSpaces();
+  /** Fold the open tabs and this run's terminal folders into the saved state. */
+  const snapshot = () => {
+    const { urls, active } = tabs.snapshot();
+    const kept = cleanSavedTabs(urls);
+    // Dropped entries (blank pages) shift the index; point it at the same URL if kept.
+    spaces = saveWorkspace(spaces, spaces.active, { tabs: kept, activeTab: active >= 0 ? kept.indexOf(urls[active]) : -1 });
+    for (const id of visited) spaces = saveWorkspace(spaces, id, { terminals: terminals.folders(id) });
+  };
+  /** @param {import('../shared/workspaces.js').Workspace} w */
+  const openTabs = (w) => {
+    const created = w.tabs.map((url) => tabs.create(url, { activate: false }));
+    const i = savedActiveIndex(w.activeTab, created.length);
+    if (i >= 0) tabs.activate(created[i].id);
+  };
+  /** What the shell gets: the list, and the active one's folder and terminal folders. */
+  const workspaceInfo = () => {
+    const w = current();
+    return { ...workspaceSummary(spaces), folder: w.folder, terminals: w.terminals, live: terminals.folders(w.id).length > 0 };
+  };
+  /** @param {string} id */
+  const switchTo = (id) => {
+    if (id === spaces.active) return workspaceInfo();
+    if (!spaces.list.some((w) => w.id === id)) throw new Error(`No workspace ${id}`);
+    if (conversation.busy) throw new Error('Wait for the chat to answer, or press Stop, before switching.');
+    snapshot();
+    spaces = { ...spaces, active: id };
+    visited.add(id);
+    persistSpaces();
+    tabs.closeAll();
+    openTabs(current());
+    conversation.reload();
+    const out = workspaceInfo();
+    send('workspace:changed', out);
+    return out;
+  };
+  handle('workspace:info', () => workspaceInfo());
+  handle('workspace:switch', (id) => switchTo(String(id)));
+  handle('workspace:add', (input) => {
+    const { folder, name, hubId } = input && typeof input === 'object' ? input : {};
+    const dir = drivePath(folder);
+    if (!dir || !fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`Not a folder: ${folder}`);
+    const added = addWorkspace(spaces, { folder: dir, name, hubId });
+    spaces = added.state;
+    persistSpaces();
+    return switchTo(added.id);
+  });
+  handle('workspace:remove', (id) => {
+    const target = String(id);
+    if (target === spaces.active) switchTo(spaces.list[0].id);
+    spaces = removeWorkspace(spaces, target);
+    visited.delete(target);
+    store.clearChat(target);
+    persistSpaces();
+    const out = workspaceInfo();
+    send('workspace:changed', out);
+    return out;
+  });
+
   /** @param {string} id @param {'code' | 'reveal' | 'default'} how @param {string} label */
   const openInHub = async (id, how, label) => {
     await hub.open(id, how);
@@ -240,7 +309,7 @@ async function createWindow() {
     // new PowerShell terminal there on Run and answers with its id; anything but that
     // fresh terminal refuses (isFreshRunTarget), so the approval can't change target.
     runCommand: async (command, cwd, signal) => {
-      const dir = cwd ?? terminals.defaultFolder();
+      const dir = cwd ?? terminals.defaultFolder(current().folder);
       if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
       const sinceId = terminals.nextId;
       const terminal = await confirmations.ask({ command, cwd: dir }, signal);
@@ -270,7 +339,13 @@ async function createWindow() {
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
   // The chat panel: Claude with this app's MCP server as its tools.
-  const conversation = chat({ mcp: () => mcp, send, load: store.chat, save: store.saveChat, clear: store.clearChat });
+  const conversation = chat({
+    mcp: () => mcp,
+    send,
+    load: () => store.chat(spaces.active),
+    save: (m) => store.saveChat(spaces.active, m),
+    clear: () => store.clearChat(spaces.active),
+  });
   handle('chat:info', () => conversation.info());
   handle('chat:send', (text, attach) => conversation.send(text, attach));
   handle('chat:reset', () => conversation.reset());
@@ -315,9 +390,7 @@ async function createWindow() {
   handle('tabs:restore', () => {
     if (restored) return;
     restored = true;
-    const created = layout.tabs.map((url) => tabs.create(url, { activate: false }));
-    const i = savedActiveIndex(layout.activeTab, created.length);
-    if (i >= 0) tabs.activate(created[i].id);
+    openTabs(current());
   });
   handle('tabs:openExternal', (url) => {
     const u = String(url);
@@ -325,7 +398,7 @@ async function createWindow() {
   });
 
   handle('term:create', (opts) => {
-    const t = terminals.create(opts || {});
+    const t = terminals.create({ ...opts, ws: spaces.active });
     send('recent:changed', store.addRecent({ type: 'terminal', target: t.cwd, label: t.cwd }));
     return t;
   });
@@ -352,11 +425,8 @@ async function createWindow() {
   handle('ext:list', () => listExtensions(browseSession));
 
   win.on('close', () => {
-    if (process.env.ACC_SMOKE_DIR) return;
-    const { urls, active } = tabs.snapshot();
-    const kept = cleanSavedTabs(urls);
-    // Dropped entries (blank pages) shift the index; point it at the same URL if kept.
-    store.saveLayout({ tabs: kept, activeTab: active >= 0 ? kept.indexOf(urls[active]) : -1 });
+    snapshot();
+    persistSpaces();
   });
   win.on('closed', () => {
     terminals.killAll();

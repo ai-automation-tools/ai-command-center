@@ -110,6 +110,8 @@ export async function startChat(api) {
   });
 
   await intro();
+  // A workspace switch brings its own conversation.
+  api.workspace.onChanged(() => intro().catch(() => {}));
 }
 
 /** @param {unknown} err */

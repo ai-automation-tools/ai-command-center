@@ -10,7 +10,7 @@ const THEME = {
   brightBlack: '#52525b', brightRed: '#fca5a5', brightGreen: '#6ee7b7', brightYellow: '#fde68a', brightBlue: '#93c5fd', brightMagenta: '#d8b4fe', brightCyan: '#67e8f9', brightWhite: '#fafafa',
 };
 
-/** @typedef {{ id: number, term: Terminal, fit: FitAddon, pane: HTMLElement, tab: HTMLElement, exited: boolean, powershell: boolean }} Session */
+/** @typedef {{ id: number, term: Terminal, fit: FitAddon, pane: HTMLElement, tab: HTMLElement, exited: boolean, powershell: boolean, ws: string }} Session */
 
 export class TerminalPanel {
   /** @param {{ host: HTMLElement, tabs: HTMLElement, api: any, openLink: (url: string) => void }} opts */
@@ -23,6 +23,8 @@ export class TerminalPanel {
     this.sessions = new Map();
     /** @type {number | null} */
     this.activeId = null;
+    /** The workspace whose terminals show; the others keep running, hidden. */
+    this.ws = '';
 
     api.term.onData((/** @type {number} */ id, /** @type {string} */ data) => this.sessions.get(id)?.term.write(data));
     api.term.onExit((/** @type {number} */ id, /** @type {number} */ code) => {
@@ -90,23 +92,35 @@ export class TerminalPanel {
       term.focus();
     });
 
-    this.sessions.set(id, { id, term, fit, pane, tab, exited: false, powershell: Boolean(info.powershell) });
+    this.sessions.set(id, { id, term, fit, pane, tab, exited: false, powershell: Boolean(info.powershell), ws: String(info.ws || '') });
     this.activate(id);
     return id;
   }
 
-  /** @param {number} id */
+  /** @param {number | null} id null shows none */
   activate(id) {
     for (const s of this.sessions.values()) {
       const on = s.id === id;
       s.pane.hidden = !on;
+      s.tab.hidden = s.ws !== this.ws;
       s.tab.classList.toggle('active', on);
       s.tab.setAttribute('aria-selected', String(on));
     }
     this.activeId = id;
     this.api.term.setActive(id);
     this.fitActive();
-    this.sessions.get(id)?.term.focus();
+    if (id !== null) this.sessions.get(id)?.term.focus();
+  }
+
+  /** Show one workspace's terminals and hide the rest, which keep running. @param {string} ws */
+  showWorkspace(ws) {
+    this.ws = ws;
+    this.activate(this.lastId());
+  }
+
+  /** The newest terminal in the showing workspace. */
+  lastId() {
+    return [...this.sessions.values()].filter((s) => s.ws === this.ws).pop()?.id ?? null;
   }
 
   /** @param {number} id */
@@ -119,12 +133,7 @@ export class TerminalPanel {
     s.pane.remove();
     s.tab.remove();
     this.sessions.delete(id);
-    if (this.activeId === id) {
-      const next = [...this.sessions.keys()].pop();
-      this.activeId = null;
-      if (next !== undefined) this.activate(next);
-      else this.api.term.setActive(null);
-    }
+    if (this.activeId === id) this.activate(this.lastId());
   }
 
   fitActive() {
@@ -138,7 +147,8 @@ export class TerminalPanel {
     s?.term.focus();
   }
 
-  get size() { return this.sessions.size; }
+  /** Terminals in the showing workspace. */
+  get size() { return [...this.sessions.values()].filter((s) => s.ws === this.ws).length; }
 }
 
 /**

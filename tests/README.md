@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-160%2B-2ea44f?style=for-the-badge" alt="160+ tests">
+  <img src="https://img.shields.io/badge/tests-170%2B-2ea44f?style=for-the-badge" alt="170+ tests">
   <img src="https://img.shields.io/badge/runner-node_--test-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="node --test">
   <a href="../README.md"><img src="https://img.shields.io/badge/↩-repository_root-6B7280?style=for-the-badge" alt="Repository root"></a>
 </p>
@@ -16,7 +16,7 @@ The unit tests use Node's built-in runner, so there's nothing to install beyond 
 
 | File | What it pins down |
 |:---|:---|
-| [**tree.test.js**](tree.test.js) | Hub id to path (base, home, virtual), click actions (files open as documents), the right-click menu for folders, files and virtual nodes, terminal folders, a 20,000-deep tree flattening without a stack overflow, search ranking and limits, bookmark flattening. |
+| [**tree.test.js**](tree.test.js) | Hub id to path (base, home, virtual), click actions (files open as documents), the right-click menu for folders (with Open as workspace), files and virtual nodes, terminal folders, a 20,000-deep tree flattening without a stack overflow, search ranking and limits, bookmark flattening. |
 | [**url.test.js**](url.test.js) | Address-bar input: URLs kept, Windows paths to `file://`, loopback to `http`, hosts to `https`, everything else to a search; `javascript:` and `data:` refused; a `file:` URL only from the app or another local file. |
 | [**recent.test.js**](recent.test.js) | Newest first, de-duplicated by type and target, capped at 50, and a hand-edited file can't inject bad entries. |
 | [**mcp.test.js**](mcp.test.js) | MCP server: exact-token and loopback-host checks, protocol negotiation, tool listing and calls, JSON-RPC errors, and a real HTTP server refusing a missing or wrong token (401), GET (405), bad JSON (400), a foreign `Origin` (403) and an unsupported protocol version (400). Malformed `params`, `arguments`, ids and tool names get JSON-RPC errors; `structuredContent` is only ever an object; a failure inside the handler is answered and the next request works; a client that disconnects aborts the tool it waits on; and a strict-client session checks every reply's shape. |
@@ -27,6 +27,7 @@ The unit tests use Node's built-in runner, so there's nothing to install beyond 
 | [**shells.test.js**](shells.test.js) | Shell profiles: PowerShell 7 first, missing shells skipped, a per-user Git install found, a PATH fallback, unknown ids (including paths and arguments) falling back to the default; and the native-menu item check. |
 | [**mcplog.test.js**](mcplog.test.js) | The MCP call log: tool calls, tool and JSON-RPC errors, junk messages, clipped arguments, refusals, the file line (a `terminal_run` command as its length, URL query strings cut, checked with sentinel values), the capped list, and a real server reporting a refused call, a tool call and a notification through `onCall`. |
 | [**cronsole.test.js**](cronsole.test.js) | Cronsole: the server path and UI origin from the environment (non-http UIs refused), the pinned-tab URL match by exact origin, the handshake, `list_tasks` and `run_task` (the id passed on, a result or its text returned, a tool error thrown, ids checked) against a fake stdio server that answers in split chunks with stray lines mixed in, JSON-RPC errors, timeouts and a dying process, tool errors and malformed rows, `get_task_history` and `get_run_output` (arguments, empty and malformed history, at most five runs), `acc://run` URLs round-tripped and refused, and the sidebar's next-run, paused, missing and failed rows and its run rows. |
+| [**workspaces.test.js**](workspaces.test.js) | `workspaces.json`: a first run takes `layout.json`'s tabs into Default, after that they're ignored; a hand-edited file loses bad ids, duplicates, UNC, relative and hidden-character folders, and keeps Default first; caps; ids made from names and kept unique, one workspace per folder however it's spelled; Default can't be removed and takes over from a removed active one; saving one workspace leaves the others alone; the conversation file name refuses anything but an id. |
 | [**session.test.js**](session.test.js) | Saved tabs: only allowed schemes, no blank pages, order kept, capped at 30; a bad active index falls back to the last tab. Tab cycling wraps round the strip, and Ctrl+1 to Ctrl+9 follow Chrome's rule. |
 | [**settings.test.js**](settings.test.js) | `settings.json`: neutral defaults for a missing or broken file, the Hub URL http(s) only and on this machine unless `ACC_HUB_REMOTE=1`, with `ACC_HUB_URL` winning, quick links validated and capped, the default link following the Hub URL. |
 | [**permissions.test.js**](permissions.test.js) | Pages get fullscreen, pointer lock and sanitized clipboard writes; media, location, notifications, MIDI, screen capture, clipboard reads, devices and anything unknown are refused. |

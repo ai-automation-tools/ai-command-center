@@ -45,7 +45,7 @@ export function defaultAction(node) {
   return 'view';
 }
 
-/** @typedef {'view' | 'browse' | 'code' | 'reveal' | 'terminal' | 'copy-path' | 'copy-id'} FileAction */
+/** @typedef {'view' | 'browse' | 'code' | 'reveal' | 'terminal' | 'workspace' | 'copy-path' | 'copy-id'} FileAction */
 
 /**
  * The right-click menu for a Files row, as `{ id, label }` items and '-' separators.
@@ -62,6 +62,7 @@ export function fileMenu(node) {
     { id: 'code', label: 'Open in VS Code' },
     { id: 'reveal', label: 'Reveal in Explorer' },
     { id: 'terminal', label: folder ? 'Terminal here' : 'Terminal in this folder' },
+    ...(folder ? [{ id: /** @type {const} */ ('workspace'), label: 'Open as workspace' }] : []),
     '-',
     { id: 'copy-path', label: 'Copy path' },
     { id: 'copy-id', label: 'Copy Project Hub id' },

@@ -6,6 +6,7 @@
 
 import { app } from 'electron';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions } from './extensions.js';
@@ -273,6 +274,29 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       console.log(`[smoke] run page=${JSON.stringify(page)}`);
       check('Cronsole: a run opens as a page', Boolean(page.title), page, { live: true });
     }
+    // A workspace round trip: its own tabs and terminal, and everything back on return.
+    const spaceRun = await wc.executeJavaScript(`(async () => {
+      const pause = () => new Promise((r) => setTimeout(r, 2500));
+      const seen = () => ({
+        tabs: document.querySelectorAll('#tab-list .tab').length,
+        terms: [...document.querySelectorAll('#term-tabs .term-tab')].filter((t) => !t.hidden).map((t) => t.title),
+      });
+      const before = seen();
+      const added = await window.acc.workspace.add({ folder: ${JSON.stringify(os.tmpdir())}, name: 'Smoke space' });
+      await pause();
+      const inside = { active: added.active, ...seen(), button: document.getElementById('workspace').textContent };
+      await window.acc.workspace.switch('default');
+      await pause();
+      const back = seen();
+      const left = (await window.acc.workspace.remove(added.active)).list.length;
+      return { before, inside, back, left };
+    })()`);
+    console.log(`[smoke] workspace=${JSON.stringify(spaceRun)} sessions=${terminals.listSessions().length}`);
+    check('a workspace switch swaps the tabs and terminals, and switching back restores them',
+      spaceRun.inside.active === 'smoke-space' && spaceRun.inside.tabs === 0 && spaceRun.inside.terms.length === 1 && spaceRun.inside.terms[0] === os.tmpdir()
+      && /Smoke space/.test(spaceRun.inside.button) && spaceRun.back.tabs === spaceRun.before.tabs
+      && spaceRun.back.terms.length === spaceRun.before.terms.length && spaceRun.left === 1
+      && terminals.listSessions().length === spaceRun.before.terms.length + 1, spaceRun);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     await shot('shell.png', wc);
