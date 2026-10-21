@@ -38,14 +38,16 @@ const acc = demoApi({
   },
 });
 
-// The app's Ctrl+K comes from its native menu; the demo has none, so catch the key here.
+// The app's Ctrl+K and Ctrl+Shift+L come from its native menu; the demo has none, so catch the keys here.
 /** @type {((action: string) => void)[]} */
 const shortcuts = [];
 const onShortcut = acc.onShortcut;
 acc.onShortcut = (/** @type {(action: string) => void} */ fn) => { shortcuts.push(fn); return onShortcut(fn); };
 document.addEventListener('keydown', (e) => {
-  if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'k') return;
+  const key = e.key.toLowerCase();
+  const action = e.ctrlKey && !e.altKey && (!e.shiftKey && key === 'k' ? 'palette' : e.shiftKey && key === 'l' ? 'toggle-chat' : '');
+  if (!action) return;
   e.preventDefault();
-  for (const fn of shortcuts) fn('palette');
+  for (const fn of shortcuts) fn(action);
 });
 /** @type {any} */ (window).acc = acc;

@@ -25,12 +25,19 @@ button, input, select { font: inherit; color: inherit; }
 
 #app {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 4px 1fr;
+  /* Sidebar, splitter, the browser and terminal, splitter, chat. The classes below zero a side. */
+  --side-col: var(--sidebar-w);
+  --side-gap: 4px;
+  --chat-col: var(--chat-w);
+  --chat-gap: 4px;
+  grid-template-columns: var(--side-col) var(--side-gap) minmax(0, 1fr) var(--chat-gap) var(--chat-col);
   /* minmax(0, …) so a long sidebar list scrolls instead of stretching the row. */
   grid-template-rows: minmax(0, 1fr);
   height: 100vh;
 }
-#app.no-sidebar { grid-template-columns: 0 0 1fr; }
+#app.no-sidebar { --side-col: 0px; --side-gap: 0px; }
+#app.no-chat { --chat-col: 0px; --chat-gap: 0px; }
+#app.no-chat #chat-pane, #app.no-chat #chat-split { visibility: hidden; }
 #app.no-sidebar #sidebar { visibility: hidden; }
 
 /* ---- sidebar ---------------------------------------------------------- */
@@ -105,7 +112,9 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .row.task.failed .icon, .row.task.failed .sub { color: var(--bad); }
 .row.run .name { font-size: 12px; color: var(--text-2); }
 .row.run.failed .icon { color: var(--bad); }
-#panel-chat:not([hidden]) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+#chat-pane { display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); min-width: 0; min-height: 0; }
+#panel-chat { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+#chat-hide { flex: none; }
 /* The workspace's conversations: the open one's name, New, and a searchable list. */
 #chat-convs-bar { display: flex; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 #chat-conv-title { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: none; border: 1px solid transparent; border-radius: 5px; padding: 3px 6px; color: var(--text); cursor: pointer; font-weight: 600; }

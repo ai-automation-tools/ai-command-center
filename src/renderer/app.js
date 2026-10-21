@@ -35,6 +35,9 @@ let favorites = /** @type {any[]} */ ([]);
 document.documentElement.style.setProperty('--sidebar-w', `${layout.sidebarWidth}px`);
 document.documentElement.style.setProperty('--term-h', `${layout.terminalHeight}px`);
 mainEl.classList.toggle('no-terminal', !layout.terminalOpen);
+document.documentElement.style.setProperty('--chat-w', `${layout.chatWidth}px`);
+appEl.classList.toggle('no-chat', !layout.chatOpen);
+$('chat-toggle').setAttribute('aria-pressed', String(layout.chatOpen));
 
 function reportBounds() {
   const r = content.getBoundingClientRect();
@@ -76,6 +79,25 @@ dragSplitter($('term-split'), (e) => {
   layout.terminalHeight = Math.min(window.innerHeight - 200, Math.max(120, window.innerHeight - e.clientY));
   document.documentElement.style.setProperty('--term-h', `${layout.terminalHeight}px`);
 }, () => api.saveLayout({ terminalHeight: layout.terminalHeight }));
+
+// The chat pane on the right; its width leaves the browser at least 320 px.
+dragSplitter($('chat-split'), (e) => {
+  const room = window.innerWidth - (appEl.classList.contains('no-sidebar') ? 0 : layout.sidebarWidth) - 320;
+  layout.chatWidth = Math.max(260, Math.min(800, room, window.innerWidth - e.clientX));
+  document.documentElement.style.setProperty('--chat-w', `${layout.chatWidth}px`);
+}, () => api.saveLayout({ chatWidth: layout.chatWidth }));
+
+/** Show or hide the chat pane, and remember it. @param {boolean} open */
+function setChatOpen(open) {
+  appEl.classList.toggle('no-chat', !open);
+  layout.chatOpen = open;
+  $('chat-toggle').setAttribute('aria-pressed', String(open));
+  api.saveLayout({ chatOpen: open });
+  requestAnimationFrame(() => { reportBounds(); terminals.fitActive(); });
+  if (open) $('chat-input').focus();
+}
+$('chat-toggle').addEventListener('click', () => setChatOpen(appEl.classList.contains('no-chat')));
+$('chat-hide').addEventListener('click', () => setChatOpen(false));
 
 // ---- terminals ---------------------------------------------------------------
 
@@ -445,10 +467,11 @@ const ACTIONS = [
   ['New terminal', 'Ctrl+Shift+`', 'new-terminal'],
   ['Toggle terminal', 'Ctrl+`', 'toggle-terminal'],
   ['Toggle sidebar', 'Ctrl+B', 'toggle-sidebar'],
+  ['Toggle chat', 'Ctrl+Shift+L', 'toggle-chat'],
   ['Search everything', 'Ctrl+Shift+F', 'focus-search'],
   ['Open Cronsole', 'pinned tab', 'open-cronsole'],
   ['Connections', 'Hub, Cronsole, shells, chat, MCP', 'connections'],
-  ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Chat', 'Cron'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
+  ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Cron'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
 ];
 
 const palette = createPalette({
@@ -532,6 +555,7 @@ function runAction(action) {
     appEl.classList.toggle('no-sidebar');
     requestAnimationFrame(reportBounds);
   }
+  if (action === 'toggle-chat') setChatOpen(appEl.classList.contains('no-chat'));
   if (action === 'reload') api.tabs.command('reload');
   if (action === 'find') openFind();
   if (action === 'devtools') api.tabs.command('devtools');

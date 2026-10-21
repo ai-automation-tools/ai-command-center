@@ -61,13 +61,15 @@ export const store = {
     return next;
   },
 
-  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, adBlock: boolean, bookmarkSource: string }} */
+  /** @returns {{ sidebarWidth: number, terminalHeight: number, terminalOpen: boolean, chatWidth: number, chatOpen: boolean, adBlock: boolean, bookmarkSource: string }} */
   layout() {
     const d = readJson('layout.json', {});
     return {
       sidebarWidth: Number.isFinite(d.sidebarWidth) ? d.sidebarWidth : 300,
       terminalHeight: Number.isFinite(d.terminalHeight) ? d.terminalHeight : 280,
       terminalOpen: d.terminalOpen !== false,
+      chatWidth: Number.isFinite(d.chatWidth) ? d.chatWidth : 380,
+      chatOpen: d.chatOpen === true,
       adBlock: d.adBlock !== false,
       bookmarkSource: typeof d.bookmarkSource === 'string' ? d.bookmarkSource : '',
     };

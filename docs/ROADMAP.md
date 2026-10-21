@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/now-Milestone_B-F59E0B?style=for-the-badge" alt="Now: Milestone B">
+  <img src="https://img.shields.io/badge/now-Milestone_C-F59E0B?style=for-the-badge" alt="Now: Milestone C">
   <img src="https://img.shields.io/badge/stage-public_since_2026--10--18-2ea44f?style=for-the-badge" alt="Stage: public since 2026-10-18">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-docs_home-6B7280?style=for-the-badge" alt="Back to docs"></a>
 </p>
@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) is done, and B is under way, with workspaces, the command palette, the context tray, the connections view and named conversations in. **Next:** the last Milestone B item, chat in a right-hand pane, then the two open Integrations items. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. **Next:** Milestone C. Its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is the read-only Git changes view, then dev servers and the two open Integrations items. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -94,7 +94,7 @@ They decide whether to keep going, per [build-plan.md](product/build-plan.md#whe
 |:---|:--:|:---|
 | | | |
 
-### 🛡️ Milestone A: a trustworthy foundation
+### 🛡️ Milestone A: a trustworthy foundation (done 2026-10-20)
 
 From a project audit on 2026-10-20 (the report stays outside the repo). These come before anything that gives agents more authority. Each item lands with tests for its failure cases.
 
@@ -108,7 +108,7 @@ From a project audit on 2026-10-20 (the report stays outside the repo). These co
 - [x] `npm run smoke` that fails when a check fails: a throwaway profile by default (`--profile` for the real one), each check an assertion, a JSON summary in `.smoke/`, a nonzero exit on any failure or on a no-op second-instance launch. Live Hub and Cronsole checks stay, opt-in — 2026-10-20; `ACC_USER_DATA` picks the profile before the single-instance lock; 22 named checks, 7 of them `--live`; screenshots warn instead of failing; checked: 21 pass and 1 skip by default, 22 pass with `--live`, and exit 1 with a broken `ACC_CRONSOLE_MCP`
 - [x] Small fixes: CI's `npm audit` covers Electron (it's a devDependency but ships as the runtime); IPC also checks the sender is the shell's main frame; favorite toggles run one at a time; Hub request timers are cleared; `settings.json`'s `hubUrl` is loopback-only unless `ACC_HUB_REMOTE=1`; README status and Electron badge brought up to date — 2026-10-20; `hubFetch` reads the body inside its deadline and clears the timer; 1 test for the Hub address rule; `npm run smoke -- --live` 22/22 with the frame check on. The duplicate `overrides` key from the audit was already gone (PR #37)
 
-### 🧭 Milestone B: a project-centered shell
+### 🧭 Milestone B: a project-centered shell (done 2026-10-21)
 
 Selecting a project should set the folder, terminals, tabs and conversation together, rather than adding more sidebar panels.
 
@@ -117,14 +117,14 @@ Selecting a project should set the folder, terminals, tabs and conversation toge
 - [x] Context tray: before a message goes, show exactly what's attached (page text, terminal lines) and where it's going, with a remove ✕ on each — done 2026-10-21: + page and + terminal read into a tray above the box (label, source, size, "Show what's sent" with the exact text, ✕), a line naming the model and `api.anthropic.com`, and the message sends those snapshots without reading again. `trayItem` in `src/shared/chat.js`, 2 tests; `npm run smoke` adds a tray check (25 checks); checked in the browser demo
 - [x] Connections view: Hub, Cronsole, each shell, the chat model and the MCP server, each with its state, a Retry and what to set when it's missing — done 2026-10-21: a dialog from the sidebar's status dot, the palette and the View menu; each group is checked on its own (Cronsole lists its tasks; the chat row never calls the API), a shell installed since start appears on Retry. `src/shared/connections.js`, 5 tests; `npm run smoke` opens it and retries a row (26 checks); checked in the browser demo
 - [x] Several conversations per workspace: named, listed and searchable (today each workspace has exactly one) — done 2026-10-21: the open conversation's name tops the Chat tab and opens the list (search over names and text with a snippet, open, rename, two-click delete); **New** replaces Clear. `chats/<ws>/` holds `index.json` and one file each; an old `chat.json` moves in. `src/shared/conversations.js`, 5 tests; `npm run smoke` seeds an old `chat.json` and runs the whole cycle (27 checks); checked in the browser demo
-- [ ] Chat in a resizable right-hand pane, so it stays open beside Files
+- [x] Chat in a resizable right-hand pane, so it stays open beside Files — done 2026-10-21: the Chat tab left the sidebar for a full-height pane on the right with its own splitter (260 to 800 px, keeping 320 px for the browser); 💬 in the address bar, Ctrl+Shift+L, the palette and × show and hide it; width and open state in `layout.json`. `npm run smoke` opens it and checks the browser area narrows by its width with Files still showing (28 checks)
 
 ### 🧑‍💻 Milestone C: editing in the window
 
 Replaces Phase 3's IDE line.
 
 - [ ] Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend 🔒 Needs Mike
-- [ ] Editor and browser preview side by side, from the ADR's choice
+- [!] Editor and browser preview side by side, from the ADR's choice — blocked: waits for the editor ADR above
 - [ ] Git changes: branch, status and diff for the workspace's repo, read-only first
 - [ ] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start
 

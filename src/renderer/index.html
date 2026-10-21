@@ -24,7 +24,6 @@
         <button role="tab" data-panel="bookmarks" aria-selected="false">Bookmarks</button>
         <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
         <button role="tab" data-panel="mcp" aria-selected="false" title="Calls agents made to the app's MCP server">MCP</button>
-        <button role="tab" data-panel="chat" aria-selected="false" title="Chat with Claude, which can drive the app">Chat</button>
         <button role="tab" data-panel="cron" aria-selected="false" title="Cronsole's scheduled tasks">Cron</button>
       </nav>
       <section id="panel-files" class="panel" role="tabpanel"></section>
@@ -36,31 +35,6 @@
       </section>
       <section id="panel-recent" class="panel" role="tabpanel" hidden></section>
       <section id="panel-mcp" class="panel" role="tabpanel" aria-live="polite" hidden></section>
-      <section id="panel-chat" class="panel" role="tabpanel" hidden>
-        <div id="chat-convs-bar">
-          <button type="button" id="chat-conv-title" aria-expanded="false" aria-controls="chat-convs" title="This workspace's conversations">New conversation</button>
-          <button type="button" id="chat-new" title="Start a new conversation; this one stays in the list">New</button>
-        </div>
-        <div id="chat-convs" hidden>
-          <input id="chat-conv-search" type="search" placeholder="Search this workspace's conversations" aria-label="Search conversations" autocomplete="off">
-          <div id="chat-conv-list" role="list"></div>
-        </div>
-        <div id="chat-log" aria-live="polite"></div>
-        <form id="chat-form">
-          <div id="chat-tray" hidden aria-label="Attached to your next message">
-            <div id="chat-tray-items"></div>
-            <div id="chat-tray-dest"></div>
-          </div>
-          <textarea id="chat-input" rows="3" placeholder="Ask Claude to open a tab, find a file, run a command…  (Enter sends, Shift+Enter for a new line)" aria-label="Chat message" spellcheck="true"></textarea>
-          <div class="chat-actions">
-            <button type="button" id="chat-attach-page" class="chat-attach" title="Read the active tab's text now and attach it to your next message">+ page</button>
-            <button type="button" id="chat-attach-terminal" class="chat-attach" title="Read the showing terminal's last lines now and attach them to your next message">+ terminal</button>
-            <span id="chat-model"></span>
-            <button type="submit" id="chat-send">Send</button>
-            <button type="button" id="chat-stop" hidden title="Stop the answer; a pending Run prompt is withdrawn">Stop</button>
-          </div>
-        </form>
-      </section>
       <section id="panel-cron" class="panel" role="tabpanel" hidden>
         <div class="panel-tools cron-tools">
           <button id="cron-open" title="Cronsole's UI in the pinned tab">Open Cronsole</button>
@@ -95,6 +69,7 @@
         </form>
         <div id="actions-host"></div>
         <button id="open-external" class="icon-btn" title="Open in default browser" aria-label="Open in default browser">↗</button>
+        <button id="chat-toggle" class="icon-btn" title="Chat (Ctrl+Shift+L)" aria-label="Chat" aria-pressed="false">💬</button>
       </div>
       <div id="content">
         <div id="empty" class="empty">
@@ -120,6 +95,37 @@
         <div id="term-host"></div>
       </section>
     </main>
+
+    <div id="chat-split" class="splitter vertical" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Resize chat"></div>
+
+    <aside id="chat-pane" aria-label="Chat with Claude">
+      <section id="panel-chat" aria-label="Chat">
+        <div id="chat-convs-bar">
+          <button type="button" id="chat-conv-title" aria-expanded="false" aria-controls="chat-convs" title="This workspace's conversations">New conversation</button>
+          <button type="button" id="chat-new" title="Start a new conversation; this one stays in the list">New</button>
+          <button type="button" id="chat-hide" class="icon-btn" title="Hide chat (Ctrl+Shift+L)" aria-label="Hide chat">×</button>
+        </div>
+        <div id="chat-convs" hidden>
+          <input id="chat-conv-search" type="search" placeholder="Search this workspace's conversations" aria-label="Search conversations" autocomplete="off">
+          <div id="chat-conv-list" role="list"></div>
+        </div>
+        <div id="chat-log" aria-live="polite"></div>
+        <form id="chat-form">
+          <div id="chat-tray" hidden aria-label="Attached to your next message">
+            <div id="chat-tray-items"></div>
+            <div id="chat-tray-dest"></div>
+          </div>
+          <textarea id="chat-input" rows="3" placeholder="Ask Claude to open a tab, find a file, run a command…  (Enter sends, Shift+Enter for a new line)" aria-label="Chat message" spellcheck="true"></textarea>
+          <div class="chat-actions">
+            <button type="button" id="chat-attach-page" class="chat-attach" title="Read the active tab's text now and attach it to your next message">+ page</button>
+            <button type="button" id="chat-attach-terminal" class="chat-attach" title="Read the showing terminal's last lines now and attach them to your next message">+ terminal</button>
+            <span id="chat-model"></span>
+            <button type="submit" id="chat-send">Send</button>
+            <button type="button" id="chat-stop" hidden title="Stop the answer; a pending Run prompt is withdrawn">Stop</button>
+          </div>
+        </form>
+      </section>
+    </aside>
   </div>
   <dialog id="connections" aria-labelledby="connections-title">
     <div class="conn-head">

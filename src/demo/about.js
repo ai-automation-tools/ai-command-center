@@ -56,7 +56,7 @@ export const ABOUT_HTML = `<article class="demo-doc">
     <tbody>
       <tr><td><b>💻 Terminal</b></td><td>Type <code>npm test</code> in the panel below. One test fails on purpose. <code>git status</code>, <code>ls</code> and <code>help</code> answer too.</td></tr>
       <tr><td><b>✋ Confirm bar</b></td><td>About six seconds in, an agent asks to run <code>npm test</code>. Nothing happens until you click <b>Run</b>.</td></tr>
-      <tr><td><b>📁 Sidebar</b></td><td>Open a folder under Files, search across files and bookmarks, then look at the <b>MCP</b> log, <b>Chat</b> and <b>Cron</b> tabs.</td></tr>
+      <tr><td><b>📁 Sidebar</b></td><td>Open a folder under Files, search across files and bookmarks, then look at the <b>MCP</b> log and <b>Cron</b> tabs, and the chat pane on the right.</td></tr>
       <tr><td><b>🗂️ Tabs</b></td><td>Type an address and press Enter. Tabs, back, forward and Recent all work, though there's no browser engine behind the page.</td></tr>
     </tbody>
   </table>
@@ -72,7 +72,7 @@ export const ABOUT_HTML = `<article class="demo-doc">
       <tr><td><b>🔖 Bookmarks</b></td><td>Your Chrome, Edge or Brave bookmarks, read straight from disk, or Hub's own favorites.</td></tr>
       <tr><td><b>🔍 Search</b></td><td>One box across files, bookmarks, and the pages, files and terminals you opened lately.</td></tr>
       <tr><td><b>🤖 MCP server</b></td><td>Tools that look (<code>list_tabs</code>, <code>read_tab</code>, <code>sidebar_search</code>, <code>terminal_read</code>) and tools that act (<code>open_tab</code>, <code>open_file</code>, <code>terminal_run</code>, <code>cron_run</code>). Anything that runs waits for your click, and every call lands in the MCP log.</td></tr>
-      <tr><td><b>💬 Chat</b></td><td>Claude in the sidebar, using the same tools. <b>+ page</b> and <b>+ terminal</b> hand it what a tab or a terminal is showing. Replies stream, and the conversation is still there after a restart.</td></tr>
+      <tr><td><b>💬 Chat</b></td><td>Claude in a pane on the right (💬 or Ctrl+Shift+L), using the same tools. <b>+ page</b> and <b>+ terminal</b> hand it what a tab or a terminal is showing. Replies stream, and the conversation is still there after a restart.</td></tr>
       <tr><td><b>⏱️ Cron</b></td><td><a href="https://github.com/ai-automation-tools/cronsole" ${ext}>Cronsole</a>'s scheduled tasks: next run, paused or failed at a glance, and its full UI in a pinned tab. An agent can start a task once you click Run.</td></tr>
     </tbody>
   </table>

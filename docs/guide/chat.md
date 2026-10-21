@@ -1,7 +1,7 @@
 <h1 align="center">💬 Chat in the App</h1>
 
 <p align="center">
-  <em>Claude in the sidebar, with the same tools Claude Code gets.</em>
+  <em>Claude in a pane on the right, with the same tools Claude Code gets.</em>
 </p>
 
 <p align="center">
@@ -34,6 +34,8 @@ ACC_CHAT_MODEL=<a Claude model ID>
 
 | Do | What happens |
 |:---|:---|
+| **💬** in the address bar, or **Ctrl+Shift+L** | Shows or hides the chat pane; × in the pane hides it too |
+| Drag the pane's left edge | Resizes it; the width and whether it's open are remembered |
 | **Enter** / **Shift+Enter** | Send / new line |
 | **+ page** / **+ terminal** | Reads the active tab's text or the showing terminal's last lines into the context tray |
 | **✕** on a tray row | Drops that attachment |
@@ -60,7 +62,7 @@ ACC_CHAT_MODEL=<a Claude model ID>
 ## Conversations
 
 - Each workspace keeps its own list. A conversation is listed after its first message and named after it.
-- Click the name at the top of the Chat tab for the list. Click a row to open it, ✎ to rename it, ✕ twice to delete it.
+- Click the name at the top of the chat pane for the list. Click a row to open it, ✎ to rename it, ✕ twice to delete it.
 - The search box matches every word you type against names and message text, and shows where it matched. Attached page and terminal text isn't searched.
 - Saved after every message, attached text included, and back after a restart.
 - Stored under `%APPDATA%\ai-command-center\chats\<workspace>\`: `index.json` for the list, one file per conversation. An older `chat.json` or `chat-<workspace>.json` moves in as the first conversation.
