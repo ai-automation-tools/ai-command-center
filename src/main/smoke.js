@@ -228,7 +228,16 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       s.value = '';
       s.dispatchEvent(new Event('input'));
       await new Promise((r) => setTimeout(r, 300));
-      document.querySelector('.side-tabs [data-panel="chat"]').click();
+      // The chat pane opens on the right, beside the sidebar, and the browser area gives up its width.
+      const contentBefore = document.getElementById('content').getBoundingClientRect().width;
+      if (document.getElementById('app').classList.contains('no-chat')) document.getElementById('chat-toggle').click();
+      await new Promise((r) => setTimeout(r, 300));
+      const pane = {
+        width: Math.round(document.getElementById('chat-pane').getBoundingClientRect().width),
+        shrunk: Math.round(contentBefore - document.getElementById('content').getBoundingClientRect().width),
+        filesShown: !document.getElementById('panel-files').hidden && !document.getElementById('app').classList.contains('no-sidebar'),
+        pressed: document.getElementById('chat-toggle').getAttribute('aria-pressed'),
+      };
       // + page reads the active tab into the context tray; the row says what it is and
       // holds the exact text that would go; ✕ takes it out.
       const tray = document.getElementById('chat-tray');
@@ -242,10 +251,13 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         dest: document.getElementById('chat-tray-dest').textContent,
       };
       row?.querySelector('.tray-remove').click();
-      return { info: await window.acc.chat.info(), shownRow, removed: tray.hidden, shown: document.getElementById('chat-log').textContent.slice(-200) };
+      return { info: await window.acc.chat.info(), pane, shownRow, removed: tray.hidden, shown: document.getElementById('chat-log').textContent.slice(-200) };
     })()`);
     console.log(`[smoke] chat=${JSON.stringify(chatPanel)}`);
-    check('the Chat tab opens and never gets the key', Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
+    check('the Chat panel never gets the key', Array.isArray(chatPanel.info?.missing) && !('apiKey' in (chatPanel.info || {})), chatPanel.info);
+    const pn = chatPanel.pane;
+    check('💬 opens the chat pane on the right beside Files, and the browser area narrows to make room',
+      pn.width >= 260 && Math.abs(pn.shrunk - pn.width - 4) <= 2 && pn.filesShown && pn.pressed === 'true', pn);
     const tr = chatPanel.shownRow;
     check('+ page puts the tab in the context tray with its exact text and destination, and ✕ removes it',
       Boolean(tr && tr.label.startsWith('Page: ') && /characters/.test(tr.detail) && tr.exact.startsWith('{') && /api\.anthropic\.com/.test(tr.dest) && chatPanel.removed), tr);

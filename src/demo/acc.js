@@ -277,7 +277,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       versions: { electron: 'demo', chrome: 'demo', node: 'demo' },
       shell: SHELLS[0].label,
       shells: SHELLS,
-      layout: { sidebarWidth: 300, terminalHeight: 240, terminalOpen: true, bookmarkSource: 'chrome', tabs: [] },
+      layout: { sidebarWidth: 300, terminalHeight: 240, terminalOpen: true, chatWidth: 340, chatOpen: true, bookmarkSource: 'chrome', tabs: [] },
       browsePartition: 'persist:browse',
     }),
     saveLayout: async () => {},

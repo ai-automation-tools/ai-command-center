@@ -56,7 +56,6 @@ export class Sidebar {
       source: /** @type {HTMLSelectElement} */ (document.getElementById('bookmark-source')),
       recent: /** @type {HTMLElement} */ (document.getElementById('panel-recent')),
       mcp: /** @type {HTMLElement} */ (document.getElementById('panel-mcp')),
-      chat: /** @type {HTMLElement} */ (document.getElementById('panel-chat')),
       cron: /** @type {HTMLElement} */ (document.getElementById('panel-cron')),
       cronList: /** @type {HTMLElement} */ (document.getElementById('cron-list')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
@@ -460,7 +459,6 @@ export class Sidebar {
     this.el.bookmarks.hidden = name !== 'bookmarks';
     this.el.recent.hidden = name !== 'recent';
     this.el.mcp.hidden = name !== 'mcp';
-    this.el.chat.hidden = name !== 'chat';
     this.el.cron.hidden = name !== 'cron';
     if (name === 'cron' && !this.cronLoaded) this.loadCron();
   }
@@ -478,7 +476,7 @@ export class Sidebar {
       this.show(this.current);
       return;
     }
-    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.chat.hidden = this.el.cron.hidden = true;
+    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.cron.hidden = true;
     res.hidden = false;
     res.innerHTML = '';
 

@@ -147,6 +147,7 @@ function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
         item('Connections', undefined, 'connections'),
         item('Search everything', 'CmdOrCtrl+Shift+F', 'focus-search'),
         item('Toggle sidebar', 'CmdOrCtrl+B', 'toggle-sidebar'),
+        item('Toggle chat', 'CmdOrCtrl+Shift+L', 'toggle-chat'),
         { type: 'separator' },
         item('Reload page', 'F5', 'reload'),
         item('Find in page', 'CmdOrCtrl+F', 'find'),
