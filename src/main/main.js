@@ -21,7 +21,7 @@ import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
-import { Confirmations } from '../shared/confirm.js';
+import { Confirmations, isFreshRunTarget } from '../shared/confirm.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
@@ -230,12 +230,18 @@ async function createWindow() {
     readTerminal: (id) => terminals.read(id),
     openTab: (url, activate) => tabs.create(url, { activate }),
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
-    runCommand: async (command) => {
-      const terminal = await confirmations.ask({ command });
-      if (terminal === null || !terminals.isPowerShell(terminal)) return null;
+    // The command and folder are fixed here, before the bar shows them. The shell opens a
+    // new PowerShell terminal there on Run and answers with its id; anything but that
+    // fresh terminal refuses (isFreshRunTarget), so the approval can't change target.
+    runCommand: async (command, cwd) => {
+      const dir = cwd ?? terminals.defaultFolder();
+      if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
+      const sinceId = terminals.nextId;
+      const terminal = await confirmations.ask({ command, cwd: dir });
+      if (typeof terminal !== 'number' || !isFreshRunTarget(terminals.info(terminal), { sinceId, cwd: dir })) return null;
       // \r is Enter; PSReadLine takes \n as a continuation line.
       terminals.write(terminal, `${command}\r`);
-      return { terminal };
+      return { terminal, cwd: dir };
     },
     listCronTasks: () => cron.tasks(),
     runCronTask: async (id) => {

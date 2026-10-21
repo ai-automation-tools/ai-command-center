@@ -1,6 +1,6 @@
 // The Control Center's MCP tools. The read-only ones look at the open tabs, the
 // sidebar's search and the Recent list; the navigation ones open a tab or a file;
-// terminal_run types a command into a terminal once the user clicks Run.
+// terminal_run types a command into a new terminal once the user clicks Run.
 // Pure: main.js hands in the data sources and actions, so the tests run every tool
 // against fakes.
 
@@ -47,7 +47,7 @@ const ACTS = { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
  *   readTab: (id?: number) => Promise<{ id: number, url: string, title: string, text: string }>,
  *   openTab: (url: string, activate: boolean) => { id: number },
  *   openFile: (id: string, how: 'code' | 'reveal') => Promise<void>,
- *   runCommand: (command: string) => Promise<{ terminal: number } | null>,
+ *   runCommand: (command: string, cwd?: string) => Promise<{ terminal: number, cwd: string } | null>,
  *   listTerminals: () => TerminalInfo[],
  *   readTerminal: (id?: number) => { id: number, raw: string | null } | null,
  *   listCronTasks: () => Promise<import('./cronsole.js').CronTask[]>,
@@ -117,6 +117,21 @@ export function commandArg(value) {
   if (!command || command.length > MAX_COMMAND) throw new Error(`command must be a non-empty string of at most ${MAX_COMMAND} characters`);
   if (HIDDEN_CHARS.test(command)) throw new Error('command must be one line with no control or invisible characters; join statements with ";"');
   return command;
+}
+
+/**
+ * terminal_run's folder: an absolute path on a drive letter. A UNC path (\\server\share)
+ * is refused: starting a shell there would make Windows authenticate to that server.
+ * @param {unknown} value
+ * @returns {string | undefined}
+ */
+export function cwdArg(value) {
+  if (value === undefined) return undefined;
+  const cwd = typeof value === 'string' ? value.trim() : '';
+  if (!/^[A-Za-z]:[\\/]/.test(cwd) || cwd.length > MAX_ID || HIDDEN_CHARS.test(cwd)) {
+    throw new Error('cwd must be an absolute folder path on a drive, like D:\\work\\app');
+  }
+  return cwd;
 }
 
 /** @param {unknown} err */
@@ -319,19 +334,22 @@ export function terminalTools(src) {
       },
     }],
     ['terminal_run', {
-      description: "Run one line of PowerShell in AI Command Center's active terminal, or a new one if none is open. The app shows the command and waits for the user to click Run, so this can take minutes; it fails if they deny it or don't answer in 5 minutes. Returns once the command is typed in, without its output. Join statements with ';'.",
+      description: "Run one line of PowerShell in a new AI Command Center terminal, opened in `cwd` (an absolute folder path) or, without it, in the folder the active terminal started in. The app shows the command and folder and waits for the user to click Run, so this can take minutes; it fails if they deny it, don't answer in 5 minutes, or the new terminal can't start. Returns once the command is typed in, without its output: read it with terminal_read using the returned terminal id. Join statements with ';'.",
       annotations: ACTS,
       inputSchema: {
         type: 'object',
-        properties: { command: { type: 'string', minLength: 1, maxLength: MAX_COMMAND } },
+        properties: {
+          command: { type: 'string', minLength: 1, maxLength: MAX_COMMAND },
+          cwd: { type: 'string', minLength: 3, maxLength: MAX_ID, description: 'Absolute folder path, like D:\\work\\app' },
+        },
         required: ['command'],
         additionalProperties: false,
       },
       run: async (/** @type {any} */ args) => {
         const command = commandArg(args.command);
-        const ran = await src.runCommand(command);
-        if (!ran) throw new Error('Not run: the user denied the command or did not answer');
-        return { ran: true, terminal: ran.terminal, command };
+        const ran = await src.runCommand(command, cwdArg(args.cwd));
+        if (!ran) throw new Error('Not run: the user denied the command, did not answer, or the terminal it needed was not usable');
+        return { ran: true, terminal: ran.terminal, cwd: ran.cwd, command };
       },
     }],
   ]);

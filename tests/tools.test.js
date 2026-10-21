@@ -162,19 +162,28 @@ test('open_file reports Hub refusing or being down as a tool error', async () =>
   assert.match(res.content[0].text, /403/);
 });
 
-/** @param {(command: string) => Promise<{ terminal: number } | null>} runCommand */
+/** @param {(command: string, cwd?: string) => Promise<{ terminal: number, cwd: string } | null>} runCommand */
 function term(runCommand) {
-  /** @type {string[]} */
+  /** @type {any[]} */
   const asked = [];
-  const t = terminalTools(/** @type {any} */ ({ runCommand: (/** @type {string} */ c) => { asked.push(c); return runCommand(c); } }));
+  const t = terminalTools(/** @type {any} */ ({ runCommand: (/** @type {string} */ c, /** @type {string} */ d) => { asked.push(d === undefined ? c : [c, d]); return runCommand(c, d); } }));
   return { t, asked };
 }
 
-test('terminal_run asks with the trimmed command and reports the terminal it ran in', async () => {
-  const { t, asked } = term(async () => ({ terminal: 3 }));
+test('terminal_run asks with the trimmed command and reports the terminal and folder it ran in', async () => {
+  const { t, asked } = term(async (_c, d) => ({ terminal: 3, cwd: d ?? 'C:\\Users\\me' }));
   const res = await call(t, 'terminal_run', { command: '  git status; npm test  ' });
-  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, command: 'git status; npm test' });
-  assert.deepEqual(asked, ['git status; npm test']);
+  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, cwd: 'C:\\Users\\me', command: 'git status; npm test' });
+  await call(t, 'terminal_run', { command: 'npm test', cwd: ' D:/work/app ' });
+  assert.deepEqual(asked, ['git status; npm test', ['npm test', 'D:/work/app']]);
+});
+
+test('terminal_run refuses a relative, network or hidden-character cwd without asking', async () => {
+  const { t, asked } = term(async () => ({ terminal: 1, cwd: 'x' }));
+  for (const cwd of ['work', '..\\x', '\\\\server\\share', '//server/share', 'C:', 'D:\\a\nb', 5, '']) {
+    assert.equal((await call(t, 'terminal_run', { command: 'ls', cwd })).isError, true, JSON.stringify(cwd));
+  }
+  assert.deepEqual(asked, []);
 });
 
 test('terminal_run is a tool error when the user denies or does not answer', async () => {

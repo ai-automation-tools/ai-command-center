@@ -23,8 +23,8 @@ security invariants, which every change has to keep. In short:
   with a non-loopback `Host` header, are refused and logged.
 - **No shell path or argument crosses a trust boundary.** Terminal shells are fixed
   profiles; the UI picks a folder and a profile id. An agent's `terminal_run` shows
-  the command and runs it only after the user clicks Run, and the command never
-  leaves the main process.
+  the command and folder and runs it only after the user clicks Run, in a new
+  terminal opened for it; the command never leaves the main process.
 - **Secrets stay out of the repo and the renderer.** The chat's API key is read from
   the gitignored `.env` (or the environment) by the main process, kept out of the
   terminals' and Cronsole's environment, and sent only to the model's API. The MCP

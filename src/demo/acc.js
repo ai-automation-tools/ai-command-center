@@ -252,7 +252,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
 
   // ---- one terminal_run ask, to show the confirm bar ----
   let asked = false;
-  const ask = { id: 1, command: 'npm test' };
+  const ask = { id: 1, command: 'npm test', cwd: 'D:\\work\\acme-api' };
 
   const api = {
     info: async () => ({
