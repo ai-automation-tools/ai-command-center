@@ -88,7 +88,9 @@ function serveShell() {
  * @param {Electron.IpcMainInvokeEvent | Electron.IpcMainEvent} e
  */
 function fromShell(e) {
-  return shellView !== null && e.sender === shellView.webContents;
+  // The shell's main frame on acc://shell, not just its webContents: a subframe can't speak for it.
+  return shellView !== null && e.sender === shellView.webContents
+    && e.senderFrame === shellView.webContents.mainFrame && Boolean(e.senderFrame?.url.startsWith('acc://shell/'));
 }
 
 /**

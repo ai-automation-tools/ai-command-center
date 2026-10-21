@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Electron-44.7-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron 44.7">
+  <img src="https://img.shields.io/badge/Electron-44.8-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron 44.8">
   <img src="https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 24">
   <img src="https://img.shields.io/badge/xterm.js-6.0-000000?style=flat-square" alt="xterm.js 6.0">
   <img src="https://img.shields.io/badge/node--pty-1.1-6B7280?style=flat-square" alt="node-pty 1.1">
@@ -48,7 +48,7 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 > **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser: the real shell UI with made-up files, bookmarks, tabs and terminal output. Nothing in it runs or calls out; type `npm test` in its terminal, or wait a few seconds for the confirm bar an agent's `terminal_run` raises.
 
 > [!NOTE]
-> This is a personal tool being readied for a public release; the [roadmap](docs/ROADMAP.md) lists what's left before that. It runs on Windows 11 only.
+> A personal tool, public since 2026-10-18 and still moving fast; the [roadmap](docs/ROADMAP.md) says what's next. It runs on Windows 11 only.
 
 ## ✨ What works today
 
@@ -107,7 +107,7 @@ Everything per-machine lives in `%APPDATA%\ai-command-center\settings.json`, whi
 }
 ```
 
-`hubUrl` is where Project Hub answers (`ACC_HUB_URL` in the environment overrides it); `quickLinks` are the buttons on the empty tab page, http(s) only, twelve at most. Broken values fall back to these defaults. Logs sit next to it in `logs\`: `app.log` for crashes and errors in the app's own processes, `mcp.log` for every MCP call, and `launch.*.log` from the launcher script.
+`hubUrl` is where Project Hub answers (`ACC_HUB_URL` in the environment overrides it), and it has to be on this machine unless `ACC_HUB_REMOTE=1` is set; `quickLinks` are the buttons on the empty tab page, http(s) only, twelve at most. Broken values fall back to these defaults. Logs sit next to it in `logs\`: `app.log` for crashes and errors in the app's own processes, `mcp.log` for every MCP call, and `launch.*.log` from the launcher script.
 
 ## 🤖 Drive the app from Claude Code
 
