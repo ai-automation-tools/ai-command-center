@@ -8,10 +8,17 @@ import { cleanMessages } from '../shared/chat.js';
 import { cleanRecent, pushRecent } from '../shared/recent.js';
 import { settingsFrom } from '../shared/settings.js';
 import { chatFileName, cleanWorkspaces } from '../shared/workspaces.js';
+import { cleanIndex, isConversationId, touchConversation } from '../shared/conversations.js';
 import { env } from './env.js';
 
 /** @param {string} name */
 const file = (name) => path.join(app.getPath('userData'), name);
+
+/** A workspace's chat folder; chatFileName throws for anything that isn't a workspace id. @param {string} ws */
+const chatDir = (ws) => {
+  chatFileName(ws);
+  return path.join('chats', ws);
+};
 
 /**
  * @param {string} name
@@ -31,6 +38,7 @@ function readJson(name, fallback) {
  */
 function writeJson(name, data) {
   const target = file(name);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
   const tmp = `${target}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
   fs.renameSync(tmp, target);
@@ -81,18 +89,54 @@ export const store = {
     writeJson('workspaces.json', state);
   },
 
-  /** A workspace's conversation (chat.json for Default), attached page and terminal text included. Empty if the file is missing or malformed. @param {string} ws */
-  chat(ws) {
-    return cleanMessages(readJson(chatFileName(ws), []));
+  /**
+   * A workspace's conversations: chats/<ws>/index.json, and one file per conversation
+   * beside it. The first read moves the old single conversation (chat.json for Default,
+   * chat-<ws>.json otherwise) in as the first one.
+   * @param {string} ws
+   */
+  conversations(ws) {
+    const dir = chatDir(ws);
+    if (!fs.existsSync(file(path.join(dir, 'index.json')))) {
+      const legacy = cleanMessages(readJson(chatFileName(ws), []));
+      let index = cleanIndex(null);
+      if (legacy.length) {
+        const when = fs.statSync(file(chatFileName(ws))).mtimeMs;
+        index = touchConversation(index, legacy, when);
+        writeJson(path.join(dir, `${index.active}.json`), legacy);
+      }
+      writeJson(path.join(dir, 'index.json'), index);
+      fs.rmSync(file(chatFileName(ws)), { force: true });
+      return index;
+    }
+    return cleanIndex(readJson(path.join(dir, 'index.json'), null));
   },
 
-  /** @param {string} ws @param {import('../shared/chat.js').Message[]} messages */
-  saveChat(ws, messages) {
-    writeJson(chatFileName(ws), messages);
+  /** @param {string} ws @param {import('../shared/conversations.js').ConversationIndex} index */
+  saveConversations(ws, index) {
+    writeJson(path.join(chatDir(ws), 'index.json'), index);
   },
 
-  /** Clear: the file goes, not just its contents. @param {string} ws */
-  clearChat(ws) {
+  /** One conversation, attached page and terminal text included. Empty if it's new, missing or malformed. @param {string} ws @param {string | null} id */
+  chat(ws, id) {
+    return id && isConversationId(id) ? cleanMessages(readJson(path.join(chatDir(ws), `${id}.json`), [])) : [];
+  },
+
+  /** @param {string} ws @param {string} id @param {import('../shared/chat.js').Message[]} messages */
+  saveChat(ws, id, messages) {
+    if (!isConversationId(id)) throw new Error(`not a conversation id: ${id}`);
+    writeJson(path.join(chatDir(ws), `${id}.json`), messages);
+  },
+
+  /** @param {string} ws @param {string} id */
+  deleteChat(ws, id) {
+    if (!isConversationId(id)) throw new Error(`not a conversation id: ${id}`);
+    fs.rmSync(file(path.join(chatDir(ws), `${id}.json`)), { force: true });
+  },
+
+  /** Every conversation a workspace had, with the workspace. @param {string} ws */
+  removeChats(ws) {
+    fs.rmSync(file(chatDir(ws)), { recursive: true, force: true });
     fs.rmSync(file(chatFileName(ws)), { force: true });
   },
 };

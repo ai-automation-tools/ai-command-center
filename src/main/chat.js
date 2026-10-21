@@ -1,8 +1,8 @@
 // The chat panel's one conversation, held in the main process so the API key never
 // reaches the shell UI. The turn logic is in src/shared/chat.js; tools go through the
 // app's MCP server, so every call the chat makes is logged like any other client's.
-// The conversation is saved after every turn, to the active workspace's file
-// (chat.json for Default), and read back at start and on a workspace switch.
+// The open conversation is saved after every turn and loaded again whenever the
+// workspace or the open conversation changes (main.js holds which one that is).
 
 import { ATTACH_TOOLS, chatAttach, chatConfig, chatText, mcpClient, messagesApi, runTurn, transcript, trayItem } from '../shared/chat.js';
 import { env } from './env.js';
@@ -14,10 +14,9 @@ import { env } from './env.js';
  *   send: (channel: string, ...args: unknown[]) => void,
  *   load: () => Message[],
  *   save: (messages: Message[]) => void,
- *   clear: () => void,
  * }} opts
  */
-export function chat({ mcp, send, load, save, clear }) {
+export function chat({ mcp, send, load, save }) {
   /** @type {Message[]} */
   let messages = load();
   let busy = false;
@@ -32,7 +31,7 @@ export function chat({ mcp, send, load, save, clear }) {
     try {
       save(messages);
     } catch (err) {
-      console.error('[chat] could not save chat.json:', err);
+      console.error('[chat] could not save the conversation:', err);
     }
   };
 
@@ -108,18 +107,11 @@ export function chat({ mcp, send, load, save, clear }) {
       return busy;
     },
 
-    /** Load the conversation again, after the workspace changed. */
+    /** Load the conversation again, after the workspace or the open conversation changed. */
     reload() {
       if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
       messages = load();
       tray.clear();
-    },
-
-    reset() {
-      if (busy) throw new Error('Wait for the answer to the last message, or press Stop.');
-      messages = [];
-      tray.clear();
-      clear();
     },
   };
 }

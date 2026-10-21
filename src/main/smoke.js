@@ -249,6 +249,53 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
     const tr = chatPanel.shownRow;
     check('+ page puts the tab in the context tray with its exact text and destination, and ✕ removes it',
       Boolean(tr && tr.label.startsWith('Page: ') && /characters/.test(tr.detail) && tr.exact.startsWith('{') && /api\.anthropic\.com/.test(tr.dest) && chatPanel.removed), tr);
+    // Conversations: scripts/smoke.js seeds an old chat.json, which should arrive as the
+    // first listed conversation; then search, rename, New, open it again, delete it.
+    if (process.env.ACC_SMOKE_SEEDED === '1') {
+      const convRun = await wc.executeJavaScript(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const $ = (id) => document.getElementById(id);
+        const names = () => [...document.querySelectorAll('#chat-conv-list .conv-row .conv-name')].map((e) => e.textContent);
+        const search = async (q) => { $('chat-conv-search').value = q; $('chat-conv-search').dispatchEvent(new Event('input')); await pause(400); };
+        $('chat-conv-title').click();
+        await pause(400);
+        const migrated = names();
+        await search('RELEASE ship');
+        const hit = { names: names(), snippet: document.querySelector('#chat-conv-list .conv-snippet')?.textContent || '' };
+        await search('nothing-like-this');
+        const miss = names().length;
+        const { list } = await window.acc.chat.list('');
+        await window.acc.chat.rename(list[0].id, 'Shipping notes');
+        await search('');
+        const renamed = names();
+        $('chat-new').click();
+        await pause(400);
+        const fresh = { title: $('chat-conv-title').textContent, users: document.querySelectorAll('#chat-log .chat-msg.user').length };
+        $('chat-conv-title').click();
+        await pause(400);
+        document.querySelector('#chat-conv-list .conv-row').click();
+        await pause(400);
+        const reopened = { title: $('chat-conv-title').textContent, log: $('chat-log').textContent.includes('how do I ship acme-api') };
+        $('chat-conv-title').click();
+        await pause(400);
+        const del = document.querySelector('#chat-conv-list .conv-delete');
+        del.click();
+        const armed = del.textContent;
+        del.click();
+        await pause(500);
+        const after = { names: names(), title: $('chat-conv-title').textContent };
+        $('chat-conv-title').click();
+        return { migrated, hit, miss, renamed, fresh, reopened, armed, after };
+      })()`);
+      const dataDir = app.getPath('userData');
+      const files = { legacy: fs.existsSync(path.join(dataDir, 'chat.json')), index: fs.existsSync(path.join(dataDir, 'chats', 'default', 'index.json')) };
+      console.log(`[smoke] conversations=${JSON.stringify(convRun)} files=${JSON.stringify(files)}`);
+      check('an old chat.json becomes the first conversation; search, rename, New, reopen and delete work',
+        convRun.migrated[0] === 'Smoke: how do I ship acme-api?' && convRun.hit.names.length === 1 && /release/i.test(convRun.hit.snippet) && convRun.miss === 0
+        && convRun.renamed[0] === 'Shipping notes' && /^New conversation/.test(convRun.fresh.title) && convRun.fresh.users === 0
+        && /^Shipping notes/.test(convRun.reopened.title) && convRun.reopened.log && convRun.armed === 'Delete?'
+        && convRun.after.names.length === 0 && /^New conversation/.test(convRun.after.title) && !files.legacy && files.index, { convRun, files });
+    }
     // The Cron tab (Cronsole's tasks through its MCP server, when ACC_CRONSOLE_MCP is set):
     // the first task with recorded runs unfolds them and its newest opens as an acc://run
     // page; then Open Cronsole twice: one pinned tab, first in the strip, reused.

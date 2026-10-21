@@ -27,6 +27,7 @@ import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
 import { addWorkspace, drivePath, removeWorkspace, saveWorkspace, workspaceSummary } from '../shared/workspaces.js';
 import { chatRow, cronsoleRow, hubRow, mcpRow, shellRows } from '../shared/connections.js';
+import { conversationText, isConversationId, removeConversation, renameConversation, searchConversations, titleFrom, touchConversation } from '../shared/conversations.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -60,6 +61,8 @@ let win = null;
 let shellView = null;
 /** @type {Awaited<ReturnType<typeof startMcp>> | null} */
 let mcp = null;
+/** The active workspace's conversations; set once the store is readable. @type {import('../shared/conversations.js').ConversationIndex} */
+let convs;
 const cron = cronsole();
 /** @type {(() => void) | null} */
 let stopEvents = null;
@@ -249,6 +252,7 @@ async function createWindow() {
     persistSpaces();
     tabs.closeAll();
     openTabs(current());
+    convs = store.conversations(id);
     conversation.reload();
     const out = workspaceInfo();
     send('workspace:changed', out);
@@ -270,7 +274,7 @@ async function createWindow() {
     if (target === spaces.active) switchTo(spaces.list[0].id);
     spaces = removeWorkspace(spaces, target);
     visited.delete(target);
-    store.clearChat(target);
+    store.removeChats(target);
     persistSpaces();
     const out = workspaceInfo();
     send('workspace:changed', out);
@@ -341,19 +345,55 @@ async function createWindow() {
     })
     .catch((err) => console.error('[mcp] failed to start; the app runs without it:', err));
 
-  // The chat panel: Claude with this app's MCP server as its tools.
+  // The chat panel: Claude with this app's MCP server as its tools. Each workspace has
+  // its own conversations (shared/conversations.js); `convs.active` is the open one,
+  // null for a new one until its first message.
+  convs = store.conversations(spaces.active);
   const conversation = chat({
     mcp: () => mcp,
     send,
-    load: () => store.chat(spaces.active),
-    save: (m) => store.saveChat(spaces.active, m),
-    clear: () => store.clearChat(spaces.active),
+    load: () => store.chat(spaces.active, convs.active),
+    save: (m) => {
+      if (!m.length) return;
+      convs = touchConversation(convs, m, Date.now());
+      store.saveChat(spaces.active, /** @type {string} */ (convs.active), m);
+      store.saveConversations(spaces.active, convs);
+    },
   });
+  /** The Chat tab's list, every word of `query` matched against names and text. @param {unknown} query */
+  const conversationList = (query) => {
+    const q = typeof query === 'string' ? query.slice(0, 200) : '';
+    const items = convs.list.map((e) => ({ ...e, text: q.trim() ? conversationText(store.chat(spaces.active, e.id)) : '' }));
+    return { active: convs.active, name: convs.list.find((e) => e.id === convs.active)?.name ?? '', list: searchConversations(items, q) };
+  };
+  /** Change which conversation is open, then load it; never while Claude is answering. @param {(ix: typeof convs) => typeof convs} change */
+  const switchConversation = (change) => {
+    if (conversation.busy) throw new Error('Wait for the answer to the last message, or press Stop.');
+    convs = change(convs);
+    store.saveConversations(spaces.active, convs);
+    conversation.reload();
+    return conversationList('');
+  };
   handle('chat:info', () => conversation.info());
   handle('chat:attach', (kind) => conversation.attach(kind));
   handle('chat:send', (text, ids) => conversation.send(text, ids));
-  handle('chat:reset', () => conversation.reset());
   handle('chat:stop', () => conversation.stop());
+  handle('chat:list', (query) => conversationList(query));
+  handle('chat:new', () => switchConversation((ix) => ({ ...ix, active: null })));
+  handle('chat:open', (id) => switchConversation((ix) => {
+    if (!ix.list.some((e) => e.id === id)) throw new Error('No such conversation.');
+    return { ...ix, active: /** @type {string} */ (id) };
+  }));
+  handle('chat:rename', (id, name) => {
+    convs = renameConversation(convs, id, name, isConversationId(id) ? titleFrom(store.chat(spaces.active, String(id))) : '');
+    store.saveConversations(spaces.active, convs);
+    return conversationList('');
+  });
+  handle('chat:delete', (id) => {
+    const out = switchConversation((ix) => removeConversation(ix, id));
+    store.deleteChat(spaces.active, String(id));
+    return out;
+  });
 
   // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
   handle('cronsole:info', () => cron.info());

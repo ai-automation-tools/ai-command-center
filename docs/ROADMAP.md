@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) is done, and B is under way, with workspaces, the command palette, the context tray and the connections view in. **Next:** the rest of Milestone B (several conversations per workspace, then chat in a right-hand pane), then the two open Integrations items. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) is done, and B is under way, with workspaces, the command palette, the context tray, the connections view and named conversations in. **Next:** the last Milestone B item, chat in a right-hand pane, then the two open Integrations items. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -116,7 +116,7 @@ Selecting a project should set the folder, terminals, tabs and conversation toge
 - [x] Command palette (Ctrl+K): actions, workspaces, files, tabs and terminals from one box — 2026-10-20; a native `<dialog>` over the shell, the browser tab hidden while it shows; open tabs, terminals and workspaces list first, then 21 actions, and Files matches once something is typed (the workspace's tree). `rankPalette` in `src/shared/palette.js`, 4 tests; `npm run smoke` opens it, filters and runs a pick. Bookmarks and Recent aren't in it yet; the sidebar search covers them
 - [x] Context tray: before a message goes, show exactly what's attached (page text, terminal lines) and where it's going, with a remove ✕ on each — done 2026-10-21: + page and + terminal read into a tray above the box (label, source, size, "Show what's sent" with the exact text, ✕), a line naming the model and `api.anthropic.com`, and the message sends those snapshots without reading again. `trayItem` in `src/shared/chat.js`, 2 tests; `npm run smoke` adds a tray check (25 checks); checked in the browser demo
 - [x] Connections view: Hub, Cronsole, each shell, the chat model and the MCP server, each with its state, a Retry and what to set when it's missing — done 2026-10-21: a dialog from the sidebar's status dot, the palette and the View menu; each group is checked on its own (Cronsole lists its tasks; the chat row never calls the API), a shell installed since start appears on Retry. `src/shared/connections.js`, 5 tests; `npm run smoke` opens it and retries a row (26 checks); checked in the browser demo
-- [ ] Several conversations per workspace: named, listed and searchable (today each workspace has exactly one)
+- [x] Several conversations per workspace: named, listed and searchable (today each workspace has exactly one) — done 2026-10-21: the open conversation's name tops the Chat tab and opens the list (search over names and text with a snippet, open, rename, two-click delete); **New** replaces Clear. `chats/<ws>/` holds `index.json` and one file each; an old `chat.json` moves in. `src/shared/conversations.js`, 5 tests; `npm run smoke` seeds an old `chat.json` and runs the whole cycle (27 checks); checked in the browser demo
 - [ ] Chat in a resizable right-hand pane, so it stays open beside Files
 
 ### 🧑‍💻 Milestone C: editing in the window
