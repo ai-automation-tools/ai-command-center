@@ -1,0 +1,38 @@
+<h1 align="center">🌿 Contributing</h1>
+
+<p align="center">
+  <em>Branches, checks, and how the roadmap routine works alongside you.</em>
+</p>
+
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/↩-guide-6B7280?style=for-the-badge" alt="Back to the guide"></a>
+</p>
+
+---
+
+## The checks
+
+```powershell
+npm run lint     # node --check on every JS file
+npm test         # unit tests over src/shared/
+npm run smoke    # the real app on a throwaway profile; add -- --live for the Hub and Cronsole checks
+npm run demo     # builds the browser demo into _site/
+```
+
+- Branch from `main` and open a pull request against `main`.
+- Keep `npm run lint` and `npm test` green. CI runs both, plus `npm audit`, on every push.
+- Run `npm run smoke` when you touch the main process, the preload or the shell UI. What it checks is in [tests/](../../tests/README.md).
+- [CLAUDE.md](../../CLAUDE.md) has the standards, the security invariants and the list of things this project won't do.
+
+## The roadmap routine
+
+- A scheduled routine opens PRs twice a week from `roadmap/auto-<date>` branches, one [roadmap](../ROADMAP.md) item at a time.
+- An org-wide sweep reviews and merges them.
+- The routine never changes dependencies. When a PR you merge changes `package.json`, quit the app and run `npm install` yourself.
+
+---
+
+<p align="center">
+  <a href="security-model.md">← Security model</a> ·
+  <a href="README.md">Guide →</a>
+</p>

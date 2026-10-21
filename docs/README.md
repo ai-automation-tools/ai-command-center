@@ -14,7 +14,13 @@
 
 ---
 
-Start with the roadmap if you want to know what's next, or the decisions folder if you want to know why the app looks like this. The business analysis that argued against building it, and the override that started the build, are kept outside this repo with the original build prompt. How to use the app is in the [repository README](../README.md); how the code is laid out is in [src/](../src/README.md).
+Start with the roadmap if you want to know what's next, or the decisions folder if you want to know why the app looks like this. The business analysis that argued against building it, and the override that started the build, are kept outside this repo with the original build prompt. How to use the app is in the [guide](guide/README.md); how the code is laid out is in [src/](../src/README.md).
+
+## 📖 Using the app
+
+| Folder | What's inside |
+|:---|:---|
+| [**📖 guide/**](guide/README.md) | Setup, every feature in full, connecting Claude Code, the Chat and Cron tabs, the security model, and contributing. |
 
 ## 🗺️ Planning
 

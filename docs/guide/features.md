@@ -1,0 +1,69 @@
+<h1 align="center">✨ Features</h1>
+
+<p align="center">
+  <em>Each part of the window, in full.</em>
+</p>
+
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/↩-guide-6B7280?style=for-the-badge" alt="Back to the guide"></a>
+</p>
+
+---
+
+## 🌐 Browser
+
+- Tabs, back, forward, reload, a context menu, and ↗ to open the page in your default browser.
+- The address bar takes a URL, a `D:\` path, `localhost:3000`, or anything else as a search.
+- Links open as tabs. A sign-in pop-up such as "Sign in with Google" gets its own small window, so it can hand the login back.
+- ☆ in the address bar adds the page to Project Hub's favorites; click again to remove it.
+- Chrome Web Store installs work in a tab. **Extensions** in the menu bar (Alt shows it) lists them, with Options, Web Store page and Remove.
+- Ads and trackers are blocked by default: EasyList and EasyPrivacy through [Ghostery's adblocker](https://github.com/ghostery/adblocker) (MPL-2.0). **Extensions → Block ads and trackers** turns it off.
+
+> [!WARNING]
+> Extensions half-work. electron-chrome-extensions covers only part of the `chrome.*` API: offscreen documents, `action.setIcon` with image data and `declarativeNetRequest` are missing. LastPass signs in, but its toolbar popup's vault keeps spinning. Web Store ad blockers such as uBlock Origin Lite block nothing, which is why the app has its own. Details in [ADR-001](../decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace).
+
+## 💻 Terminals
+
+- PowerShell 7 in tabs along the bottom. The ⌄ next to ＋ opens Windows PowerShell, Command Prompt or Git Bash instead.
+- "Terminal here" on any sidebar folder opens one there.
+- Web addresses in the output (`http(s)://…`, `localhost:3000`) open as a tab on click.
+- Ctrl+C copies a selection and Ctrl+V pastes. Right-click copies a selection, or pastes when nothing is selected.
+- Ctrl+L and Ctrl+R stay with PowerShell while the terminal has focus.
+
+## 🧭 Workspaces
+
+- Right-click a folder in Files and pick **Open as workspace**. The Files tree starts there, new terminals open there, and the workspace keeps its own tabs, terminals and chat conversation.
+- The name at the top of the sidebar switches workspaces, or removes one. Removing never touches the folder.
+- A switch closes the tabs and opens the other workspace's. Terminals keep running, hidden. A workspace's saved folders open as fresh shells, so nothing is ever re-run.
+- **Default** is the whole Project Hub tree.
+- Saved in `%APPDATA%\ai-command-center\workspaces.json`.
+
+## ⚡ Command palette
+
+- **Ctrl+K** opens one box over the open tabs and terminals, the workspaces, and every menu action with its shortcut.
+- Once you type, files from the workspace's Files tree join the list.
+- Every word you type has to match. ↑↓ pick, Enter goes, Esc or a click outside closes.
+
+## 📁 Files
+
+- Every workspace from Project Hub. A rescan by Hub shows up on its own.
+- A click reads the file in a tab under the app's own sidebar: Markdown rendered by Hub, other text as code, images inline, folders as a listing. Clicking through files reuses that tab; Ctrl+click opens another.
+- An HTML file opens as the page itself.
+- Hover or right-click a row for Terminal here, View here, VS Code, Reveal in Explorer, Copy path, Copy Hub id and Open as workspace.
+
+## 🔖 Bookmarks, 🕘 Recent and 🔍 Search
+
+- **Bookmarks:** your Chrome, Edge or Brave bookmarks (Hub reads them from disk), or Hub's own favorites.
+- **Recent:** pages, files and terminals you've opened.
+- **Search** (Ctrl+Shift+F): one box across files, bookmarks and Recent.
+
+## 🤖 MCP, 💬 Chat and ⏱️ Cron
+
+These have their own pages: [claude-code.md](claude-code.md), [chat.md](chat.md) and [cronsole.md](cronsole.md).
+
+---
+
+<p align="center">
+  <a href="setup.md">← Setup</a> ·
+  <a href="claude-code.md">Next: Claude Code →</a>
+</p>
