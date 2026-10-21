@@ -13,8 +13,10 @@ The full model, with file references, is in the README's
 [Security model](README.md#-security-model) section and in `CLAUDE.md`'s
 security invariants, which every change has to keep. In short:
 
-- **Web pages are untrusted.** Browser tabs run sandboxed with context isolation and
-  no preload from this app. They can't reach the shell UI's IPC, navigate to
+- **Web pages are untrusted.** Browser tabs run sandboxed with context isolation.
+  The only preloads they get are the extension-API ones, which act only on
+  `chrome-extension://` pages, and the ad blocker's, which only fetches the CSS that
+  hides ad slots. They can't reach the shell UI's IPC, navigate to
   `javascript:`, `data:` or the app's own `acc://` pages, and every permission
   request (camera, microphone, location, notifications, devices) is denied unless it
   is on a short allowlist.

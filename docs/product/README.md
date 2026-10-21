@@ -13,7 +13,7 @@
 | Document | What's inside |
 |:---|:---|
 | [**🎯 spec.md**](spec.md) | Six must stories with acceptance criteria, the shoulds, the Won't list, and the non-functional targets. |
-| [**🧱 build-plan.md**](build-plan.md) | Five slices in risk order (two done), and the two points where the build should stop. |
+| [**🧱 build-plan.md**](build-plan.md) | Six slices in risk order (all but the last done), and the two points where the build should stop. |
 
 ---
 

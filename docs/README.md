@@ -14,14 +14,15 @@
 
 ---
 
-Start with the roadmap if you want to know what to do next, or the decisions folder if you want to know why the app looks like this. The business analysis that argued against building it, and the override that started the build, are kept outside this repo with the original build prompt. [product/](product/README.md) has the spec and build plan the weekly routine works from.
+Start with the roadmap if you want to know what's next, or the decisions folder if you want to know why the app looks like this. The business analysis that argued against building it, and the override that started the build, are kept outside this repo with the original build prompt. How to use the app is in the [repository README](../README.md); how the code is laid out is in [src/](../src/README.md).
 
 ## 🗺️ Planning
 
 | Document | What's inside |
 |:---|:---|
-| [**🗺️ ROADMAP.md**](ROADMAP.md) | The release gates: Phases 0 to 2 and the daily-use gates are done; the public-release checklist is under way (CI, settings file, SECURITY.md, permissions, crash log, shortcuts, find in page and the README rewrite landed 2026-10-05; the `adm-zip` fix and the live demo closed the last gates on 2026-10-18). Below `After public release`: LastPass, Mike's daily-use log, Phase 2b (the agent reads terminals, pages and runs Cronsole tasks), integrations over Hub's and Cronsole's APIs, Phase 3, a second daily-use round, and code health. |
-| [**📋 CHANGELOG.md**](CHANGELOG.md) | Unreleased: the 2026-10-05 review's eight gates (CI, settings file, SECURITY.md, page permissions, crash log, browser shortcuts, find in page, the README rewrite) and the `list_terminals`, `terminal_read`, `read_tab`, `cron_tasks` and `cron_run` tools; before that, tabs that reopen after a restart, the no-console launcher, the MCP server with its read-only, navigation and `terminal_run` tools, its call log and the Claude Code setup, the chat panel, the Cron tab with Cronsole's pinned tab, the Files right-click menu, documents shown under the app's own sidebar, the shell menu, and fixes for the "Object has been destroyed" popup and the page menu's open-externally item. 0.1.0: the Phase 1 slice, two shutdown and layout fixes, and the extension known issue. |
+| [**🗺️ ROADMAP.md**](ROADMAP.md) | What's done and what's next. Every release gate closed on 2026-10-18 and the repo went public; the work now is Milestones A to D from the 2026-10-20 audit (A is done, B is under way), then integrations, daily-use polish and distribution. The roadmap routine works it twice a week. |
+| [**📋 CHANGELOG.md**](CHANGELOG.md) | Every change, newest first. Everything since 0.1.0 (the 2026-09-29 Phase 1 slice) is still under Unreleased. |
+| [**🔭 UPSTREAMS.md**](UPSTREAMS.md) | The outside services, protocols and packages the app depends on, what the code assumes about each, and where to check that it still holds. The biweekly upstream check works from it. |
 
 ## ⚖️ Design
 
@@ -29,7 +30,7 @@ Start with the roadmap if you want to know what to do next, or the decisions fol
 |:---|:---|
 | [**🎯 product/**](product/README.md) | The spec (must stories with acceptance criteria, the Won't list) and the build plan with its stop points. |
 | [**⚖️ decisions/**](decisions/README.md) | Requirements, three architecture options, and three ADRs: the Electron shell (with the extension spike), Project Hub over HTTP, and the terminal. |
-| [**🧭 diagrams/**](diagrams/README.md) | The app architecture diagram the [homepage](https://ai-command-center.ai-automation-tools.dev/#architecture) shows: shell UI → main process → tabs, Project Hub, Cronsole, terminals, chat and the MCP server with its confirm bar. Interactive, every component linked to its code, and drift-checked in CI. |
+| [**🧭 diagrams/**](diagrams/README.md) | The architecture diagram the [homepage](https://ai-command-center.ai-automation-tools.dev/#architecture) shows, with every component linked to its code, and how to rebuild it when the code moves. |
 
 <p align="right">(<a href="#docs-top">back to top</a>)</p>
 
