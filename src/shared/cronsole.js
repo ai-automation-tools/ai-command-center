@@ -206,6 +206,15 @@ export function taskSummary(t, now) {
 }
 
 /**
+ * The tasks whose last run failed, for the Cron tab's label. A paused or missing task
+ * won't run again as it is, so it isn't counted.
+ * @param {CronTask[]} tasks
+ */
+export function failedTasks(tasks) {
+  return tasks.filter((t) => t.status === 'ACTIVE' && taskSummary(t, 0).failed);
+}
+
+/**
  * A task's last few runs, newest first, through Cronsole's get_task_history. Only runs
  * Cronsole performed are there; a Windows task firing on its own trigger isn't.
  * @param {ReturnType<typeof stdioRpc>} rpc

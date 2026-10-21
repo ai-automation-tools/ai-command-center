@@ -342,10 +342,13 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         runsNote: runs.length ? null : runsNote,
         pinnedTabs: pinned.length,
         pinnedFirst: document.querySelector('#tab-list .tab') === pinned[0],
+        badge: document.querySelector('.side-tabs [data-panel="cron"] .tab-badge')?.textContent ?? '0',
+        failedActive: rows.filter((r) => r.classList.contains('failed') && /Status: ACTIVE/.test(r.title)).length,
       };
     })()`);
     console.log(`[smoke] cronsole=${JSON.stringify(cronPanel)} tabs=${JSON.stringify(tabs.list().map((t) => t.url))}`);
     check('Cronsole: the Cron tab lists tasks and Open Cronsole keeps one pinned tab first', cronPanel.tasks > 0 && cronPanel.pinnedTabs === 1 && cronPanel.pinnedFirst, cronPanel.note ?? cronPanel.info, { live: true });
+    check('Cronsole: the Cron tab\'s label counts the active tasks whose last run failed', cronPanel.tasks > 0 && cronPanel.badge === String(cronPanel.failedActive), { badge: cronPanel.badge, failedActive: cronPanel.failedActive }, { live: true });
     const run = tabs.list().find((t) => t.url.startsWith('acc://run/'));
     const runTab = run && tabs.tabs.get(run.id);
     if (runTab) {

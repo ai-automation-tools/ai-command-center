@@ -49,6 +49,7 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); }
 .dot.ok { background: var(--ok); }
 .dot.bad { background: var(--bad); }
+.tab-badge { margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--bad); color: #fff; font-size: 10px; line-height: 15px; display: inline-block; vertical-align: 1px; }
 .search-wrap { padding: 4px 10px 8px; }
 #search, #address, select {
   width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; outline: none;

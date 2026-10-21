@@ -26,7 +26,8 @@ ACC_CRONSOLE_MCP=<cronsole>/mcp-server/dist/index.js
 
 | Do | What happens |
 |:---|:---|
-| Open the tab | Starts Cronsole's MCP server and lists `list_tasks`: next run, paused, missing or failed, details on hover |
+| Look at the tab's label | A red count of active tasks whose last run failed, checked at start and every minute with the Hub dot; hover it for their names. Paused and missing tasks aren't counted |
+| Open the tab | Lists `list_tasks`: next run, paused, missing or failed, details on hover |
 | Click a task | Unfolds its last five runs: when, how it went, how long |
 | Click a run | Opens `acc://run/<task>/<run>` in a tab: the run's log, or for a platform run (a Claude routine, a GitHub Action) what `get_run_output` returns |
 | **Open Cronsole** | Shows Cronsole's UI in a pinned tab, first in the strip, with no close button (Ctrl+W still closes it) |
@@ -34,7 +35,7 @@ ACC_CRONSOLE_MCP=<cronsole>/mcp-server/dist/index.js
 
 - Only runs Cronsole performed are listed. A Windows task that fires on its own trigger shows none here; Cronsole's UI has those.
 - A tab on Cronsole's address is the pinned tab. **Open Cronsole** goes back to it instead of opening another.
-- The server stops when the app quits.
+- With `ACC_CRONSOLE_MCP` set, the server starts with the app, for the count, and stops when the app quits.
 
 ## Agents
 
