@@ -79,7 +79,7 @@ npm install
 # 3. Run the app (or .\scripts\Start-AICommandCenter.ps1, which leaves no console behind)
 npm start
 
-# 4. Check it: lint and unit tests, then a scripted launch that saves screenshots to .smoke/
+# 4. Check it: lint and unit tests, then a scripted launch on a throwaway profile (pass/fail, summary in .smoke/)
 npm run lint; npm test; npm run smoke
 ```
 
