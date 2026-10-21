@@ -1,6 +1,6 @@
 // The app's configuration: `.env` at the repo root (see .env.example) under the real
-// environment, which wins. Kept apart from process.env so terminals, which inherit
-// process.env, never see the chat key.
+// environment, which wins. Kept apart from process.env, and every child process gets
+// its environment from childEnv(), so terminals and Cronsole never see the chat key.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,3 +25,18 @@ export function loadEnv(file, base = process.env) {
 }
 
 export const env = loadEnv(ENV_FILE);
+
+/** The app's own credentials (the chat key, under either name): never passed to a child. */
+const APP_SECRETS = new Set(['ACC_CHAT_API_KEY', 'ANTHROPIC_API_KEY']);
+
+/**
+ * The environment for a terminal or other child process: `base` without the app's own
+ * credentials, whether they came from .env or the real environment, plus `extra`.
+ * Names match case-insensitively, as Windows matches them.
+ * @param {Record<string, string | undefined>} base
+ * @param {Record<string, string>} [extra]
+ * @returns {Record<string, string | undefined>}
+ */
+export function childEnv(base, extra = {}) {
+  return { ...Object.fromEntries(Object.entries(base).filter(([k]) => !APP_SECRETS.has(k.toUpperCase()))), ...extra };
+}

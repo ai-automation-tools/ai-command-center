@@ -9,6 +9,7 @@ import path from 'node:path';
 import pty from 'node-pty';
 import { pickShell, shellProfiles } from '../shared/shells.js';
 import { appendOutput } from '../shared/output.js';
+import { childEnv } from './env.js';
 
 /** @param {unknown} dir */
 function safeCwd(dir) {
@@ -60,7 +61,7 @@ export class Terminals {
       cols: clamp(opts.cols, 20, 500, 100),
       rows: clamp(opts.rows, 5, 200, 30),
       cwd,
-      env: { ...process.env, TERM_PROGRAM: 'ai-command-center', ...this.env },
+      env: childEnv(process.env, { TERM_PROGRAM: 'ai-command-center', ...this.env }),
       useConpty: true,
       // The bundled conpty.dll path kills without forking node-pty's console-list helper,
       // which crashes (AttachConsole failed) and keeps the app alive when it quits.
