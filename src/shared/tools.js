@@ -47,11 +47,11 @@ const ACTS = { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
  *   readTab: (id?: number) => Promise<{ id: number, url: string, title: string, text: string }>,
  *   openTab: (url: string, activate: boolean) => { id: number },
  *   openFile: (id: string, how: 'code' | 'reveal') => Promise<void>,
- *   runCommand: (command: string, cwd?: string) => Promise<{ terminal: number, cwd: string } | null>,
+ *   runCommand: (command: string, cwd?: string, signal?: AbortSignal) => Promise<{ terminal: number, cwd: string } | null>,
  *   listTerminals: () => TerminalInfo[],
  *   readTerminal: (id?: number) => { id: number, raw: string | null } | null,
  *   listCronTasks: () => Promise<import('./cronsole.js').CronTask[]>,
- *   runCronTask: (id: string) => Promise<unknown | null>,
+ *   runCronTask: (id: string, signal?: AbortSignal) => Promise<unknown | null>,
  * }} Sources
  * @typedef {{ id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean, active: boolean }} TerminalInfo
  */
@@ -292,9 +292,9 @@ export function cronTools(src) {
         required: ['task'],
         additionalProperties: false,
       },
-      run: async (/** @type {any} */ args) => {
+      run: async (/** @type {any} */ args, /** @type {{ signal?: AbortSignal }} */ ctx = {}) => {
         const id = taskIdArg(args.task);
-        const result = await src.runCronTask(id);
+        const result = await src.runCronTask(id, ctx.signal);
         if (result === null) throw new Error('Not run: the user denied the task or did not answer');
         return { ran: true, task: id, result };
       },
@@ -346,9 +346,9 @@ export function terminalTools(src) {
         required: ['command'],
         additionalProperties: false,
       },
-      run: async (/** @type {any} */ args) => {
+      run: async (/** @type {any} */ args, /** @type {{ signal?: AbortSignal }} */ ctx = {}) => {
         const command = commandArg(args.command);
-        const ran = await src.runCommand(command, cwdArg(args.cwd));
+        const ran = await src.runCommand(command, cwdArg(args.cwd), ctx.signal);
         if (!ran) throw new Error('Not run: the user denied the command, did not answer, or the terminal it needed was not usable');
         return { ran: true, terminal: ran.terminal, cwd: ran.cwd, command };
       },

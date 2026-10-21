@@ -19,6 +19,8 @@ export function chat({ mcp, send, load, save }) {
   /** @type {Message[]} */
   let messages = load();
   let busy = false;
+  /** The running turn's Stop. @type {AbortController | null} */
+  let stopper = null;
 
   /** Saving is best-effort: a full disk shouldn't turn an answered message into an error. */
   const persist = () => {
@@ -46,6 +48,8 @@ export function chat({ mcp, send, load, save }) {
       if (!server) throw new Error("The app's MCP server isn't running, so the chat has no tools.");
       if (busy) throw new Error('Wait for the answer to the last message.');
       busy = true;
+      const ctrl = new AbortController();
+      stopper = ctrl;
       try {
         const client = mcpClient(server.url, server.token);
         await runTurn({
@@ -53,15 +57,25 @@ export function chat({ mcp, send, load, save }) {
           text,
           attach: kinds,
           model,
-          tools: await client.list(),
+          tools: await client.list(ctrl.signal),
           post: messagesApi(apiKey),
-          callTool: (name, args) => client.call(name, args),
+          callTool: (name, args, signal) => client.call(name, args, signal),
           onEvent: (e) => send('chat:event', e),
+          signal: ctrl.signal,
         });
+      } catch (err) {
+        if (!ctrl.signal.aborted) throw err;
+        send('chat:event', { type: 'note', text: 'Stopped. A command that had already started keeps running in its terminal.' });
       } finally {
         busy = false;
+        stopper = null;
         persist();
       }
+    },
+
+    /** The Stop button: aborts the model request and any tool call, which withdraws a pending confirm bar. */
+    stop() {
+      stopper?.abort();
     },
 
     reset() {

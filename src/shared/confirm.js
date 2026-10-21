@@ -38,14 +38,18 @@ export class Confirmations {
 
   /**
    * @param {Record<string, unknown>} payload what the UI shows
+   * @param {AbortSignal} [signal] the asker went away (its MCP client disconnected, the chat's Stop): withdraw the ask
    * @returns {Promise<T | null>}
    */
-  ask(payload) {
+  ask(payload, signal) {
     const id = this.nextId++;
     return new Promise((resolve) => {
-      // The UI drops a timed-out ask, so a late click can't act on it.
-      const timer = setTimeout(() => { if (this.settle(id, null)) this.cancel(id); }, this.timeoutMs);
+      if (signal?.aborted) return resolve(null);
+      // The UI drops a timed-out or withdrawn ask, so a late click can't act on it.
+      const drop = () => { if (this.settle(id, null)) this.cancel(id); };
+      const timer = setTimeout(drop, this.timeoutMs);
       this.pending.set(id, { resolve, timer });
+      signal?.addEventListener('abort', drop, { once: true });
       this.show({ ...payload, id });
     });
   }

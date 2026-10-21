@@ -155,3 +155,28 @@ test('a strict client session: initialize, initialized, tools/list, tools/call, 
     if ('structuredContent' in call.result) assert.equal(typeof call.result.structuredContent === 'object' && !Array.isArray(call.result.structuredContent), true);
   }
 });
+
+test('a client that disconnects mid-call aborts the tool it was waiting on', async (t) => {
+  /** @type {(v: boolean) => void} */
+  let heard = () => {};
+  const aborted = new Promise((r) => { heard = r; });
+  const waiting = new Map([['wait', {
+    description: '', inputSchema: { type: 'object' },
+    run: (/** @type {any} */ _a, /** @type {{ signal?: AbortSignal }} */ { signal } = {}) => new Promise((resolve) => {
+      signal?.addEventListener('abort', () => { heard(true); resolve(null); });
+    }),
+  }]]);
+  const server = createMcpServer({ token: TOKEN, tools: waiting, version: '' });
+  await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
+  t.after(() => server.close());
+  const { port } = /** @type {import('node:net').AddressInfo} */ (server.address());
+  const client = new AbortController();
+  const call = fetch(`http://127.0.0.1:${port}/mcp`, {
+    method: 'POST', signal: client.signal,
+    headers: { Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'wait' } }),
+  }).catch((/** @type {Error} */ e) => e.name);
+  setTimeout(() => client.abort(), 50);
+  assert.equal(await call, 'AbortError');
+  assert.equal(await aborted, true);
+});

@@ -233,21 +233,21 @@ async function createWindow() {
     // The command and folder are fixed here, before the bar shows them. The shell opens a
     // new PowerShell terminal there on Run and answers with its id; anything but that
     // fresh terminal refuses (isFreshRunTarget), so the approval can't change target.
-    runCommand: async (command, cwd) => {
+    runCommand: async (command, cwd, signal) => {
       const dir = cwd ?? terminals.defaultFolder();
       if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
       const sinceId = terminals.nextId;
-      const terminal = await confirmations.ask({ command, cwd: dir });
+      const terminal = await confirmations.ask({ command, cwd: dir }, signal);
       if (typeof terminal !== 'number' || !isFreshRunTarget(terminals.info(terminal), { sinceId, cwd: dir })) return null;
       // \r is Enter; PSReadLine takes \n as a continuation line.
       terminals.write(terminal, `${command}\r`);
       return { terminal, cwd: dir };
     },
     listCronTasks: () => cron.tasks(),
-    runCronTask: async (id) => {
+    runCronTask: async (id, signal) => {
       const task = (await cron.tasks()).find((t) => t.id === id);
       if (!task) throw new Error(`Cronsole has no task with id ${id}`);
-      if (await confirmations.ask({ task: task.name }) !== true) return null;
+      if (await confirmations.ask({ task: task.name }, signal) !== true) return null;
       return cron.run(id);
     },
   };
@@ -268,6 +268,7 @@ async function createWindow() {
   handle('chat:info', () => conversation.info());
   handle('chat:send', (text, attach) => conversation.send(text, attach));
   handle('chat:reset', () => conversation.reset());
+  handle('chat:stop', () => conversation.stop());
 
   // Cronsole: its task list through its own MCP server, its UI in a pinned tab.
   handle('cronsole:info', () => cron.info());

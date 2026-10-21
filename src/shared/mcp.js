@@ -15,7 +15,8 @@ const MAX_BODY = 1024 * 1024;
 
 /**
  * @typedef {{ readOnlyHint?: boolean, destructiveHint?: boolean, idempotentHint?: boolean, openWorldHint?: boolean }} ToolAnnotations
- * @typedef {{ description: string, inputSchema: object, annotations?: ToolAnnotations, run: (args: any) => unknown }} Tool
+ * @typedef {{ description: string, inputSchema: object, annotations?: ToolAnnotations, run: (args: any, ctx?: { signal?: AbortSignal }) => unknown }} Tool
+ *   ctx.signal aborts when the client disconnects before the answer, so a tool waiting on the user can give up
  * @typedef {{ jsonrpc: '2.0', id: string | number | null, result?: unknown, error?: { code: number, message: string } }} Response
  */
 
@@ -39,9 +40,10 @@ export function isLoopbackHost(host) {
  * @param {any} msg
  * @param {Map<string, Tool>} tools
  * @param {string} version app version for serverInfo
+ * @param {AbortSignal} [signal] the request's client went away
  * @returns {Promise<Response | null>}
  */
-export async function handleMessage(msg, tools, version) {
+export async function handleMessage(msg, tools, version, signal) {
   if (!isObject(msg) || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
     return rpcError(null, -32600, 'Invalid request');
   }
@@ -77,7 +79,7 @@ export async function handleMessage(msg, tools, version) {
     const args = params.arguments === undefined ? {} : params.arguments;
     if (!isObject(args)) return rpcError(id, -32602, 'arguments must be an object');
     try {
-      const out = await tool.run(args);
+      const out = await tool.run(args, { signal });
       // structuredContent must be a JSON object; anything else goes as text only.
       return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(out ?? null) }], ...(isObject(out) && { structuredContent: out }) } };
     } catch (err) {
@@ -156,10 +158,14 @@ export function createMcpServer({ token, tools, version, onCall = () => {} }) {
         return reply(400, rpcError(null, -32700, 'Parse error'));
       }
       const started = Date.now();
+      // A client that disconnects before the answer (the chat's Stop, a killed CLI)
+      // aborts the call, which withdraws a confirm bar it's waiting on.
+      const gone = new AbortController();
+      res.on('close', () => { if (!res.writableFinished) gone.abort(); });
       /** @type {Response | null} */
       let out;
       try {
-        out = await handleMessage(msg, tools, version);
+        out = await handleMessage(msg, tools, version, gone.signal);
       } catch {
         // Nothing reaching here may leave the socket hanging or the rejection unhandled.
         out = rpcError(isObject(msg) && (typeof msg.id === 'string' || typeof msg.id === 'number') ? msg.id : null, -32603, 'Internal error');

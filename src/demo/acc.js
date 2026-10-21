@@ -368,6 +368,7 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
 
     chat: {
       info: async () => ({ model: 'demo · no model', missing: [], mcp: true, history: [] }),
+      stop: async () => {},
       send: async (/** @type {string} */ text, /** @type {string[] | undefined} */ attach) => {
         for (const kind of attach || []) {
           const name = kind === 'page' ? 'read_tab' : 'terminal_read';
