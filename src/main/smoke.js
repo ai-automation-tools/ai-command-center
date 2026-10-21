@@ -7,6 +7,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { installExtension } from 'electron-chrome-web-store';
 import { listExtensions } from './extensions.js';
@@ -422,6 +423,66 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       && /Smoke space/.test(spaceRun.inside.button) && spaceRun.back.tabs === spaceRun.before.tabs
       && spaceRun.back.terms.length === spaceRun.before.terms.length && spaceRun.left === 1
       && terminals.listSessions().length === spaceRun.before.terms.length + 1, spaceRun);
+    // The Git tab on a throwaway repo: one staged, one unstaged and one untracked file,
+    // opened as a workspace; a click opens the diff as an acc://git page. The repo sits in
+    // the throwaway profile, which scripts/smoke.js deletes once the app has quit (Windows
+    // won't let it go while the app runs); with --profile it falls back to the temp folder.
+    const repo = process.env.ACC_USER_DATA
+      ? fs.mkdtempSync(path.join(app.getPath('userData'), 'git-'))
+      : fs.mkdtempSync(path.join(os.tmpdir(), 'acc-git-'));
+    let gitRun = null;
+    try {
+      const g = (/** @type {string[]} */ ...a) => execFileSync('git', ['-c', 'user.name=smoke', '-c', 'user.email=smoke@example.invalid', ...a], { cwd: repo, stdio: 'pipe' });
+      g('init', '-q', '-b', 'smoke-branch');
+      fs.writeFileSync(path.join(repo, 'staged.txt'), 'one\n');
+      fs.writeFileSync(path.join(repo, 'edited.txt'), 'before\n');
+      g('add', '.');
+      g('commit', '-q', '-m', 'first');
+      fs.writeFileSync(path.join(repo, 'staged.txt'), 'one\ntwo\n');
+      g('add', 'staged.txt');
+      fs.writeFileSync(path.join(repo, 'edited.txt'), 'after <b>\n');
+      fs.writeFileSync(path.join(repo, 'new.txt'), 'brand new\n');
+      gitRun = await wc.executeJavaScript(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const added = await window.acc.workspace.add({ folder: ${JSON.stringify(repo)}, name: 'Git smoke' });
+        await pause(1500);
+        document.querySelector('.side-tabs [data-panel="git"]').click();
+        for (let i = 0; i < 50 && !document.querySelector('#git-list .git-file'); i++) await pause(100);
+        const rows = [...document.querySelectorAll('#git-list .git-file')].map((r) => r.querySelector('.icon').textContent + ' ' + r.querySelector('.name').textContent);
+        const groups = [...document.querySelectorAll('#git-list .git-group')].map((g) => g.textContent);
+        const branch = document.getElementById('git-branch').textContent;
+        [...document.querySelectorAll('#git-list .git-file')].find((r) => r.textContent.includes('edited.txt'))?.click();
+        return { ws: added.active, rows, groups, branch };
+      })()`);
+      for (let i = 0; i < 40 && !tabs.list().some((t) => t.url.startsWith('acc://git/')); i++) await wait(250);
+      const gitTab = tabs.list().find((t) => t.url.startsWith('acc://git/'));
+      const view = gitTab && tabs.tabs.get(gitTab.id);
+      if (view) {
+        for (let i = 0; i < 40 && view.view.webContents.isLoading(); i++) await wait(100);
+        gitRun.page = await view.view.webContents.executeJavaScript(
+          `({ url: location.href, title: document.title, add: [...document.querySelectorAll('pre.diff .add')].map((e) => e.textContent), del: [...document.querySelectorAll('pre.diff .del')].map((e) => e.textContent), scripts: document.scripts.length })`);
+      }
+      await wc.executeJavaScript(`(async () => { await window.acc.workspace.switch('default'); await window.acc.workspace.remove(${JSON.stringify('git-smoke')}); })()`).catch(() => {});
+    } catch (err) {
+      gitRun = { error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      // The workspace opened a shell in the repo; it holds the folder until it's gone.
+      const held = terminals.listSessions().filter((s) => s.ws === 'git-smoke');
+      for (const s of held) terminals.kill(s.id);
+      console.log(`[smoke] git: closed ${held.length} terminal(s) in the repo`);
+      if (!process.env.ACC_USER_DATA) {
+        try {
+          fs.rmSync(repo, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+        } catch (err) {
+          console.warn(`[smoke] couldn't remove ${repo}: ${err instanceof Error ? err.message : err}`);
+        }
+      }
+    }
+    console.log(`[smoke] git=${JSON.stringify(gitRun)}`);
+    const gp = gitRun?.page;
+    check('the Git tab lists a repo\'s staged, unstaged and untracked files, and a click opens the diff as a script-free page',
+      Boolean(gitRun?.branch?.includes('smoke-branch') && gitRun.rows.includes('M staged.txt') && gitRun.rows.includes('M edited.txt') && gitRun.rows.includes('? new.txt')
+        && gp && /edited\.txt\?area=unstaged$/.test(gp.url) && gp.add.includes('+after <b>') && gp.del.includes('-before') && gp.scripts === 0), gitRun);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     await shot('shell.png', wc);

@@ -2,8 +2,9 @@
 // sandboxed tabs under Command Center's own sidebar. The shell's acc://shell lives on
 // the shell's session; tabs can't reach it. See src/shared/docs.js for the page.
 //
-// acc://run/<task>/<run> is a Cronsole run's output on the same page; the app opens
-// those, never a web page (see serveRun).
+// acc://run/<task>/<run> is a Cronsole run's output, and acc://git/<path>?area=… a
+// file's diff in the workspace's repo, on the same pages; the app opens those, never a
+// web page (see serveAppPage).
 //
 // Only ids in Project Hub's own index are served. Text comes from Hub's /api/file
 // (Hub renders Markdown and refuses paths outside its roots); images are read here,
@@ -43,28 +44,33 @@ const notePage = (status, title, text) => new Response(
 );
 
 /**
- * A Cronsole run's page. Only the app opens one (isAllowedNavigation), and a request a
- * page makes carries its referrer, so a web page can't fetch or embed one either.
+ * A page only the app opens (a Cronsole run, a Git diff). Navigation is refused from any
+ * page (isAllowedNavigation), and a request a page makes carries its referrer, so a web
+ * page can't fetch or embed one either; only another page of the same kind may.
  * @param {GlobalRequest} req
- * @param {(url: string) => Promise<string>} runPage
+ * @param {RegExp} kind the address prefix
+ * @param {string} title for the error page
+ * @param {(url: string) => Promise<string>} render
  */
-async function serveRun(req, runPage) {
+async function serveAppPage(req, kind, title, render) {
   const referrer = req.headers.get('referer') || req.referrer || '';
-  if (referrer && !/^acc:\/\/run\//i.test(referrer)) return new Response(null, { status: 403, headers: DOC_HEADERS });
+  if (referrer && !kind.test(referrer)) return new Response(null, { status: 403, headers: DOC_HEADERS });
   try {
-    return new Response(await runPage(req.url), { headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' } });
+    return new Response(await render(req.url), { headers: { ...DOC_HEADERS, 'content-type': 'text/html; charset=utf-8' } });
   } catch (err) {
-    return notePage(502, 'Cronsole run', err instanceof Error ? err.message : String(err));
+    return notePage(502, title, err instanceof Error ? err.message : String(err));
   }
 }
 
 /**
  * @param {Electron.Session} session
  * @param {(url: string) => Promise<string>} runPage acc://run pages, from src/main/cronsole.js
+ * @param {(url: string) => Promise<string>} gitPage acc://git pages, from src/main/git.js
  */
-export function serveDocs(session, runPage) {
+export function serveDocs(session, runPage, gitPage) {
   session.protocol.handle('acc', async (req) => {
-    if (/^acc:\/\/run\//i.test(req.url)) return serveRun(req, runPage);
+    if (/^acc:\/\/run\//i.test(req.url)) return serveAppPage(req, /^acc:\/\/run\//i, 'Cronsole run', runPage);
+    if (/^acc:\/\/git\//i.test(req.url)) return serveAppPage(req, /^acc:\/\/git\//i, 'Git diff', gitPage);
     let id;
     try {
       id = docIdFromUrl(req.url);

@@ -436,6 +436,18 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       history: async (/** @type {string} */ taskId) => runs(taskId, now()),
     },
 
+    // A made-up repo. The diff pages are the desktop app's (acc://git), so the demo's rows open the stand-in page.
+    git: {
+      status: async () => ({
+        repo: 'D:\\work\\acme-api', branch: 'feature/rate-limits', upstream: 'origin/feature/rate-limits', ahead: 2, behind: 0,
+        files: [
+          { path: 'src/middleware/rateLimit.ts', from: null, staged: 'M', unstaged: null, kind: 'changed' },
+          { path: 'src/routes/users.ts', from: null, staged: null, unstaged: 'M', kind: 'changed' },
+          { path: 'docs/api/limits.md', from: null, staged: null, unstaged: '?', kind: 'untracked' },
+        ],
+      }),
+    },
+
     // Made-up states: what a machine with Hub up, Git Bash missing and no chat key would show.
     connections: {
       check: async (/** @type {string | undefined} */ id) => [

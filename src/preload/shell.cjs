@@ -110,6 +110,8 @@ contextBridge.exposeInMainWorld('acc', {
 
   connections: { check: invoke('connections:check') },
 
+  git: { status: invoke('git:status') },
+
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
   menu: invoke('menu:popup'),
 
