@@ -56,7 +56,7 @@ export const ABOUT_HTML = `<article class="demo-doc">
     <tbody>
       <tr><td><b>💻 Terminal</b></td><td>Type <code>npm test</code> in the panel below. One test fails on purpose. <code>git status</code>, <code>ls</code> and <code>help</code> answer too.</td></tr>
       <tr><td><b>✋ Confirm bar</b></td><td>About six seconds in, an agent asks to run <code>npm test</code>. Nothing happens until you click <b>Run</b>.</td></tr>
-      <tr><td><b>📁 Sidebar</b></td><td>Open a folder under Files, search across files and bookmarks, then look at the <b>MCP</b> log and <b>Cron</b> tabs, and the chat pane on the right.</td></tr>
+      <tr><td><b>📁 Sidebar</b></td><td>Open a folder under Files, search across files and bookmarks, then look at the <b>MCP</b> log, <b>Cron</b> and <b>Git</b> tabs, and the chat pane on the right.</td></tr>
       <tr><td><b>🗂️ Tabs</b></td><td>Type an address and press Enter. Tabs, back, forward and Recent all work, though there's no browser engine behind the page.</td></tr>
     </tbody>
   </table>

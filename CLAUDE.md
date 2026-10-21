@@ -7,8 +7,10 @@ Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before chan
 
 A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over the
 user's project folders into one Electron window, with an agent harness: an MCP server
-the app exposes, plus a chat panel. Workspaces tie a folder to its tabs, terminals and
-conversation, and Ctrl+K opens a command palette over all of it. The sidebar reads Project Hub's
+the app exposes, plus a chat pane on the right with named conversations. Workspaces tie a
+folder to its tabs, terminals and conversations, Ctrl+K opens a command palette over all of
+it, Connections shows what's working, and a read-only Git tab shows the workspace repo's
+changes. The sidebar reads Project Hub's
 HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 (graduated 2026-10-18); the weekly roadmap routine works the items under `## After public release`.
 
