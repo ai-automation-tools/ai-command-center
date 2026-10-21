@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. **Next:** Milestone C. Its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is dev servers, then the two open Integrations items. The Git changes view is in, read-only. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. Milestone C has started: the Git changes view is in, read-only. **Next:** its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is dev servers, then the two open Integrations items. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -87,7 +87,7 @@ They decide whether to keep going, per [build-plan.md](product/build-plan.md#whe
 - [ ] Use the app as the main window for 5 working days and fill in the log below 🔒 Needs Mike
 - [ ] Terminal checked by hand: typing, resize, colors, copy/paste (keys and right-click), and `claude` running in it 🔒 Needs Mike
 - [ ] Ad blocking checked by hand on a few ad-heavy sites, and no site you use daily broken by it 🔒 Needs Mike
-- [ ] Workspaces and the command palette checked by hand in the real app: open a folder as a workspace, switch away and back (tabs, terminals and conversation follow), Ctrl+K over a page, a file and a terminal 🔒 Needs Mike
+- [ ] Milestone B and the Git view checked by hand in the real app: open a folder as a workspace, switch away and back (tabs, terminals and conversations follow), Ctrl+K over a page, a file and a terminal, the chat pane beside Files (resize, hide, Ctrl+Shift+L), two named conversations (search, rename, delete), Connections from the status dot, and the Git tab on a real repo with a diff open 🔒 Needs Mike
 - [ ] Chat checked against the live API with a real key: a streamed reply, + page, a `terminal_run` the chat asks for, and Stop mid-answer 🔒 Needs Mike
 
 | Day | Used as main window? | What broke or got in the way |
@@ -189,6 +189,8 @@ From the 2026-10-05 review.
 
 - [x] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin — 2026-10-20; `main.js` 590 → 389 lines, `npm run smoke` passes unchanged
 - [x] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI — 2026-10-20; the one count is the "140+" badge in `tests/README.md`, CLAUDE.md points there, README.md had none
+
+- [ ] The terminal's last-resort shell runs by a full path: when no shell is found at its usual place, `shellProfiles` falls back to a bare `powershell.exe`, which Windows looks up in the starting folder first (the Git tab already resolves `git.exe` from PATH's absolute entries; do the same here). Found 2026-10-21 while building the Git view; unit-test the fallback
 
 ### Distribution and promotion
 
