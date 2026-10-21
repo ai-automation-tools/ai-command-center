@@ -39,10 +39,14 @@
       <section id="panel-chat" class="panel" role="tabpanel" hidden>
         <div id="chat-log" aria-live="polite"></div>
         <form id="chat-form">
+          <div id="chat-tray" hidden aria-label="Attached to your next message">
+            <div id="chat-tray-items"></div>
+            <div id="chat-tray-dest"></div>
+          </div>
           <textarea id="chat-input" rows="3" placeholder="Ask Claude to open a tab, find a file, run a command…  (Enter sends, Shift+Enter for a new line)" aria-label="Chat message" spellcheck="true"></textarea>
           <div class="chat-actions">
-            <button type="button" id="chat-attach-page" class="chat-attach" aria-pressed="false" title="Attach the active tab's text to your next message">+ page</button>
-            <button type="button" id="chat-attach-terminal" class="chat-attach" aria-pressed="false" title="Attach the showing terminal's last lines to your next message">+ terminal</button>
+            <button type="button" id="chat-attach-page" class="chat-attach" title="Read the active tab's text now and attach it to your next message">+ page</button>
+            <button type="button" id="chat-attach-terminal" class="chat-attach" title="Read the showing terminal's last lines now and attach them to your next message">+ terminal</button>
             <span id="chat-model"></span>
             <button type="button" id="chat-clear">Clear</button>
             <button type="submit" id="chat-send">Send</button>

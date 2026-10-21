@@ -107,7 +107,17 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 #chat-send { border-color: var(--accent); }
 #chat-stop { border-color: #f87171; }
 .chat-actions .chat-attach { padding: 3px 7px; color: var(--text-2); }
-.chat-actions .chat-attach[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: var(--bg); }
+/* Context tray: what goes with the next message, and where. */
+#chat-tray:not([hidden]) { border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); padding: 4px 6px; display: flex; flex-direction: column; gap: 3px; }
+.tray-item { display: grid; grid-template-columns: auto 1fr auto; column-gap: 6px; align-items: baseline; }
+.tray-item .tray-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-item .tray-detail { grid-column: 2; color: var(--text-3); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-item details { grid-column: 1 / -1; font-size: 11px; color: var(--text-2); }
+.tray-item summary { cursor: pointer; color: var(--text-3); }
+.tray-item pre { margin: 3px 0 0; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: "Cascadia Mono", Consolas, monospace; background: var(--panel); border-radius: 4px; padding: 4px 6px; }
+.tray-item .tray-remove { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 0 3px; font-size: 13px; }
+.tray-item .tray-remove:hover { color: var(--text); }
+#chat-tray-dest { color: var(--text-3); font-size: 11px; border-top: 1px solid var(--line); padding-top: 3px; }
 
 /* ---- splitters -------------------------------------------------------- */
 .splitter { background: var(--line); }

@@ -7,6 +7,7 @@ import { toUrl } from '../shared/url.js';
 import { docIdFromUrl, isDocUrl } from '../shared/docs.js';
 import { pushRecent } from '../shared/recent.js';
 import { toggleFavorite } from '../shared/favorites.js';
+import { trayItem } from '../shared/chat.js';
 import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
@@ -140,6 +141,7 @@ export function commandOutput(line) {
 export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, askAfterMs = null } = {}) {
   /** @type {Map<string, Set<(...args: any[]) => void>>} */
   const listeners = new Map();
+  let trayId = 0;
   /** @param {string} name */
   const listen = (name) => (/** @type {(...args: any[]) => void} */ fn) => {
     if (!listeners.has(name)) listeners.set(name, new Set());
@@ -370,13 +372,15 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
     chat: {
       info: async () => ({ model: 'demo · no model', missing: [], mcp: true, history: [] }),
       stop: async () => {},
-      send: async (/** @type {string} */ text, /** @type {string[] | undefined} */ attach) => {
-        for (const kind of attach || []) {
-          const name = kind === 'page' ? 'read_tab' : 'terminal_read';
-          emit('chat', { type: 'tool', name, input: {} });
-          logCall(name, {});
-          emit('chat', { type: 'result', name, ok: true, text: kind === 'page' ? '{"title":"Demo page","text":"Made-up page text"}' : '{"terminal":1,"text":"PS D:/work> npm test"}' });
-        }
+      attach: async (/** @type {'page' | 'terminal'} */ kind) => {
+        const name = kind === 'page' ? 'read_tab' : 'terminal_read';
+        logCall(name, {});
+        const text = kind === 'page'
+          ? JSON.stringify({ id: 1, url: 'https://example.com/', title: 'Demo page', text: 'Made-up page text', truncated: false })
+          : JSON.stringify({ terminal: 1, text: 'PS D:/work> npm test\n> 42 passing' });
+        return { id: ++trayId, ...trayItem(kind, text) };
+      },
+      send: async (/** @type {string} */ text) => {
         const query = String(text).slice(0, 40);
         emit('chat', { type: 'tool', name: 'sidebar_search', input: { query } });
         logCall('sidebar_search', { query });

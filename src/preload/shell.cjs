@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld('acc', {
 
   chat: {
     info: invoke('chat:info'),
+    attach: invoke('chat:attach'),
     send: invoke('chat:send'),
     reset: invoke('chat:reset'),
     stop: invoke('chat:stop'),

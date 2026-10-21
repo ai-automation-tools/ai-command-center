@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { API_URL, API_VERSION, STOPPED, addUserText, chatAttach, chatConfig, chatText, cleanMessages, estimateTokens, mcpClient, messagesApi, readStream, runTurn, toApiTools, toolOutcome, transcript, trimHistory, withAttachments } from '../src/shared/chat.js';
+import { API_URL, API_VERSION, STOPPED, addUserText, chatAttach, chatConfig, chatText, cleanMessages, estimateTokens, mcpClient, messagesApi, readStream, runTurn, toApiTools, toolOutcome, transcript, trimHistory, trayItem, withAttachments } from '../src/shared/chat.js';
 import { createMcpServer } from '../src/shared/mcp.js';
 
 test('chatConfig reads the key and model from the environment, with no default model', () => {
@@ -113,21 +113,31 @@ test('withAttachments puts each attachment above the text, or says it failed', (
   );
 });
 
-test('runTurn reads attachments through the tools before posting, and shows the calls', async () => {
+test("runTurn sends the tray's snapshots as they are, without reading again", async () => {
   const { bodies, post } = scripted([{ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] }]);
-  /** @type {any[]} */
-  const events = [];
   /** @type {string[]} */
   const called = [];
   await runTurn({
-    messages: [], text: 'summarise', model: 'm', tools: [], post, attach: ['page', 'terminal'],
-    callTool: async (name) => { called.push(name); if (name === 'terminal_read') throw new Error('No terminal is open'); return { text: 'Example Domain', isError: false }; },
-    onEvent: (e) => events.push(e),
+    messages: [], text: 'summarise', model: 'm', tools: [], post,
+    attached: [{ kind: 'page', text: 'Example Domain', isError: false }, { kind: 'terminal', text: 'PS> npm test', isError: false }],
+    callTool: async (name) => { called.push(name); return { text: 'fresh', isError: false }; },
   });
-  assert.deepEqual(called, ['read_tab', 'terminal_read']);
-  assert.deepEqual(events.map((e) => e.type), ['tool', 'result', 'tool', 'result', 'text']);
-  assert.equal(events[3].ok, false);
-  assert.equal(bodies[0].messages[0].content, "<attached page>\nExample Domain\n</attached page>\n\n(The terminal couldn't be attached: No terminal is open)\n\nsummarise");
+  assert.deepEqual(called, []);
+  assert.equal(bodies[0].messages[0].content, '<attached page>\nExample Domain\n</attached page>\n\n<attached terminal>\nPS> npm test\n</attached terminal>\n\nsummarise');
+});
+
+test('trayItem says what an attachment is, where it came from and how big, and keeps the exact text', () => {
+  const page = JSON.stringify({ id: 3, url: 'https://example.com/', title: ' Example Domain ', text: 'x'.repeat(1200), truncated: true });
+  assert.deepEqual(trayItem('page', page), {
+    kind: 'page', label: 'Page: Example Domain', detail: 'https://example.com/ · 1,200 characters, cut to fit', text: page,
+  });
+  assert.equal(trayItem('page', JSON.stringify({ url: 'about:blank', title: '', text: '' })).label, 'Page: Untitled page');
+  const term = JSON.stringify({ terminal: 2, text: 'a\nb\nc' });
+  assert.deepEqual(trayItem('terminal', term), { kind: 'terminal', label: 'Terminal 2', detail: 'last 3 lines', text: term });
+  assert.equal(trayItem('terminal', JSON.stringify({ terminal: 1, text: 'one' })).detail, 'last 1 line');
+  // Not JSON: counted as it is, still sent as it is.
+  assert.deepEqual(trayItem('terminal', 'plain'), { kind: 'terminal', label: 'Terminal', detail: 'last 1 line', text: 'plain' });
+  assert.equal(trayItem('page', 'null').detail, '4 characters');
 });
 
 test('runTurn answers every tool_use even when the stop reason is not tool_use', async () => {
