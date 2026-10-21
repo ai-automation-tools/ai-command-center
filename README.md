@@ -59,7 +59,7 @@ An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing 
 | **📁 Files** | Every project from [Project Hub](https://github.com/ai-automation-tools/project-hub), opened in a tab |
 | **🔖 Bookmarks · 🕘 Recent · 🔍 Search** | Your browser's bookmarks, what you opened, one search over all of it |
 | **🤖 MCP server** | Eleven tools so Claude Code can see and act in the window |
-| **💬 Chat** | Claude in the sidebar, with the same tools |
+| **💬 Chat** | Claude in the sidebar, with the same tools; named, searchable conversations per workspace |
 | **⏱️ Cron** | [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks and their runs |
 | **🔌 Connections** | Hub, Cronsole, shells, chat and MCP: working or not, and what to set |
 

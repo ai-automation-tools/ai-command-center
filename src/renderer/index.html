@@ -37,6 +37,14 @@
       <section id="panel-recent" class="panel" role="tabpanel" hidden></section>
       <section id="panel-mcp" class="panel" role="tabpanel" aria-live="polite" hidden></section>
       <section id="panel-chat" class="panel" role="tabpanel" hidden>
+        <div id="chat-convs-bar">
+          <button type="button" id="chat-conv-title" aria-expanded="false" aria-controls="chat-convs" title="This workspace's conversations">New conversation</button>
+          <button type="button" id="chat-new" title="Start a new conversation; this one stays in the list">New</button>
+        </div>
+        <div id="chat-convs" hidden>
+          <input id="chat-conv-search" type="search" placeholder="Search this workspace's conversations" aria-label="Search conversations" autocomplete="off">
+          <div id="chat-conv-list" role="list"></div>
+        </div>
         <div id="chat-log" aria-live="polite"></div>
         <form id="chat-form">
           <div id="chat-tray" hidden aria-label="Attached to your next message">
@@ -48,7 +56,6 @@
             <button type="button" id="chat-attach-page" class="chat-attach" title="Read the active tab's text now and attach it to your next message">+ page</button>
             <button type="button" id="chat-attach-terminal" class="chat-attach" title="Read the showing terminal's last lines now and attach them to your next message">+ terminal</button>
             <span id="chat-model"></span>
-            <button type="button" id="chat-clear">Clear</button>
             <button type="submit" id="chat-send">Send</button>
             <button type="button" id="chat-stop" hidden title="Stop the answer; a pending Run prompt is withdrawn">Stop</button>
           </div>

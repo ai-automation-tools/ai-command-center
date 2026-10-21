@@ -32,7 +32,7 @@
 
 ## 🧭 Workspaces
 
-- Right-click a folder in Files and pick **Open as workspace**. The Files tree starts there, new terminals open there, and the workspace keeps its own tabs, terminals and chat conversation.
+- Right-click a folder in Files and pick **Open as workspace**. The Files tree starts there, new terminals open there, and the workspace keeps its own tabs, terminals and chat conversations.
 - The name at the top of the sidebar switches workspaces, or removes one. Removing never touches the folder.
 - A switch closes the tabs and opens the other workspace's. Terminals keep running, hidden. A workspace's saved folders open as fresh shells, so nothing is ever re-run.
 - **Default** is the whole Project Hub tree.

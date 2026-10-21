@@ -101,7 +101,7 @@ export async function startChat(api) {
     const info = await api.chat.info();
     $('chat-model').textContent = info.model;
     model = info.model;
-    // Clear and a workspace switch empty the main process's tray too.
+    // Switching conversation or workspace empties the main process's tray too.
     tray = [];
     renderTray();
     if (info.missing.length) {
@@ -111,10 +111,140 @@ export async function startChat(api) {
     } else {
       line('note', `Claude (${info.model}) can open tabs and files, search the sidebar, and run commands in the terminal after you click Run. + page and + terminal read the tab or terminal into the tray above the box: what's there goes with your next message, and ✕ takes it out. Its calls show in the MCP tab.`);
     }
-    // The conversation saved at the last close; Clear forgets it.
+    // The open conversation, as saved.
     for (const e of info.history || []) show(e);
     streaming = null;
+    await loadConvs();
   };
+
+  // The workspace's conversations: the open one's name on top, a searchable list under it.
+  const convTitle = /** @type {HTMLButtonElement} */ ($('chat-conv-title'));
+  const convPanel = $('chat-convs');
+  const convSearch = /** @type {HTMLInputElement} */ ($('chat-conv-search'));
+  const convList = $('chat-conv-list');
+  /** @type {{ active: string | null, name: string, list: { id: string, name: string, updated: number, snippet: string }[] }} */
+  let convs = { active: null, name: '', list: [] };
+  const loadConvs = async () => {
+    convs = await api.chat.list(convSearch.value);
+    renderConvs();
+  };
+  const showConvs = (/** @type {boolean} */ on) => {
+    convPanel.hidden = !on;
+    convTitle.setAttribute('aria-expanded', String(on));
+    if (on) {
+      convSearch.value = '';
+      loadConvs().catch((err) => line('error', errText(err)));
+      convSearch.focus();
+    }
+  };
+  /** Open, start or delete, then show what's open now. @param {Promise<unknown>} change */
+  const changeConv = async (change) => {
+    try {
+      await change;
+      showConvs(false);
+      await intro();
+      input.focus();
+    } catch (err) {
+      line('error', errText(err));
+    }
+  };
+  const renderConvs = () => {
+    convTitle.textContent = `${convs.name || 'New conversation'} ▾`;
+    convList.innerHTML = '';
+    if (!convs.list.length) {
+      convList.innerHTML = '<div class="panel-note"></div>';
+      /** @type {HTMLElement} */ (convList.firstElementChild).textContent = convSearch.value.trim() ? 'No conversation matches.' : 'Nothing saved yet: a conversation is listed after its first message.';
+    }
+    for (const c of convs.list) {
+      const row = document.createElement('div');
+      row.className = `conv-row${c.id === convs.active ? ' active' : ''}`;
+      row.setAttribute('role', 'listitem');
+      row.innerHTML = '<span class="conv-name"></span><span class="conv-when"></span><button type="button" class="conv-act conv-rename">✎</button><button type="button" class="conv-act conv-delete">✕</button>';
+      const name = /** @type {HTMLElement} */ (row.querySelector('.conv-name'));
+      name.textContent = c.name || 'Untitled';
+      /** @type {HTMLElement} */ (row.querySelector('.conv-when')).textContent = ago(c.updated);
+      if (c.snippet) {
+        const s = document.createElement('span');
+        s.className = 'conv-snippet';
+        s.textContent = c.snippet;
+        row.append(s);
+      }
+      row.addEventListener('click', (e) => {
+        if (!(e.target instanceof HTMLElement) || e.target.closest('button, input')) return;
+        if (c.id !== convs.active) changeConv(api.chat.open(c.id));
+        else showConvs(false);
+      });
+      const rename = /** @type {HTMLButtonElement} */ (row.querySelector('.conv-rename'));
+      rename.title = 'Rename';
+      rename.setAttribute('aria-label', `Rename ${c.name || 'Untitled'}`);
+      rename.addEventListener('click', () => {
+        const box = document.createElement('input');
+        box.className = 'conv-name-edit';
+        box.value = c.name;
+        box.maxLength = 80;
+        box.setAttribute('aria-label', 'New name; Enter saves, Esc cancels');
+        name.replaceWith(box);
+        box.focus();
+        box.select();
+        let done = false;
+        const finish = async (/** @type {boolean} */ save) => {
+          if (done) return;
+          done = true;
+          try {
+            if (save && box.value !== c.name) await api.chat.rename(c.id, box.value);
+            await loadConvs();
+          } catch (err) {
+            line('error', errText(err));
+          }
+        };
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+        });
+        box.addEventListener('blur', () => finish(true));
+      });
+      // Two clicks to delete: the first asks, and the ask lapses after a few seconds.
+      const del = /** @type {HTMLButtonElement} */ (row.querySelector('.conv-delete'));
+      del.title = 'Delete';
+      del.setAttribute('aria-label', `Delete ${c.name || 'Untitled'}`);
+      del.addEventListener('click', async () => {
+        if (del.dataset.armed !== '1') {
+          del.dataset.armed = '1';
+          del.textContent = 'Delete?';
+          del.title = 'Click again to delete this conversation for good';
+          setTimeout(() => {
+            if (!del.isConnected) return;
+            del.dataset.armed = '';
+            del.textContent = '✕';
+            del.title = 'Delete';
+          }, 3000);
+          return;
+        }
+        try {
+          await api.chat.delete(c.id);
+          await intro();
+          showConvs(true);
+        } catch (err) {
+          line('error', errText(err));
+        }
+      });
+      convList.append(row);
+    }
+  };
+  convTitle.addEventListener('click', () => showConvs(convPanel.hidden));
+  $('chat-new').addEventListener('click', () => changeConv(api.chat.new()));
+  let searchTimer = 0;
+  convSearch.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => loadConvs().catch((err) => line('error', errText(err))), 150);
+  });
+  convSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      showConvs(false);
+      input.focus();
+    }
+  });
 
   api.chat.onEvent(show);
 
@@ -139,6 +269,8 @@ export async function startChat(api) {
       streaming = null;
       busy(false);
       input.focus();
+      // A first message names and lists the conversation.
+      loadConvs().catch(() => {});
     }
   });
   input.addEventListener('keydown', (e) => {
@@ -147,18 +279,19 @@ export async function startChat(api) {
       $('chat-form').requestSubmit();
     }
   });
-  $('chat-clear').addEventListener('click', async () => {
-    try {
-      await api.chat.reset();
-      await intro();
-    } catch (err) {
-      line('error', errText(err));
-    }
-  });
-
   await intro();
   // A workspace switch brings its own conversation.
   api.workspace.onChanged(() => intro().catch(() => {}));
+}
+
+/** How long ago, roughly: "just now", "5 min", "3 h", "2 d", then the date. @param {number} t */
+function ago(t) {
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h`;
+  if (s < 7 * 86400) return `${Math.floor(s / 86400)} d`;
+  return new Date(t).toLocaleDateString();
 }
 
 /** @param {unknown} err */

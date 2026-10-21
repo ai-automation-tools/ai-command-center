@@ -9,6 +9,7 @@ import { pushRecent } from '../shared/recent.js';
 import { toggleFavorite } from '../shared/favorites.js';
 import { trayItem } from '../shared/chat.js';
 import { chatRow, cronsoleRow, hubRow, mcpRow, shellRows } from '../shared/connections.js';
+import { searchConversations } from '../shared/conversations.js';
 import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
@@ -143,6 +144,14 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
   /** @type {Map<string, Set<(...args: any[]) => void>>} */
   const listeners = new Map();
   let trayId = 0;
+  /** @type {{ active: string | null, list: { id: string, name: string, updated: number, text: string }[] }} */
+  const demoChats = {
+    active: null,
+    list: [
+      { id: 'c1', name: 'Why does npm test fail on Windows?', updated: now() - 2 * 3600_000, text: 'Why does npm test fail on Windows? The path separator in tree.test.js: use path.join.' },
+      { id: 'c2', name: 'Deploy steps for acme-api', updated: now() - 3 * 86400_000, text: 'How do I deploy acme-api? Merge to main; the release workflow builds and ships it.' },
+    ],
+  };
   /** @param {string} name */
   const listen = (name) => (/** @type {(...args: any[]) => void} */ fn) => {
     if (!listeners.has(name)) listeners.set(name, new Set());
@@ -393,7 +402,22 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
           await new Promise((r) => later(() => r(undefined), 25));
         }
       },
-      reset: async () => {},
+      // Two made-up conversations, kept in memory only.
+      list: async (/** @type {string} */ query) => ({
+        active: demoChats.active,
+        name: demoChats.list.find((c) => c.id === demoChats.active)?.name ?? '',
+        list: searchConversations(demoChats.list, query || ''),
+      }),
+      new: async () => { demoChats.active = null; },
+      open: async (/** @type {string} */ id) => { demoChats.active = id; },
+      rename: async (/** @type {string} */ id, /** @type {string} */ name) => {
+        const c = demoChats.list.find((x) => x.id === id);
+        if (c) c.name = String(name).trim().slice(0, 80) || c.name;
+      },
+      delete: async (/** @type {string} */ id) => {
+        demoChats.list = demoChats.list.filter((c) => c.id !== id);
+        if (demoChats.active === id) demoChats.active = null;
+      },
       onEvent: listen('chat'),
     },
 

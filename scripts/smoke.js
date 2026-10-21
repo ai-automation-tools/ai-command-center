@@ -35,6 +35,12 @@ if (profile) {
   // settings.json only (the Hub address and quick links): nothing signed in, no history.
   const settings = path.join(process.env.APPDATA || '', 'ai-command-center', 'settings.json');
   if (fs.existsSync(settings)) fs.copyFileSync(settings, path.join(profile, 'settings.json'));
+  // An old single-conversation chat.json, so the run checks it moves into the conversation list.
+  fs.writeFileSync(path.join(profile, 'chat.json'), JSON.stringify([
+    { role: 'user', content: 'Smoke: how do I ship acme-api?' },
+    { role: 'assistant', content: [{ type: 'text', text: 'Merge to main; the release workflow builds it.' }] },
+  ]));
+  env.ACC_SMOKE_SEEDED = '1';
 }
 
 const summaryFile = path.join(dir, 'summary.json');
