@@ -61,6 +61,7 @@ An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing 
 | **🤖 MCP server** | Eleven tools so Claude Code can see and act in the window |
 | **💬 Chat** | Claude in a pane on the right, with the same tools; named, searchable conversations per workspace |
 | **⏱️ Cron** | [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks and their runs |
+| **🌿 Git** | The workspace repo's branch and changed files, each diff a click away (read-only) |
 | **🔌 Connections** | Hub, Cronsole, shells, chat and MCP: working or not, and what to set |
 
 The full tour is in [features.md](docs/guide/features.md).

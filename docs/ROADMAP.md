@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. **Next:** Milestone C. Its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is the read-only Git changes view, then dev servers and the two open Integrations items. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. **Next:** Milestone C. Its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is dev servers, then the two open Integrations items. The Git changes view is in, read-only. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -125,7 +125,7 @@ Replaces Phase 3's IDE line.
 
 - [ ] Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend 🔒 Needs Mike
 - [!] Editor and browser preview side by side, from the ADR's choice — blocked: waits for the editor ADR above
-- [ ] Git changes: branch, status and diff for the workspace's repo, read-only first
+- [x] Git changes: branch, status and diff for the workspace's repo, read-only first — done 2026-10-21: a Git tab (branch, upstream, ahead/behind, files grouped as conflicts, staged, changes and untracked) and `acc://git` diff pages, served like run pages; git runs through `execFile` with fixed command lines and fsmonitor, external diff and textconv off. `src/shared/git.js` and `src/main/git.js`, 5 tests; `npm run smoke` builds a throwaway repo and opens a diff (29 checks)
 - [ ] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start
 
 ### 🏃 Milestone D: agent work with evidence

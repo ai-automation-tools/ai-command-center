@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DOC_HEADERS, docIdFromUrl, docPage, docUrl, escapeHtml, folderBody, imageType, isDocUrl, runPage } from '../src/shared/docs.js';
+import { DOC_HEADERS, docIdFromUrl, docPage, docUrl, escapeHtml, folderBody, imageType, gitDiffPage, isDocUrl, runPage } from '../src/shared/docs.js';
 import { isContainer } from '../src/shared/tree.js';
 import { isAllowedNavigation, toUrl } from '../src/shared/url.js';
 
@@ -80,4 +80,21 @@ test('runPage shows the output as escaped text, says when there is none, and why
   assert.match(empty, /recorded no output/);
   assert.match(empty, /Couldn't get the platform's output: timed out/);
   assert.match(empty, /Cronsole › Backup › e1/);
+});
+
+test('a Git diff page opens from the app only, and shows the diff as escaped, classed text', () => {
+  assert.equal(isAllowedNavigation('acc://git/a.js?area=staged'), true);
+  assert.equal(isAllowedNavigation('acc://git/a.js?area=staged', 'https://evil.example/'), false);
+  assert.equal(isAllowedNavigation('acc://git/a.js?area=staged', 'acc://doc/a.md'), false);
+  assert.equal(isAllowedNavigation('acc://git/a.js?area=staged', 'acc://git/b.js?area=staged'), false);
+  assert.equal(toUrl('acc://git/a.js?area=staged'), 'acc://git/a.js?area=staged');
+  const file = { path: 'src/<b>.js', from: 'old.js', staged: 'R', unstaged: null, kind: /** @type {const} */ ('renamed') };
+  const html = gitDiffPage({ repo: 'D:\\work\\acme', branch: 'main', file, area: 'staged', lines: [{ cls: 'hunk', text: '@@ -1 +1 @@' }, { cls: 'add', text: '+<script>alert(1)</script>' }, { cls: 'ctx', text: '' }], truncated: true });
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /<span class="add">\+&lt;script&gt;/);
+  assert.match(html, /<span class="ctx"> <\/span>/);
+  assert.match(html, /Git › acme › src\/&lt;b&gt;\.js/);
+  assert.match(html, /Staged changes · renamed from old\.js · on main/);
+  assert.match(html, /Cut off after 5,000 lines/);
+  assert.match(gitDiffPage({ repo: 'r', branch: '', file, area: 'unstaged', lines: [], truncated: false }), /No textual difference/);
 });

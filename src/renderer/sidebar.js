@@ -3,6 +3,7 @@
 // the log of calls agents made to the app's MCP server; and Cron, Cronsole's tasks.
 
 import { runSummary, runUrl, taskSummary } from './shared/cronsole.js';
+import { diffAreas, gitUrl } from './shared/git.js';
 import { PROJECT_HUB_REPO } from './shared/settings.js';
 import { pushEntry } from './shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from './shared/tree.js';
@@ -58,6 +59,9 @@ export class Sidebar {
       mcp: /** @type {HTMLElement} */ (document.getElementById('panel-mcp')),
       cron: /** @type {HTMLElement} */ (document.getElementById('panel-cron')),
       cronList: /** @type {HTMLElement} */ (document.getElementById('cron-list')),
+      git: /** @type {HTMLElement} */ (document.getElementById('panel-git')),
+      gitList: /** @type {HTMLElement} */ (document.getElementById('git-list')),
+      gitBranch: /** @type {HTMLElement} */ (document.getElementById('git-branch')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
       search: /** @type {HTMLInputElement} */ (document.getElementById('search')),
       status: /** @type {HTMLElement} */ (document.getElementById('hub-status')),
@@ -83,6 +87,7 @@ export class Sidebar {
     });
     document.getElementById('cron-open')?.addEventListener('click', () => this.openCronsole());
     document.getElementById('cron-refresh')?.addEventListener('click', () => this.loadCron());
+    document.getElementById('git-refresh')?.addEventListener('click', () => this.loadGit());
     api.recent.onChanged((/** @type {any[]} */ list) => { this.recent = list; this.renderRecent(); });
     /** @type {import('./shared/mcplog.js').LogEntry[]} */
     this.calls = [];
@@ -249,6 +254,8 @@ export class Sidebar {
   setRoot(hubId) {
     this.root = hubId;
     if (this.scan) this.renderFiles();
+    // Another workspace, likely another repo.
+    if (this.current === 'git') this.loadGit();
   }
 
   /** @param {HubNode} node @param {'code' | 'reveal'} how */
@@ -377,6 +384,67 @@ export class Sidebar {
     }
   }
 
+  /**
+   * The workspace repo's branch and changed files, read-only: asked for each time the
+   * tab opens and on Refresh. A file opens its diff as a page (acc://git); a file with
+   * both staged and unstaged changes gets a row for each.
+   */
+  async loadGit() {
+    const host = this.el.gitList;
+    host.innerHTML = '';
+    this.el.gitBranch.textContent = '';
+    host.append(note('Asking git…'));
+    try {
+      const st = await this.api.git.status();
+      host.innerHTML = '';
+      if (!st.repo) {
+        host.append(note(st.reason));
+        return;
+      }
+      const repoName = st.repo.split(/[\\/]/).filter(Boolean).pop();
+      const track = st.upstream ? ` → ${st.upstream}${st.ahead ? ` ↑${st.ahead}` : ''}${st.behind ? ` ↓${st.behind}` : ''}` : ' (no upstream)';
+      this.el.gitBranch.textContent = `${repoName} · ${st.branch || '(detached)'}${track}`;
+      this.el.gitBranch.title = `${st.repo}\n${this.el.gitBranch.textContent}`;
+      if (!st.files.length) host.append(note('No changes: the working tree matches the last commit.'));
+      /** @type {[string, (f: any) => boolean, 'staged' | 'unstaged' | 'untracked'][]} */
+      const groups = [
+        ['Conflicts', (f) => f.kind === 'conflict', 'unstaged'],
+        ['Staged', (f) => f.kind !== 'conflict' && Boolean(f.staged), 'staged'],
+        ['Changes', (f) => f.kind !== 'conflict' && f.kind !== 'untracked' && Boolean(f.unstaged), 'unstaged'],
+        ['Untracked', (f) => f.kind === 'untracked', 'untracked'],
+      ];
+      for (const [label, has, area] of groups) {
+        const files = st.files.filter(has);
+        if (!files.length) continue;
+        const head = document.createElement('div');
+        head.className = 'git-group';
+        head.textContent = `${label} (${files.length})`;
+        host.append(head);
+        for (const f of files) {
+          const row = document.createElement('div');
+          row.className = `row git-file ${f.kind}`;
+          row.tabIndex = 0;
+          row.style.paddingLeft = '10px';
+          row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span>';
+          q(row, '.icon').textContent = area === 'staged' ? f.staged : f.unstaged;
+          q(row, '.name').textContent = f.path.split('/').pop();
+          q(row, '.sub').textContent = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '';
+          row.title = f.from ? `${f.path} (renamed from ${f.from})` : f.path;
+          // A conflict has no clean diff to show; git's own working-tree diff of it is still useful.
+          const open = diffAreas(f).includes(area) || f.kind === 'conflict';
+          if (open) {
+            row.addEventListener('click', () => this.openUrl(gitUrl(f.path, area)));
+            row.addEventListener('keydown', (e) => { if (e.key === 'Enter') row.click(); });
+          }
+          host.append(row);
+        }
+      }
+    } catch (err) {
+      host.innerHTML = '';
+      host.append(note(errText(err), true));
+    }
+  }
+
   // Cronsole's tasks, asked for when the tab is first opened: the first ask starts its MCP server.
   async loadCron() {
     this.cronLoaded = true;
@@ -460,7 +528,9 @@ export class Sidebar {
     this.el.recent.hidden = name !== 'recent';
     this.el.mcp.hidden = name !== 'mcp';
     this.el.cron.hidden = name !== 'cron';
+    this.el.git.hidden = name !== 'git';
     if (name === 'cron' && !this.cronLoaded) this.loadCron();
+    if (name === 'git') this.loadGit();
   }
 
   focusSearch() {
@@ -476,7 +546,7 @@ export class Sidebar {
       this.show(this.current);
       return;
     }
-    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.cron.hidden = true;
+    this.el.files.hidden = this.el.bookmarks.hidden = this.el.recent.hidden = this.el.mcp.hidden = this.el.cron.hidden = this.el.git.hidden = true;
     res.hidden = false;
     res.innerHTML = '';
 

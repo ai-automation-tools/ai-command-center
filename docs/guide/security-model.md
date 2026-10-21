@@ -25,6 +25,7 @@ The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s securit
 - `acc://doc/…` pages are served to the sandboxed tabs only, run no scripts (`default-src 'none'`), can't be framed, and can't be reached from a web page.
 - Only files in Project Hub's index are served, so a crafted address can't read anything else.
 - A Cronsole run page (`acc://run/…`) has the same policy, opens only from the sidebar, and shows the run's output as text.
+- A Git diff page (`acc://git/…`) does too, and is served only for a file `git status` lists right now with that kind of change.
 
 ## Terminals and agents
 
@@ -43,7 +44,8 @@ The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s securit
 
 ## Processes and data
 
-- Cronsole's MCP server is the only process the app starts besides the terminals: the app's own Electron binary running the script `ACC_CRONSOLE_MCP` names, which only `.env` or your environment can set. It talks over stdio and listens on nothing.
+- The Git tab runs `git` itself, read-only: fixed command lines through `execFile`, no shell, in the workspace's repo, with the scrubbed environment the terminals get. It runs the `git.exe` found on PATH's absolute entries, never a bare `git`, which Windows would look for in the repo folder first. Every call turns off fsmonitor hooks, external diff tools and textconv drivers. A file path reaches git only after `--`, and only when git just listed it.
+- Cronsole's MCP server is the only other process the app starts besides the terminals: the app's own Electron binary running the script `ACC_CRONSOLE_MCP` names, which only `.env` or your environment can set. It talks over stdio and listens on nothing.
 - The app calls only Cronsole's read-only `list_tasks`, `get_task_history` and `get_run_output`, plus `run_task` for a task you clicked Run for. The task id never comes from the click, only the yes.
 - The chat key goes only to `api.anthropic.com`. It's never sent to the shell UI or written to disk.
 - The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's.

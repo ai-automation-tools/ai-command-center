@@ -25,6 +25,7 @@
         <button role="tab" data-panel="recent" aria-selected="false">Recent</button>
         <button role="tab" data-panel="mcp" aria-selected="false" title="Calls agents made to the app's MCP server">MCP</button>
         <button role="tab" data-panel="cron" aria-selected="false" title="Cronsole's scheduled tasks">Cron</button>
+        <button role="tab" data-panel="git" aria-selected="false" title="The workspace repo's branch and changes">Git</button>
       </nav>
       <section id="panel-files" class="panel" role="tabpanel"></section>
       <section id="panel-bookmarks" class="panel" role="tabpanel" hidden>
@@ -41,6 +42,13 @@
           <button id="cron-refresh" title="Ask Cronsole again">Refresh</button>
         </div>
         <div id="cron-list"></div>
+      </section>
+      <section id="panel-git" class="panel" role="tabpanel" hidden>
+        <div class="panel-tools git-tools">
+          <span id="git-branch" class="git-branch"></span>
+          <button id="git-refresh" title="Ask git again">Refresh</button>
+        </div>
+        <div id="git-list"></div>
       </section>
       <section id="panel-search" class="panel" role="region" aria-label="Search results" hidden></section>
     </aside>

@@ -18,6 +18,7 @@ import { extensionsMenu, listExtensions, setupExtensions } from './extensions.js
 import { loadBlocker } from './adblock.js';
 import { smoke } from './smoke.js';
 import { serveDocs, invalidateDocsIndex } from './docs.js';
+import { diffPage as gitDiff, status as gitStatus } from './git.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
@@ -199,7 +200,7 @@ async function createWindow() {
   browseSession.setPermissionRequestHandler((_wc, permission, callback) => callback(isPermissionAllowed(permission)));
   browseSession.setPermissionCheckHandler((_wc, permission) => isPermissionAllowed(permission));
   browseSession.setDevicePermissionHandler(() => false);
-  serveDocs(browseSession, (url) => cron.page(url));
+  serveDocs(browseSession, (url) => cron.page(url), (url) => gitDiff(current().folder, url));
   // Hub rescans on its own; reload the tree and drop the doc index when it says so.
   stopEvents = subscribeHubEvents(() => {
     invalidateDocsIndex();
@@ -400,6 +401,9 @@ async function createWindow() {
   handle('cronsole:info', () => cron.info());
   handle('cronsole:tasks', () => cron.tasks());
   handle('cronsole:history', (taskId) => cron.history(taskId));
+
+  // The Git tab: the active workspace's repo, read-only (src/main/git.js).
+  handle('git:status', () => gitStatus(current().folder));
 
   // The Connections view: Hub, Cronsole, each shell, the chat model and the MCP server.
   // Given a row's id it checks that one again (Retry), given a group ('shells') every row in it, and with none, all of them.

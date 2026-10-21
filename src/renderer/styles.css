@@ -112,6 +112,12 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .row.task.failed .icon, .row.task.failed .sub { color: var(--bad); }
 .row.run .name { font-size: 12px; color: var(--text-2); }
 .row.run.failed .icon { color: var(--bad); }
+.git-tools { display: flex; align-items: center; gap: 6px; }
+.git-branch { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 12px; }
+.git-group { padding: 8px 10px 2px; color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.row.git-file .icon { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--accent); width: 1.6em; }
+.row.git-file.conflict .icon { color: var(--bad); }
+.row.git-file.untracked .icon { color: var(--ok); }
 #chat-pane { display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); min-width: 0; min-height: 0; }
 #panel-chat { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 #chat-hide { flex: none; }

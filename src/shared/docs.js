@@ -95,6 +95,25 @@ export function runPage({ task, run, output, error = null }) {
   return docPage({ title: `${task} · run`, trail: `Cronsole › ${task} › ${run.triggeredAt || run.id}`, body });
 }
 
+/**
+ * One file's diff as a page (acc://git, src/main/git.js): each line escaped and classed
+ * so additions and removals are coloured. Read-only; nothing on it acts.
+ * @param {{ repo: string, branch: string, file: import('./git.js').GitFile, area: import('./git.js').DiffArea, lines: { cls: string, text: string }[], truncated: boolean }} p
+ */
+export function gitDiffPage({ repo, branch, file, area, lines, truncated }) {
+  const name = repo.split(/[\\/]/).filter(Boolean).pop() || repo;
+  const what = { staged: 'Staged changes', unstaged: 'Changes not staged', untracked: 'New file, not tracked yet' }[area];
+  const body = [
+    `<h1>${escapeHtml(file.path)}</h1>`,
+    `<p class="note">${escapeHtml([what, file.from && `renamed from ${file.from}`, branch && `on ${branch}`].filter(Boolean).join(' · '))}</p>`,
+    lines.length
+      ? `<pre class="diff">${lines.map((l) => `<span class="${l.cls}">${escapeHtml(l.text) || ' '}</span>`).join('')}</pre>`
+      : '<p class="note">No textual difference (a mode change, or a binary file).</p>',
+    truncated && '<p class="note">Cut off after 5,000 lines.</p>',
+  ].filter(Boolean).join('');
+  return docPage({ title: `${file.path} · diff`, trail: `Git › ${name} › ${file.path}`, body });
+}
+
 const CSS = `
 :root { --bg: #0b0d10; --panel: #111418; --line: #262b33; --text: #e4e4e7; --text-2: #a1a1aa; --accent: #38bdf8; }
 @media (prefers-color-scheme: light) { :root { --bg: #ffffff; --panel: #f4f4f5; --line: #e4e4e7; --text: #18181b; --text-2: #52525b; --accent: #0369a1; } }
@@ -112,4 +131,7 @@ table { border-collapse: collapse; } th, td { border: 1px solid var(--line); pad
 blockquote { margin: 0; padding: 0 1em; border-left: 3px solid var(--line); color: var(--text-2); }
 .listing { list-style: none; padding: 0; } .listing li { padding: 3px 0; } .listing a { text-decoration: none; }
 .note { color: var(--text-2); }
+pre.diff span { display: block; } pre.diff .add { color: #4ade80; background: #4ade8014; } pre.diff .del { color: #f87171; background: #f8717114; }
+pre.diff .hunk { color: var(--accent); } pre.diff .meta { color: var(--text-2); }
+@media (prefers-color-scheme: light) { pre.diff .add { color: #15803d; } pre.diff .del { color: #b91c1c; } }
 `;

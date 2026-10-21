@@ -471,7 +471,7 @@ const ACTIONS = [
   ['Search everything', 'Ctrl+Shift+F', 'focus-search'],
   ['Open Cronsole', 'pinned tab', 'open-cronsole'],
   ['Connections', 'Hub, Cronsole, shells, chat, MCP', 'connections'],
-  ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Cron'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
+  ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Cron', 'Git'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
 ];
 
 const palette = createPalette({

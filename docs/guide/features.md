@@ -57,6 +57,13 @@
 - **Recent:** pages, files and terminals you've opened.
 - **Search** (Ctrl+Shift+F): one box across files, bookmarks and Recent.
 
+## 🌿 Git
+
+- The **Git** tab in the sidebar shows the active workspace's repo: its branch, the upstream it tracks and how far ahead or behind it is, then the changed files grouped as Conflicts, Staged, Changes and Untracked.
+- Click a file to read its diff in a tab: additions in green, removals in red. A file with both staged and unstaged changes is listed in each group, and each opens its own diff.
+- Read-only for now: nothing here stages, commits or pushes. **Refresh** asks git again, and opening the tab always does.
+- The Default workspace has no folder of its own, so open a folder as a workspace first.
+
 ## 🔌 Connections
 
 - Click the dot next to "Command Center" at the top of the sidebar, or pick **Connections** from the palette or the View menu.
