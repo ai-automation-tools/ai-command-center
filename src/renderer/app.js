@@ -5,6 +5,7 @@ import { Sidebar, toast } from './sidebar.js';
 import { startChat } from './chat.js';
 import { TerminalPanel } from './terminal.js';
 import { createPalette } from './palette.js';
+import { createConnections } from './connections.js';
 import { defaultAction, search } from './shared/tree.js';
 import { docUrl, isDocUrl } from './shared/docs.js';
 import { cycleTab, pickTab } from './shared/session.js';
@@ -446,6 +447,7 @@ const ACTIONS = [
   ['Toggle sidebar', 'Ctrl+B', 'toggle-sidebar'],
   ['Search everything', 'Ctrl+Shift+F', 'focus-search'],
   ['Open Cronsole', 'pinned tab', 'open-cronsole'],
+  ['Connections', 'Hub, Cronsole, shells, chat, MCP', 'connections'],
   ...['Files', 'Bookmarks', 'Recent', 'MCP', 'Chat', 'Cron'].map((p) => [`Show ${p}`, 'sidebar', `panel-${p.toLowerCase()}`]),
 ];
 
@@ -482,6 +484,21 @@ const palette = createPalette({
   onClose: () => { if (activeTab !== null) api.tabs.setHidden(false); },
 });
 
+const connections = createConnections({
+  api,
+  onOpen: () => api.tabs.setHidden(true),
+  onClose: () => { if (activeTab !== null) api.tabs.setHidden(false); },
+  // Hub answering again: the status dot and, if it was down, the Files tree catch up.
+  onChecked: (rows) => {
+    const h = rows.find((r) => r.id === 'hub');
+    if (!h) return;
+    if (h.state === 'ok' && sidebar.el.status.classList.contains('bad')) sidebar.loadFiles();
+    sidebar.checkHub();
+  },
+});
+sidebar.el.status.addEventListener('click', () => connections.open());
+sidebar.el.status.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); connections.open(); } });
+
 /** @param {unknown} err */
 function errText(err) {
   return err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err);
@@ -490,6 +507,7 @@ function errText(err) {
 /** A menu shortcut or a palette action. @param {string} action */
 function runAction(action) {
   if (action === 'palette') palette.open();
+  if (action === 'connections') connections.open();
   if (action === 'open-cronsole') openCronsole();
   if (action.startsWith('panel-')) {
     appEl.classList.remove('no-sidebar');

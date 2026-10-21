@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('acc', {
     history: invoke('cronsole:history'),
   },
 
+  connections: { check: invoke('connections:check') },
+
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
   menu: invoke('menu:popup'),
 

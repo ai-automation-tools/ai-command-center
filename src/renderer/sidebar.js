@@ -108,7 +108,7 @@ export class Sidebar {
   async checkHub() {
     const h = await this.api.hub.health();
     this.el.status.className = `dot ${h.ok ? 'ok' : 'bad'}`;
-    this.el.status.title = `Project Hub: ${h.ok ? 'ready' : h.state}`;
+    this.el.status.title = `Project Hub: ${h.ok ? 'ready' : h.state}. Click for Connections.`;
   }
 
   /** The Files tree from the last scan, from the workspace's folder down when it has one. */
