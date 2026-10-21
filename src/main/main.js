@@ -44,6 +44,10 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'acc', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
 
+// ACC_USER_DATA: run on another profile (npm run smoke's throwaway one). Before the
+// single-instance lock, which is per profile, so a smoke run works beside the real app.
+if (process.env.ACC_USER_DATA) app.setPath('userData', process.env.ACC_USER_DATA);
+
 // One instance: a second launch focuses the first. exit(), not quit(): quit() is async,
 // so whenReady would still run and start a second MCP server over the first's mcp.json.
 if (!app.requestSingleInstanceLock()) app.exit(0);
@@ -423,5 +427,6 @@ app.on('quit', () => {
   mcp?.close();
   cron.close();
   stopEvents?.();
-  setImmediate(() => app.exit(0));
+  // process.exitCode: the smoke run's verdict; 0 otherwise.
+  setImmediate(() => app.exit(Number(process.exitCode ?? 0)));
 });

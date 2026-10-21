@@ -27,7 +27,7 @@ HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 ```powershell
 npm run lint     # node --check on every .js/.cjs/.mjs in src, scripts, tests
 npm test         # unit tests (count in tests/README.md)
-npm run smoke    # launches the real app, opens a page and a terminal, screenshots to .smoke/, quits (needs a desktop session)
+npm run smoke    # the real app on a throwaway profile: named checks, .smoke/summary.json, exit 1 on a failure (needs a desktop session; -- --live adds the Hub and Cronsole checks)
 npm run demo     # builds the browser demo (renderer + src/demo's fake window.acc) into _site/
 ```
 
