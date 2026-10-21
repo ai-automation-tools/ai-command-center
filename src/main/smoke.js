@@ -483,6 +483,72 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
     check('the Git tab lists a repo\'s staged, unstaged and untracked files, and a click opens the diff as a script-free page',
       Boolean(gitRun?.branch?.includes('smoke-branch') && gitRun.rows.includes('M staged.txt') && gitRun.rows.includes('M edited.txt') && gitRun.rows.includes('? new.txt')
         && gp && /edited\.txt\?area=unstaged$/.test(gp.url) && gp.add.includes('+after <b>') && gp.del.includes('-before') && gp.scripts === 0), gitRun);
+    // The Dev tab on a throwaway package: `npm run dev` starts a tiny server that prints
+    // its address. Start from the row, wait for ready, fetch it, open the log page, then
+    // Stop and check the port is closed. Same folder rules as the Git check.
+    const pkg = process.env.ACC_USER_DATA
+      ? fs.mkdtempSync(path.join(app.getPath('userData'), 'dev-'))
+      : fs.mkdtempSync(path.join(os.tmpdir(), 'acc-dev-'));
+    /** @type {any} */
+    let devRun = null;
+    try {
+      fs.writeFileSync(path.join(pkg, 'package.json'), JSON.stringify({ name: 'dev-smoke', private: true, scripts: { dev: 'node server.js', build: 'echo no' } }));
+      fs.writeFileSync(path.join(pkg, 'server.js'), "require('http').createServer((q, r) => r.end('acc-dev-smoke')).listen(0, '127.0.0.1', function () { console.log('  Local: http://127.0.0.1:' + this.address().port + '/'); });\n");
+      devRun = await wc.executeJavaScript(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        await window.acc.workspace.add({ folder: ${JSON.stringify(pkg)}, name: 'Dev smoke' });
+        await pause(1500);
+        document.querySelector('.side-tabs [data-panel="dev"]').click();
+        for (let i = 0; i < 50 && !document.querySelector('#dev-list .dev-server'); i++) await pause(100);
+        const scripts = [...document.querySelectorAll('#dev-list .dev-server .name')].map((n) => n.textContent);
+        [...document.querySelectorAll('#dev-list .dev-server .acts button')].find((b) => b.textContent === 'Start')?.click();
+        let s = null;
+        for (let i = 0; i < 150 && s?.state !== 'ready'; i++) { await pause(200); s = (await window.acc.dev.info()).servers[0]; }
+        await pause(300);
+        const row = document.querySelector('#dev-list .dev-server');
+        [...row.querySelectorAll('.acts button')].find((b) => b.textContent === 'Log')?.click();
+        return { scripts, server: s, sub: row.querySelector('.sub').textContent, buttons: [...row.querySelectorAll('.acts button')].map((b) => b.textContent) };
+      })()`);
+      if (devRun.server?.url) devRun.body = await fetch(devRun.server.url).then((r) => r.text(), (e) => `fetch failed: ${e.message}`);
+      for (let i = 0; i < 40 && !tabs.list().some((t) => t.url.startsWith('acc://dev/')); i++) await wait(250);
+      const logTab = tabs.list().find((t) => t.url.startsWith('acc://dev/'));
+      const view = logTab && tabs.tabs.get(logTab.id);
+      if (view) {
+        for (let i = 0; i < 40 && view.view.webContents.isLoading(); i++) await wait(100);
+        devRun.page = await view.view.webContents.executeJavaScript(`({ url: location.href, text: document.querySelector('pre')?.textContent ?? '', scripts: document.scripts.length })`);
+      }
+      devRun.after = await wc.executeJavaScript(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const first = (await window.acc.dev.info()).servers[0];
+        await window.acc.dev.restart(first.id);
+        let s = null;
+        for (let i = 0; i < 150 && !(s?.state === 'ready' && s.pid !== first.pid); i++) { await pause(200); s = (await window.acc.dev.info()).servers[0]; }
+        const restarted = { state: s?.state, newPid: Boolean(s?.pid && s.pid !== first.pid), sameId: s?.id === first.id };
+        await window.acc.dev.stop(first.id);
+        for (let i = 0; i < 100 && s?.state !== 'stopped'; i++) { await pause(100); s = (await window.acc.dev.info()).servers[0]; }
+        return { ...s, restarted };
+      })()`);
+      if (devRun.after?.url) devRun.closed = await fetch(devRun.after.url).then(() => false, () => true);
+      await wc.executeJavaScript(`(async () => { await window.acc.workspace.switch('default'); await window.acc.workspace.remove('dev-smoke'); })()`).catch(() => {});
+    } catch (err) {
+      devRun = { error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      for (const s of terminals.listSessions().filter((t) => t.ws === 'dev-smoke')) terminals.kill(s.id);
+      if (!process.env.ACC_USER_DATA) {
+        try {
+          fs.rmSync(pkg, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+        } catch (err) {
+          console.warn(`[smoke] couldn't remove ${pkg}: ${err instanceof Error ? err.message : err}`);
+        }
+      }
+    }
+    console.log(`[smoke] dev=${JSON.stringify(devRun)}`);
+    check('the Dev tab starts a package.json dev script, shows its address once it\'s up, opens its log, and Restart and Stop work',
+      Boolean(devRun?.scripts?.join() === 'dev' && devRun.server?.state === 'ready' && /^http:\/\/127\.0\.0\.1:\d+\/$/.test(devRun.server.url)
+        && devRun.sub === devRun.server.url && devRun.buttons.includes('Stop') && devRun.body === 'acc-dev-smoke'
+        && devRun.page && /^acc:\/\/dev\/\d+$/.test(devRun.page.url) && devRun.page.text.includes('Local: http://127.0.0.1:') && devRun.page.scripts === 0
+        && devRun.after?.restarted?.state === 'ready' && devRun.after.restarted.newPid && devRun.after.restarted.sameId
+        && devRun.after.state === 'stopped' && devRun.closed === true), devRun);
     // Last, so it shows terminal_run's output in the terminal.
     await wait(1500);
     await shot('shell.png', wc);

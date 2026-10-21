@@ -448,6 +448,18 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       }),
     },
 
+    // The same made-up repo with its dev server up. Nothing starts in the demo.
+    dev: {
+      info: async () => ({
+        folder: 'D:\\work\\acme-api', manager: 'npm', scripts: ['dev', 'preview'], reason: '',
+        servers: [{ id: 1, folder: 'D:\\work\\acme-api', script: 'dev', manager: 'npm', state: 'ready', code: null, url: 'http://localhost:5173/', port: 5173, startedAt: now() - 600_000, pid: 4242, text: 'http://localhost:5173/' }],
+      }),
+      start: async () => { throw new Error('This is the demo, so no dev server starts.'); },
+      stop: async () => { throw new Error('This is the demo, so there is no process to stop.'); },
+      restart: async () => { throw new Error('This is the demo, so no dev server starts.'); },
+      onChanged: listen('dev'),
+    },
+
     // Made-up states: what a machine with Hub up, Git Bash missing and no chat key would show.
     connections: {
       check: async (/** @type {string | undefined} */ id) => [

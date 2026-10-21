@@ -112,6 +112,14 @@ contextBridge.exposeInMainWorld('acc', {
 
   git: { status: invoke('git:status') },
 
+  dev: {
+    info: invoke('dev:info'),
+    start: invoke('dev:start'),
+    stop: invoke('dev:stop'),
+    restart: invoke('dev:restart'),
+    onChanged: listen('dev:changed'),
+  },
+
   /** @type {(items: ({ id: string, label: string } | '-')[]) => Promise<string | null>} */
   menu: invoke('menu:popup'),
 

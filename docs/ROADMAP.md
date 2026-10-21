@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. Milestone C has started: the Git changes view is in, read-only. **Next:** its editor ADR is Mike's call and the side-by-side editor waits on it, so the next item to build is dev servers, then the two open Integrations items. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. Milestone C has started: the Git changes view (read-only) and dev servers are in. **Next:** its editor ADR is Mike's call and the side-by-side editor waits on it, so the next items to build are the two open Integrations items, then Milestone D. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -87,7 +87,7 @@ They decide whether to keep going, per [build-plan.md](product/build-plan.md#whe
 - [ ] Use the app as the main window for 5 working days and fill in the log below 🔒 Needs Mike
 - [ ] Terminal checked by hand: typing, resize, colors, copy/paste (keys and right-click), and `claude` running in it 🔒 Needs Mike
 - [ ] Ad blocking checked by hand on a few ad-heavy sites, and no site you use daily broken by it 🔒 Needs Mike
-- [ ] Milestone B and the Git view checked by hand in the real app: open a folder as a workspace, switch away and back (tabs, terminals and conversations follow), Ctrl+K over a page, a file and a terminal, the chat pane beside Files (resize, hide, Ctrl+Shift+L), two named conversations (search, rename, delete), Connections from the status dot, and the Git tab on a real repo with a diff open 🔒 Needs Mike
+- [ ] Milestone B and the Git view checked by hand in the real app: open a folder as a workspace, switch away and back (tabs, terminals and conversations follow), Ctrl+K over a page, a file and a terminal, the chat pane beside Files (resize, hide, Ctrl+Shift+L), two named conversations (search, rename, delete), Connections from the status dot, the Git tab on a real repo with a diff open, and the Dev tab starting, restarting and stopping a real repo's dev server 🔒 Needs Mike
 - [ ] Chat checked against the live API with a real key: a streamed reply, + page, a `terminal_run` the chat asks for, and Stop mid-answer 🔒 Needs Mike
 
 | Day | Used as main window? | What broke or got in the way |
@@ -126,7 +126,7 @@ Replaces Phase 3's IDE line.
 - [ ] Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend 🔒 Needs Mike
 - [!] Editor and browser preview side by side, from the ADR's choice — blocked: waits for the editor ADR above
 - [x] Git changes: branch, status and diff for the workspace's repo, read-only first — done 2026-10-21: a Git tab (branch, upstream, ahead/behind, files grouped as conflicts, staged, changes and untracked) and `acc://git` diff pages, served like run pages; git runs through `execFile` with fixed command lines and fsmonitor, external diff and textconv off. `src/shared/git.js` and `src/main/git.js`, 5 tests; `npm run smoke` builds a throwaway repo and opens a diff (29 checks)
-- [ ] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start
+- [x] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start — done 2026-10-21: a Dev tab lists the workspace package.json's dev, start, serve, preview and watch scripts and runs one with `<npm|pnpm|yarn> run` (by lockfile, by full path from PATH). The first loopback address it prints marks it ready; `acc://dev/<id>` shows its log, served like run pages. Stop and Restart end the process tree by the pid it was spawned with, only while it runs, and closing the app stops them all. `src/shared/devservers.js` and `src/main/devservers.js`, 7 tests; `npm run smoke` starts a throwaway server, fetches it, restarts and stops it (30 checks)
 
 ### 🏃 Milestone D: agent work with evidence
 
@@ -190,7 +190,7 @@ From the 2026-10-05 review.
 - [x] Move the smoke routine out of `src/main/main.js` into `src/main/smoke.js`; it's 150 lines of a 490-line file that CLAUDE.md says should stay thin — 2026-10-20; `main.js` 590 → 389 lines, `npm run smoke` passes unchanged
 - [x] Test counts in `README.md`, `tests/README.md` and `CLAUDE.md` drift apart (65+, 74 and 80 on 2026-10-05). Say "80+" once in `tests/README.md` and drop the number elsewhere, or print it from CI — 2026-10-20; the one count is the "140+" badge in `tests/README.md`, CLAUDE.md points there, README.md had none
 
-- [ ] The terminal's last-resort shell runs by a full path: when no shell is found at its usual place, `shellProfiles` falls back to a bare `powershell.exe`, which Windows looks up in the starting folder first (the Git tab already resolves `git.exe` from PATH's absolute entries; do the same here). Found 2026-10-21 while building the Git view; unit-test the fallback
+- [ ] The terminal's last-resort shell runs by a full path: when no shell is found at its usual place, `shellProfiles` falls back to a bare `powershell.exe`, which Windows looks up in the starting folder first (the Git and Dev tabs already resolve `git.exe` and `npm.cmd` from PATH's absolute entries with `onPath()` in `src/main/env.js`; do the same here). Found 2026-10-21 while building the Git view; unit-test the fallback
 
 ### Distribution and promotion
 

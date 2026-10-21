@@ -2,8 +2,8 @@
 // sandboxed tabs under Command Center's own sidebar. The shell's acc://shell lives on
 // the shell's session; tabs can't reach it. See src/shared/docs.js for the page.
 //
-// acc://run/<task>/<run> is a Cronsole run's output, and acc://git/<path>?area=… a
-// file's diff in the workspace's repo, on the same pages; the app opens those, never a
+// acc://run/<task>/<run> is a Cronsole run's output, acc://git/<path>?area=… a file's
+// diff in the workspace's repo, and acc://dev/<id> a dev server's log, on the same pages; the app opens those, never a
 // web page (see serveAppPage).
 //
 // Only ids in Project Hub's own index are served. Text comes from Hub's /api/file
@@ -44,7 +44,7 @@ const notePage = (status, title, text) => new Response(
 );
 
 /**
- * A page only the app opens (a Cronsole run, a Git diff). Navigation is refused from any
+ * A page only the app opens (a Cronsole run, a Git diff, a dev server's log). Navigation is refused from any
  * page (isAllowedNavigation), and a request a page makes carries its referrer, so a web
  * page can't fetch or embed one either; only another page of the same kind may.
  * @param {GlobalRequest} req
@@ -66,11 +66,13 @@ async function serveAppPage(req, kind, title, render) {
  * @param {Electron.Session} session
  * @param {(url: string) => Promise<string>} runPage acc://run pages, from src/main/cronsole.js
  * @param {(url: string) => Promise<string>} gitPage acc://git pages, from src/main/git.js
+ * @param {(url: string) => Promise<string>} devPage acc://dev pages, from src/main/devservers.js
  */
-export function serveDocs(session, runPage, gitPage) {
+export function serveDocs(session, runPage, gitPage, devPage) {
   session.protocol.handle('acc', async (req) => {
     if (/^acc:\/\/run\//i.test(req.url)) return serveAppPage(req, /^acc:\/\/run\//i, 'Cronsole run', runPage);
     if (/^acc:\/\/git\//i.test(req.url)) return serveAppPage(req, /^acc:\/\/git\//i, 'Git diff', gitPage);
+    if (/^acc:\/\/dev\//i.test(req.url)) return serveAppPage(req, /^acc:\/\/dev\//i, 'Dev server', devPage);
     let id;
     try {
       id = docIdFromUrl(req.url);

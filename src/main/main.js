@@ -19,6 +19,7 @@ import { loadBlocker } from './adblock.js';
 import { smoke } from './smoke.js';
 import { serveDocs, invalidateDocsIndex } from './docs.js';
 import { diffPage as gitDiff, status as gitStatus } from './git.js';
+import { DevServers } from './devservers.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
@@ -200,7 +201,8 @@ async function createWindow() {
   browseSession.setPermissionRequestHandler((_wc, permission, callback) => callback(isPermissionAllowed(permission)));
   browseSession.setPermissionCheckHandler((_wc, permission) => isPermissionAllowed(permission));
   browseSession.setDevicePermissionHandler(() => false);
-  serveDocs(browseSession, (url) => cron.page(url), (url) => gitDiff(current().folder, url));
+  const devs = new DevServers(send);
+  serveDocs(browseSession, (url) => cron.page(url), (url) => gitDiff(current().folder, url), async (url) => devs.page(url));
   // Hub rescans on its own; reload the tree and drop the doc index when it says so.
   stopEvents = subscribeHubEvents(() => {
     invalidateDocsIndex();
@@ -405,6 +407,13 @@ async function createWindow() {
   // The Git tab: the active workspace's repo, read-only (src/main/git.js).
   handle('git:status', () => gitStatus(current().folder));
 
+  // The Dev tab: servers started from the active workspace's package.json scripts
+  // (src/main/devservers.js). The folder is always the workspace's; the renderer names a script.
+  handle('dev:info', () => ({ folder: current().folder, ...devs.scripts(current().folder), servers: devs.list() }));
+  handle('dev:start', (script) => devs.start(current().folder, String(script)));
+  handle('dev:stop', (id) => devs.stop(Number(id)));
+  handle('dev:restart', (id) => devs.restart(Number(id)));
+
   // The Connections view: Hub, Cronsole, each shell, the chat model and the MCP server.
   // Given a row's id it checks that one again (Retry), given a group ('shells') every row in it, and with none, all of them.
   handle('connections:check', async (id) => {
@@ -502,6 +511,7 @@ async function createWindow() {
   });
   win.on('closed', () => {
     terminals.killAll();
+    devs.stopAll();
     win = null;
     shellView = null;
   });

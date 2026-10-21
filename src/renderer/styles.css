@@ -118,6 +118,9 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .row.git-file .icon { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--accent); width: 1.6em; }
 .row.git-file.conflict .icon { color: var(--bad); }
 .row.git-file.untracked .icon { color: var(--ok); }
+.row.dev-server .icon { color: var(--text-3); }
+.row.dev-server.ready .icon { color: var(--ok); }
+.row.dev-server.exited .icon, .row.dev-server.exited .sub { color: var(--bad); }
 #chat-pane { display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); min-width: 0; min-height: 0; }
 #panel-chat { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 #chat-hide { flex: none; }
