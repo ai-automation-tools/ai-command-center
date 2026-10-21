@@ -4,6 +4,7 @@
 
 import { runSummary, runUrl, taskSummary } from './shared/cronsole.js';
 import { diffAreas, gitUrl } from './shared/git.js';
+import { devUrl } from './shared/devservers.js';
 import { PROJECT_HUB_REPO } from './shared/settings.js';
 import { pushEntry } from './shared/mcplog.js';
 import { HUB_FAVORITES, absPath, defaultAction, fileMenu, flatten, flattenBookmarks, isContainer, searchAll, terminalDir } from './shared/tree.js';
@@ -62,6 +63,9 @@ export class Sidebar {
       git: /** @type {HTMLElement} */ (document.getElementById('panel-git')),
       gitList: /** @type {HTMLElement} */ (document.getElementById('git-list')),
       gitBranch: /** @type {HTMLElement} */ (document.getElementById('git-branch')),
+      dev: /** @type {HTMLElement} */ (document.getElementById('panel-dev')),
+      devList: /** @type {HTMLElement} */ (document.getElementById('dev-list')),
+      devFolder: /** @type {HTMLElement} */ (document.getElementById('dev-folder')),
       results: /** @type {HTMLElement} */ (document.getElementById('panel-search')),
       search: /** @type {HTMLInputElement} */ (document.getElementById('search')),
       status: /** @type {HTMLElement} */ (document.getElementById('hub-status')),
@@ -88,6 +92,8 @@ export class Sidebar {
     document.getElementById('cron-open')?.addEventListener('click', () => this.openCronsole());
     document.getElementById('cron-refresh')?.addEventListener('click', () => this.loadCron());
     document.getElementById('git-refresh')?.addEventListener('click', () => this.loadGit());
+    document.getElementById('dev-refresh')?.addEventListener('click', () => this.loadDev());
+    api.dev.onChanged(() => { if (this.current === 'dev') this.loadDev(); });
     api.recent.onChanged((/** @type {any[]} */ list) => { this.recent = list; this.renderRecent(); });
     /** @type {import('./shared/mcplog.js').LogEntry[]} */
     this.calls = [];
@@ -256,6 +262,7 @@ export class Sidebar {
     if (this.scan) this.renderFiles();
     // Another workspace, likely another repo.
     if (this.current === 'git') this.loadGit();
+    if (this.current === 'dev') this.loadDev();
   }
 
   /** @param {HubNode} node @param {'code' | 'reveal'} how */
@@ -445,6 +452,85 @@ export class Sidebar {
     }
   }
 
+  /**
+   * The workspace's dev scripts, each with its server's state when it has one, then the
+   * servers started in other workspaces. Asked for when the tab opens, on Refresh, and
+   * whenever a server starts, comes up or ends.
+   */
+  async loadDev() {
+    const host = this.el.devList;
+    let info;
+    try {
+      info = await this.api.dev.info();
+    } catch (err) {
+      host.innerHTML = '';
+      host.append(note(errText(err), true));
+      return;
+    }
+    host.innerHTML = '';
+    const folderName = (/** @type {string} */ f) => f.split(/[\\/]/).filter(Boolean).pop() || f;
+    this.el.devFolder.textContent = info.folder ? `${folderName(info.folder)}${info.manager ? ` · ${info.manager}` : ''}` : '';
+    this.el.devFolder.title = info.folder || '';
+    if (info.reason) host.append(note(info.reason));
+    /** @param {string} label */
+    const group = (label) => {
+      const head = document.createElement('div');
+      head.className = 'git-group';
+      head.textContent = label;
+      host.append(head);
+    };
+    if (info.scripts.length) group('Scripts');
+    for (const script of info.scripts) {
+      host.append(this.devRow(script, info.servers.find((s) => s.folder === info.folder && s.script === script) ?? null, ''));
+    }
+    const others = info.servers.filter((s) => s.folder !== info.folder);
+    if (others.length) group(`Other workspaces (${others.length})`);
+    for (const s of others) host.append(this.devRow(s.script, s, folderName(s.folder)));
+  }
+
+  /**
+   * One script's row. A click opens the server's address once it's up, else its log;
+   * a script that isn't running starts on click.
+   * @param {string} script
+   * @param {any} s its server, or null when it hasn't started this run
+   * @param {string} where the folder's name, for a server from another workspace
+   */
+  devRow(script, s, where) {
+    const running = s && (s.state === 'starting' || s.state === 'ready' || s.state === 'stopping');
+    const row = document.createElement('div');
+    row.className = `row dev-server ${s ? s.state : 'idle'}`;
+    row.tabIndex = 0;
+    row.style.paddingLeft = '10px';
+    row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span><span class="acts"></span>';
+    q(row, '.icon').textContent = !s ? '▷' : s.state === 'ready' ? '●' : running ? '◌' : '■';
+    q(row, '.name').textContent = where ? `${script} · ${where}` : script;
+    q(row, '.sub').textContent = s ? s.text : '';
+    row.title = s ? [`${s.manager} run ${script}`, s.folder, s.text, s.pid && `pid ${s.pid}`].filter(Boolean).join('\n') : `Start: run ${script}`;
+    /** @param {Promise<unknown>} p */
+    const act = (p) => p.catch((err) => toast(errText(err)));
+    /** @type {[string, () => void][]} */
+    const buttons = [];
+    if (s?.url && s.state === 'ready') buttons.push(['Open', () => this.openUrl(s.url)]);
+    if (s) buttons.push(['Log', () => this.openUrl(devUrl(s.id))]);
+    if (!s && !where) buttons.push(['Start', () => act(this.api.dev.start(script))]);
+    if (s && s.state !== 'stopping') buttons.push([running ? 'Restart' : 'Start', () => act(this.api.dev.restart(s.id))]);
+    if (running && s.state !== 'stopping') buttons.push(['Stop', () => act(this.api.dev.stop(s.id))]);
+    for (const [label, fn] of buttons) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.addEventListener('click', fn);
+      q(row, '.acts').append(b);
+    }
+    row.addEventListener('click', (e) => {
+      if (/** @type {HTMLElement} */ (e.target).closest('.acts')) return;
+      if (!s) act(this.api.dev.start(script));
+      else if (s.state === 'ready' && s.url) this.openUrl(s.url);
+      else this.openUrl(devUrl(s.id));
+    });
+    row.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target === row) row.click(); });
+    return row;
+  }
+
   // Cronsole's tasks, asked for when the tab is first opened: the first ask starts its MCP server.
   async loadCron() {
     this.cronLoaded = true;
@@ -529,8 +615,10 @@ export class Sidebar {
     this.el.mcp.hidden = name !== 'mcp';
     this.el.cron.hidden = name !== 'cron';
     this.el.git.hidden = name !== 'git';
+    this.el.dev.hidden = name !== 'dev';
     if (name === 'cron' && !this.cronLoaded) this.loadCron();
     if (name === 'git') this.loadGit();
+    if (name === 'dev') this.loadDev();
   }
 
   focusSearch() {

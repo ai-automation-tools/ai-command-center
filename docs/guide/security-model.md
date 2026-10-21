@@ -26,6 +26,7 @@ The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s securit
 - Only files in Project Hub's index are served, so a crafted address can't read anything else.
 - A Cronsole run page (`acc://run/…`) has the same policy, opens only from the sidebar, and shows the run's output as text.
 - A Git diff page (`acc://git/…`) does too, and is served only for a file `git status` lists right now with that kind of change.
+- A dev server's log page (`acc://dev/…`) does too, and is served only for a server this run of the app started.
 
 ## Terminals and agents
 
@@ -45,7 +46,8 @@ The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s securit
 ## Processes and data
 
 - The Git tab runs `git` itself, read-only: fixed command lines through `execFile`, no shell, in the workspace's repo, with the scrubbed environment the terminals get. It runs the `git.exe` found on PATH's absolute entries, never a bare `git`, which Windows would look for in the repo folder first. Every call turns off fsmonitor hooks, external diff tools and textconv drivers. A file path reaches git only after `--`, and only when git just listed it.
-- Cronsole's MCP server is the only other process the app starts besides the terminals: the app's own Electron binary running the script `ACC_CRONSOLE_MCP` names, which only `.env` or your environment can set. It talks over stdio and listens on nothing.
+- The Dev tab runs a script only when you click it, only one its workspace's `package.json` names as a dev script, and only with a plain name (letters, digits and `:._-`), since it goes on cmd's command line. The package manager runs by its full path from PATH, in the workspace's folder, with the terminals' scrubbed environment. The renderer names a script, never a folder or a command. Stop and Restart end a process tree by the pid the app was given when it started it, and only while that process still runs, so a reused pid is never touched. No MCP tool starts or stops one.
+- Cronsole's MCP server is the only other process the app starts on its own, besides the terminals and the dev servers you start: the app's own Electron binary running the script `ACC_CRONSOLE_MCP` names, which only `.env` or your environment can set. It talks over stdio and listens on nothing.
 - The app calls only Cronsole's read-only `list_tasks`, `get_task_history` and `get_run_output`, plus `run_task` for a task you clicked Run for. The task id never comes from the click, only the yes.
 - The chat key goes only to `api.anthropic.com`. It's never sent to the shell UI or written to disk.
 - The chat's tool calls go through the MCP server with its token, so they're logged and confirmed like any other agent's.

@@ -26,6 +26,17 @@ export function loadEnv(file, base = process.env) {
 
 export const env = loadEnv(ENV_FILE);
 
+/**
+ * A program's full path from PATH's absolute entries only, or null. On Windows a bare
+ * name is looked up in the working directory first, and a child's working directory is
+ * often a workspace repo, so a repo holding its own git.exe or npm.cmd would run instead.
+ * @param {string} file e.g. 'git.exe'
+ */
+export function onPath(file) {
+  const dirs = (process.env.PATH || process.env.Path || '').split(path.delimiter).filter((d) => path.isAbsolute(d));
+  return dirs.map((d) => path.join(d, file)).find((f) => fs.existsSync(f)) ?? null;
+}
+
 /** The app's own credentials (the chat key, under either name): never passed to a child. */
 const APP_SECRETS = new Set(['ACC_CHAT_API_KEY', 'ANTHROPIC_API_KEY']);
 

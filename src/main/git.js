@@ -4,27 +4,17 @@
 // when it's in the status git just reported.
 
 import { execFile } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
 import { ROOT_ARGS, STATUS_ARGS, diffAreas, diffArgs, diffLines, gitFromUrl, parseStatus } from '../shared/git.js';
 import { gitDiffPage } from '../shared/docs.js';
-import { childEnv } from './env.js';
+import { childEnv, onPath } from './env.js';
 
 const TIMEOUT_MS = 15_000;
 const MAX_OUTPUT = 16 * 1024 * 1024;
 
-/**
- * git's full path, from PATH's absolute entries only. On Windows a bare 'git' is looked
- * up in the working directory first, and the working directory is the workspace's repo,
- * so a repo holding its own git.exe would run instead. Null when git isn't installed.
- * @type {string | null | undefined}
- */
+/** git's full path (see onPath); null when git isn't installed. @type {string | null | undefined} */
 let gitPath;
 function findGit() {
-  if (gitPath !== undefined) return gitPath;
-  if (process.platform !== 'win32') return (gitPath = 'git');
-  const dirs = (process.env.PATH || process.env.Path || '').split(path.delimiter).filter((d) => path.isAbsolute(d));
-  gitPath = dirs.map((d) => path.join(d, 'git.exe')).find((f) => fs.existsSync(f)) ?? null;
+  if (gitPath === undefined) gitPath = process.platform === 'win32' ? onPath('git.exe') : 'git';
   return gitPath;
 }
 

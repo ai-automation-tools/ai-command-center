@@ -114,6 +114,21 @@ export function gitDiffPage({ repo, branch, file, area, lines, truncated }) {
   return docPage({ title: `${file.path} · diff`, trail: `Git › ${name} › ${file.path}`, body });
 }
 
+/**
+ * A dev server's output as a page (acc://dev, src/main/devservers.js), escaped like a
+ * run's. Reload the tab for newer output.
+ * @param {{ script: string, folder: string, command: string, state: string, url: string, output: string }} p
+ */
+export function devLogPage({ script, folder, command, state, url, output }) {
+  const name = folder.split(/[\\/]/).filter(Boolean).pop() || folder;
+  const body = [
+    `<h1>${escapeHtml(`${name} · ${script}`)}</h1>`,
+    `<p class="note">${escapeHtml([state, url, command, folder].filter(Boolean).join(' · '))}</p>`,
+    output ? `<pre>${escapeHtml(output)}</pre>` : '<p class="note">No output yet.</p>',
+  ].join('');
+  return docPage({ title: `${script} · log`, trail: `Dev servers › ${name} › ${script}`, body });
+}
+
 const CSS = `
 :root { --bg: #0b0d10; --panel: #111418; --line: #262b33; --text: #e4e4e7; --text-2: #a1a1aa; --accent: #38bdf8; }
 @media (prefers-color-scheme: light) { :root { --bg: #ffffff; --panel: #f4f4f5; --line: #e4e4e7; --text: #18181b; --text-2: #52525b; --accent: #0369a1; } }

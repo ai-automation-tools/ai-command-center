@@ -64,6 +64,14 @@
 - Read-only for now: nothing here stages, commits or pushes. **Refresh** asks git again, and opening the tab always does.
 - The Default workspace has no folder of its own, so open a folder as a workspace first.
 
+## 🚀 Dev servers
+
+- The **Dev** tab lists the active workspace's dev scripts: `dev`, `start`, `serve`, `preview`, `watch` and variants like `dev:api` from its `package.json`. Other scripts aren't shown.
+- Click a script (or **Start**) to run it with npm, pnpm or yarn, whichever the folder's lockfile names. It runs hidden, not in a terminal, with `BROWSER=none` so it doesn't open a window of its own.
+- The row says *starting…* until the server prints a `localhost` or `127.0.0.1` address, then shows that address. Click it, or **Open**, for a tab on it.
+- **Log** opens the server's output in a tab; reload the tab for newer lines. **Restart** stops and starts it again; **Stop** ends it and everything it started.
+- Servers keep running when you switch workspaces and are listed under *Other workspaces*. Closing the app stops every server it started. It never stops a process it didn't start, such as a server you ran in a terminal.
+
 ## 🔌 Connections
 
 - Click the dot next to "Command Center" at the top of the sidebar, or pick **Connections** from the palette or the View menu.

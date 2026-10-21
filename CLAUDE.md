@@ -9,8 +9,8 @@ A Windows desktop app that puts a browser, PowerShell terminals and a sidebar ov
 user's project folders into one Electron window, with an agent harness: an MCP server
 the app exposes, plus a chat pane on the right with named conversations. Workspaces tie a
 folder to its tabs, terminals and conversations, Ctrl+K opens a command palette over all of
-it, Connections shows what's working, and a read-only Git tab shows the workspace repo's
-changes. The sidebar reads Project Hub's
+it, Connections shows what's working, a read-only Git tab shows the workspace repo's
+changes, and a Dev tab starts and stops the workspace's dev servers. The sidebar reads Project Hub's
 HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 (graduated 2026-10-18); the weekly roadmap routine works the items under `## After public release`.
 
@@ -54,7 +54,8 @@ before anything goes public.
   - The chat panel's API key and model are read from `.env` or the environment by the main process (`src/main/env.js`, `src/main/chat.js`). `.env` stays gitignored and out of `process.env`, so the key never goes to the renderer, the terminals, Cronsole's child process, the app's own files or the repo, and there is no default model ID. The chat's tools go through the MCP server with its token, never around it.
   - The Git tab (`src/main/git.js`) is read-only and runs only the command lines fixed in `src/shared/git.js`, through `execFile` with `childEnv`, never a shell, and by git's full path from PATH's absolute entries (a bare `git` on Windows is looked up in the repo folder first). Each keeps fsmonitor, external diff and textconv off, and a path goes after `--` and must come from `git status`. Anything that writes (stage, commit, push) needs its own confirm design first.
   - Cronsole's MCP server (`src/main/cronsole.js`) runs on the app's own Electron binary (`ELECTRON_RUN_AS_NODE`) with the script path from `ACC_CRONSOLE_MCP` in `.env` or the environment. No IPC message, MCP call or URL may name that script or pass it arguments, and the app calls only its read-only `list_tasks`, `get_task_history` and `get_run_output` and, after the user clicks Run on the confirm bar, `run_task` with an id from that list (`cron_run`).
-  - Nothing listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
+  - The Dev tab (`src/main/devservers.js`) runs `<npm|pnpm|yarn> run <script>` only on a click, in the active workspace's folder (never a folder the renderer names), for a script `devScripts()` finds in that folder's `package.json` at that moment and `isScriptName()` passes, since it goes on cmd's command line. The manager runs by its full path from PATH's absolute entries (`onPath()` in `src/main/env.js`), with `childEnv`. Stop and Restart kill a process tree only by the pid `spawn` returned, only while that child is still running; nothing finds or kills a process by name or port. No MCP tool starts one without a confirm design first. `acc://dev/<id>` (its log) is served like run pages, only for a server in this run's list.
+  - Nothing the app itself runs listens on a network port except the Phase 2 MCP server, which binds `127.0.0.1` and requires a per-launch token.
   - MCP tools that look (`list_tabs`, `read_tab`, `list_terminals`, `terminal_read`, `sidebar_search`, `recent`) need no click; anything that acts on the machine (`terminal_run`, `cron_run`) waits for one. `read_tab` and `terminal_read` return untrusted content and their descriptions say so.
 - **The demo stays fake.** `src/demo/` answers every `window.acc` call from made-up data: no network call, no storage, no secret, and the source bar stays on. A new call in `src/preload/shell.cjs` needs an answer in `src/demo/acc.js` (`tests/demo.test.js` fails otherwise), and renderer paths stay relative so the same files serve under `acc://shell/` and on Pages.
 - **Nothing personal in tracked files.** Per-machine values (the Hub URL, the quick links) live in `%APPDATA%\ai-command-center\settings.json`, read with neutral defaults by `src/shared/settings.js`. Tests use `example.com` hosts.
