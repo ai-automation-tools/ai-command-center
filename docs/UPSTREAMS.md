@@ -1,4 +1,15 @@
-# Upstreams
+<h1 align="center">🔭 Upstreams</h1>
+
+<p align="center">
+  <em>What the app depends on outside this repo, what the code assumes about each, and where to check.</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/checked-biweekly-8B5CF6?style=for-the-badge" alt="Checked biweekly">
+  <a href="README.md"><img src="https://img.shields.io/badge/↩-docs_home-6B7280?style=for-the-badge" alt="Back to docs"></a>
+</p>
+
+---
 
 Every external service, protocol, SDK and platform AI Command Center depends on, what the code
 assumes about each, and where to check whether that assumption still holds. The biweekly
@@ -22,7 +33,7 @@ current by hand too: a new outbound call or a new runtime dependency is a new ro
 
 | Upstream | What the code assumes | Code | Check at | Last checked |
 |:---|:---|:---|:---|:---|
-| **Electron** | `^44.7.0`; one `BaseWindow`, a shell `WebContentsView` plus a sandboxed `WebContentsView` per tab; `ELECTRON_RUN_AS_NODE` for Cronsole's server; the main process runs ESM | `src/main/*.js`, `package.json`, `scripts/smoke.js` | releases.electronjs.org/release/stable; electronjs.org/docs/latest/tutorial/electron-timelines (supported majors) | — |
+| **Electron** | `^44.8.0`; one `BaseWindow`, a shell `WebContentsView` plus a sandboxed `WebContentsView` per tab; `ELECTRON_RUN_AS_NODE` for Cronsole's server; the main process runs ESM | `src/main/*.js`, `package.json`, `scripts/smoke.js` | releases.electronjs.org/release/stable; electronjs.org/docs/latest/tutorial/electron-timelines (supported majors) | — |
 | **Ad blocking** | `@ghostery/adblocker-electron` `^2.20.1` (MPL-2.0) and its prebuilt ads-and-tracking engine, downloaded from Ghostery's CDN and cached in `adblock-engine.bin` for a week; it holds the browse session's only `webRequest` `onBeforeRequest`/`onHeadersReceived` listeners | `src/main/adblock.js`, `src/main/main.js` | github.com/ghostery/adblocker/releases | — |
 | **Chrome extension support** | `electron-chrome-extensions` `^4.9.0` and `electron-chrome-web-store` `^0.13.0` (GPL-3.0); `adm-zip` is pinned to `^0.6.1` by `overrides` in `package.json` because of a transitive advisory | `src/main/extensions.js`, `package.json` | github.com/samuelmaddock/electron-browser-shell/releases; github.com/advisories (adm-zip) | — |
 | **node-pty** | `^1.1.0`; prebuilt N-API binaries and the bundled `conpty.dll` on Windows; `pty.spawn(file, args, …)` with a fixed shell per profile; install scripts allowed only for `node-pty@1.1.0` (`allowScripts`) | `src/main/terminal.js`, `src/shared/shells.js`, `package.json` | github.com/microsoft/node-pty/releases | — |
@@ -40,3 +51,10 @@ current by hand too: a new outbound call or a new runtime dependency is a new ro
 
 Flag breaking majors, EOL runtimes, protocol revisions and security advisories only. Routine bumps
 are Dependabot's job. `src/demo/` makes no network calls and has no upstream.
+
+---
+
+<p align="center">
+  <a href="README.md">← Docs home</a> ·
+  <a href="ROADMAP.md">Roadmap →</a>
+</p>

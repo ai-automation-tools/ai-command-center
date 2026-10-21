@@ -1,7 +1,7 @@
 <h1 align="center">⚖️ Decisions</h1>
 
 <p align="center">
-  <em>Phase 0: what the app has to do, how it's built, and the three choices that are costly to undo.</em>
+  <em>What the app has to do, how it's built, and the three choices that are costly to undo.</em>
 </p>
 
 <p align="center">
@@ -17,9 +17,9 @@ Read in order. The requirements set what matters, the options pick the shape, an
 |:---|:---|
 | [**📋 requirements.md**](requirements.md) | All 16 features ranked. Browser, terminal, sidebar and extensions are Phase 1 musts; the harness is Phase 2; the IDE pane and feeds are Phase 3. |
 | [**🏗️ architecture-options.md**](architecture-options.md) | Electron shell vs. a BrowserOS fork vs. VS Code as the shell. Electron wins on cost; its weak spot is MV3 extensions. |
-| [**🧱 adr-001-electron-shell.md**](adr-001-electron-shell.md) | The runtime, the GPL-3.0 extension library, and the spike: LastPass and Rakuten install but their service workers crash in Electron 44. |
+| [**🧱 adr-001-electron-shell.md**](adr-001-electron-shell.md) | The runtime, the GPL-3.0 extension library, and the spike. MV3 extension workers crashed until the 2026-10-20 update, which traced it to the `browser` namespace; what still doesn't work is listed there. |
 | [**🔗 adr-002-hub-over-http.md**](adr-002-hub-over-http.md) | Files and bookmarks come from Project Hub's API, called from the main process so Hub's same-origin guard needs no change. |
-| [**💻 adr-003-terminal-in-main.md**](adr-003-terminal-in-main.md) | node-pty with the bundled ConPTY, a fixed shell, and the renderer only picks a folder. Why the app calls `app.exit(0)` on quit. |
+| [**💻 adr-003-terminal-in-main.md**](adr-003-terminal-in-main.md) | node-pty with the bundled ConPTY, a fixed shell, and the renderer only picks a folder. Why the app calls `app.exit(0)` on quit, and (2026-10-20) why `terminal_run` types only into a fresh terminal opened for it. |
 
 ---
 

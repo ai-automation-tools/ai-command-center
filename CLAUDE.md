@@ -6,8 +6,9 @@ Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before chan
 ## What this is
 
 A Windows desktop app that puts a browser, PowerShell terminals and a sidebar over the
-user's project folders into one Electron window, with an agent harness (an MCP server
-the app exposes, plus a chat panel) as Phase 2. The sidebar reads Project Hub's
+user's project folders into one Electron window, with an agent harness: an MCP server
+the app exposes, plus a chat panel. Workspaces tie a folder to its tabs, terminals and
+conversation, and Ctrl+K opens a command palette over all of it. The sidebar reads Project Hub's
 HTTP API rather than scanning disk. It's a public `ai-automation-tools` project
 (graduated 2026-10-18); the weekly roadmap routine works the items under `## After public release`.
 
@@ -59,7 +60,7 @@ before anything goes public.
 - **Docs move with code.** Update `README.md`, `src/README.md`, `docs/` and this file when a change makes them untrue. Every ticked roadmap item gets a `docs/CHANGELOG.md` line in the same commit, tagged with its phase in italics.
 - **Commits:** plain imperative sentences, no Conventional Commit prefixes.
 - **Licence:** GPL-3.0-or-later. A new runtime dependency must have a GPL-3.0-compatible licence (MIT, BSD, Apache-2.0, LGPL, GPL); say which in the PR body.
-- **Never commit** `.env*`, `node_modules/`, `.smoke/`, or any absolute local path (a user profile or workspace drive path). This repo is going public, and the release gate greps for them.
+- **Never commit** `.env*`, `node_modules/`, `.smoke/`, or any absolute local path (a user profile or workspace drive path). The repo is public, so anything committed is published.
 
 ## Won't
 

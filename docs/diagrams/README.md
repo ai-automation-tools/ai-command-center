@@ -84,5 +84,6 @@ PNG in place; the reason is in `docs/diagrams/.build/app-architecture.finalize-s
 ---
 
 <p align="center">
-  <sub>← <a href="../README.md">Documentation home</a> · <a href="../../README.md">AI Command Center</a></sub>
+  <a href="../README.md">← Docs home</a> ·
+  <a href="../../README.md">Repository home</a>
 </p>

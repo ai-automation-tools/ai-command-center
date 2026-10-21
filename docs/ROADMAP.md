@@ -1,29 +1,31 @@
 <h1 align="center">🗺️ Roadmap</h1>
 
 <p align="center">
-  <em>Everything between today's Phase 1 slice and a public release on ai-automation-tools.dev.</em>
+  <em>From the public release on 2026-10-18 to a project-centered shell, editing in the window, and agent work you can check.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/now-after_public_release-F59E0B?style=for-the-badge" alt="Now: after public release">
+  <img src="https://img.shields.io/badge/now-Milestone_B-F59E0B?style=for-the-badge" alt="Now: Milestone B">
   <img src="https://img.shields.io/badge/stage-public_since_2026--10--18-2ea44f?style=for-the-badge" alt="Stage: public since 2026-10-18">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-docs_home-6B7280?style=for-the-badge" alt="Back to docs"></a>
 </p>
 
 ---
 
-Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\Roadmaps\AI-Command-Center Weekly Roadmap`, Sunday and Wednesday 20:00) takes the first open item each run, gates first, and opens a `roadmap/auto-<date>` PR; the org PR sweep (Wednesday and Sunday 09:30) reviews and merges it, and the daily Graduate stage reads the gates on `main`. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
+Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. A roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\Roadmaps\AI-Command-Center Weekly Roadmap`, Sunday and Wednesday 20:00) takes the first open item each run and opens a `roadmap/auto-<date>` PR, which the org PR sweep reviews and merges. **Every item above `## After public release` was a release gate;** all of them closed on 2026-10-18 and the repo went public. Ticking an item adds its line to the [changelog](CHANGELOG.md) and updates any doc it made stale, in the same commit.
+
+Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-05.** Phases 0 to 2 and the daily-use gates are done (see the changelog for the trail). A repo review on 2026-10-05 added three gates (page permissions denied by default, a crash log, and the browser shortcuts a daily browser can't do without), a new **Phase 2b** that closes the agent's loop (an agent can run a command today but can't read the result, read a page, or trigger a Cronsole task), and an **Integrations** list built on APIs Hub and Cronsole already expose. The same day: CI, the settings file, SECURITY.md, the permission handler, the crash log, the shortcuts, find in page, and the `list_terminals`, `terminal_read`, `read_tab`, `cron_tasks` and `cron_run` tools landed. On 2026-10-07 the live demo, the last gate, was built (`src/demo/`, `npm run demo`) and held 🔒. On 2026-10-18 Mike lifted the hold: the `adm-zip` gate closed, the demo went live on Pages, and every release gate is ticked, so the graduate stage can ask for release approval. **2026-10-20:** MV3 extension workers run, extensions can be managed from a menu, ads are blocked, and a project audit added Milestones A to D below. **Next:** Milestone A, then the open Integrations items.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) is done, and B is under way, with workspaces and the command palette in. **Next:** the rest of Milestone B, starting with the context tray, then the two open Integrations items. LastPass's popup is the one known upstream blocker.
 
-## 🧭 Phase 0: decide
+## 🧭 Phase 0: decide (done 2026-09-29)
 
 - [x] Requirements ranked must / should / later, with reasons ([requirements.md](decisions/requirements.md)) — 2026-09-29
 - [x] Three candidate architectures compared ([architecture-options.md](decisions/architecture-options.md)) — 2026-09-29
 - [x] Runtime, Hub integration and terminal recorded as ADR-001 to ADR-003 — 2026-09-29
 
-## 🔨 Phase 1: one window
+## 🔨 Phase 1: one window (done 2026-09-30)
 
 - [x] One Electron window: sidebar, tab strip, address bar, terminal panel, splitters that remember their size — 2026-09-29
 - [x] Browser tabs with back, forward, reload, links as tabs, context menu, open in default browser — 2026-09-29
@@ -37,7 +39,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Tabs that were open reopen after a restart (store the URLs in `layout.json`; unit-test the list handling in `src/shared/`) — 2026-09-30, checked by hand the same day
 - [x] `Start-AICommandCenter.ps1` in `scripts/` that starts the app hidden-window-free, so launching doesn't need a terminal — 2026-09-30, checked by hand the same day
 
-## 🤖 Phase 2: harness
+## 🤖 Phase 2: harness (done 2026-10-04)
 
 - [x] Control Center MCP server started by the main process on `127.0.0.1`, random port and per-launch token written to `%APPDATA%\ai-command-center\mcp.json`; refuses calls without the token — 2026-09-30, live server checked by hand (401 without the token, `ping` answered with it)
 - [x] Read-only tools first: `list_tabs`, `sidebar_search`, `recent` — 2026-09-30, weekly roadmap run; unit-tested and called against the live app by `npm run smoke`
@@ -48,7 +50,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 - [x] Chat panel wired to the MCP server (Claude first; model and key read from the user environment, never stored in the repo) — 2026-10-04, weekly roadmap run; a Chat tab in the sidebar, tools through the MCP server over HTTP with its token. Unit-tested against a real MCP server with a scripted model, and `npm run smoke` opens the tab; not yet run against the live API, which needs Mike's key
 - [x] Cronsole: its task list in the sidebar through the Cronsole MCP server, and its UI in a pinned tab — 2026-10-04, weekly roadmap run; a Cron tab that starts Cronsole's stdio MCP server from `ACC_CRONSOLE_MCP` and lists `list_tasks`, and an Open Cronsole button that keeps one pinned tab. Unit-tested against a fake stdio server; `npm run smoke` listed 452 tasks from the live Cronsole and checked the pinned tab
 
-## 🧰 Daily use
+## 🧰 Daily use (done 2026-10-04)
 
 Found using the app on 2026-10-04 and made release gates the same day.
 
@@ -56,7 +58,7 @@ Found using the app on 2026-10-04 and made release gates the same day.
 - [x] Open a folder or file in the content area under the app's own sidebar, not Project Hub's whole page: Hub renders the file (`/api/file`), the app shows it as a script-free `acc://doc` page in a tab, folders as a listing — 2026-10-04; `npm run smoke` clicks a Markdown file and checks the page (no second sidebar, images load)
 - [x] New-terminal button with a menu of shells: PowerShell 7, Windows PowerShell, Command Prompt, and Git Bash when installed. Each is a fixed profile in `src/shared/shells.js`; the renderer sends a profile id, never a path or arguments — 2026-10-04; unit-tested, `npm run smoke` starts a Command Prompt session
 
-## 🚦 Public release
+## 🚦 Public release (done 2026-10-18)
 
 - [x] CI workflow (`.github/workflows/ci.yml`) running `npm run lint` and `npm test` on push and PR, and passing; `npm audit` as a non-blocking step that reports the known `adm-zip` advisories until they're fixed — 2026-10-05; Ubuntu and Windows, Node 24, no Electron download; passing is confirmed on the first push
 - [x] Nothing personal in tracked files: Project Hub URL and the empty-state quick links move to a settings file with neutral defaults; no absolute local paths anywhere — 2026-10-05; `%APPDATA%\ai-command-center\settings.json` read by `src/shared/settings.js` (3 tests), `ACC_HUB_URL` still wins, the Hub-down note points at the Project Hub repo, and the test hosts are `example.com`
@@ -72,17 +74,21 @@ Found using the app on 2026-10-04 and made release gates the same day.
 
 ## After public release
 
+Nothing below blocks go-live.
+
 ### Upstream blocker
 
-- [ ] 🔒 LastPass working in a tab. Its worker starts since the `browser` alias (2026-10-20, [ADR-001](decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace)) and sign-in works, but on Mike's machine the toolbar popup's vault keeps spinning. A copy of the profile opened the vault fine in a test run, and `logs\extensions.log` shows only the worker's `document is not defined`, which comes from `chrome.offscreen.createDocument`, an API electron-chrome-extensions doesn't implement. Next step: implement `chrome.offscreen` (a hidden extension page per document) or wait for the library. Rakuten works, including Google sign-in, since pop-ups keep `window.opener` (2026-10-20). Rerun `npm run spike:extensions` on every Electron major. Mike's, because it needs his vault to check.
+- [ ] LastPass working in a tab. Its worker starts since the `browser` alias (2026-10-20, [ADR-001](decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace)) and sign-in works, but on Mike's machine the toolbar popup's vault keeps spinning. A copy of the profile opened the vault fine in a test run, and `logs\extensions.log` shows only the worker's `document is not defined`, which comes from `chrome.offscreen.createDocument`, an API electron-chrome-extensions doesn't implement. Next step: implement `chrome.offscreen` (a hidden extension page per document) or wait for the library. Rakuten works, including Google sign-in, since pop-ups keep `window.opener` (2026-10-20). Rerun `npm run spike:extensions` on every Electron major. Mike's, because it needs his vault to check 🔒 Needs Mike
 
 ### 🔒 Mike's own checks
 
-Not gates; they decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop).
+They decide whether to keep going, per [build-plan.md](product/build-plan.md#when-wed-stop).
 
-- [ ] Use the app as the main window for 5 working days and fill in the log below
-- [ ] Terminal checked by hand: typing, resize, colors, copy/paste (keys and right-click), and `claude` running in it
-- [ ] Ad blocking checked by hand on a few ad-heavy sites, and no site you use daily broken by it
+- [ ] Use the app as the main window for 5 working days and fill in the log below 🔒 Needs Mike
+- [ ] Terminal checked by hand: typing, resize, colors, copy/paste (keys and right-click), and `claude` running in it 🔒 Needs Mike
+- [ ] Ad blocking checked by hand on a few ad-heavy sites, and no site you use daily broken by it 🔒 Needs Mike
+- [ ] Workspaces and the command palette checked by hand in the real app: open a folder as a workspace, switch away and back (tabs, terminals and conversation follow), Ctrl+K over a page, a file and a terminal 🔒 Needs Mike
+- [ ] Chat checked against the live API with a real key: a streamed reply, + page, a `terminal_run` the chat asks for, and Stop mid-answer 🔒 Needs Mike
 
 | Day | Used as main window? | What broke or got in the way |
 |:---|:--:|:---|
@@ -110,14 +116,14 @@ Selecting a project should set the folder, terminals, tabs and conversation toge
 - [x] Command palette (Ctrl+K): actions, workspaces, files, tabs and terminals from one box — 2026-10-20; a native `<dialog>` over the shell, the browser tab hidden while it shows; open tabs, terminals and workspaces list first, then 21 actions, and Files matches once something is typed (the workspace's tree). `rankPalette` in `src/shared/palette.js`, 4 tests; `npm run smoke` opens it, filters and runs a pick. Bookmarks and Recent aren't in it yet; the sidebar search covers them
 - [ ] Context tray: before a message goes, show exactly what's attached (page text, terminal lines) and where it's going, with a remove ✕ on each
 - [ ] Connections view: Hub, Cronsole, each shell, the chat model and the MCP server, each with its state, a Retry and what to set when it's missing
-- [ ] Conversations per workspace: named, listed and searchable, instead of one global `chat.json`
+- [ ] Several conversations per workspace: named, listed and searchable (today each workspace has exactly one)
 - [ ] Chat in a resizable right-hand pane, so it stays open beside Files
 
 ### 🧑‍💻 Milestone C: editing in the window
 
 Replaces Phase 3's IDE line.
 
-- [ ] 🔒 Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend
+- [ ] Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend 🔒 Needs Mike
 - [ ] Editor and browser preview side by side, from the ADR's choice
 - [ ] Git changes: branch, status and diff for the workspace's repo, read-only first
 - [ ] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start
@@ -172,7 +178,7 @@ Nice to have; found in the 2026-10-05 review.
 - [ ] Tabs: drag to reorder, duplicate, mute, and pin any tab (today only Cronsole's is pinned)
 - [ ] Downloads: `will-download` handled so a finished download shows a toast with Reveal in Explorer, and lands in Recent
 - [ ] Light theme for the shell, following `prefers-color-scheme` the way document pages already do
-- [ ] Terminal search with `@xterm/addon-search` (MIT) — `- [!]` needs a dependency
+- [!] Terminal search with `@xterm/addon-search` (MIT) — blocked: needs a new dependency, which the routine never installs; Mike adds it by hand
 - [ ] Terminals: rename a tab, font size, and output sent to the renderer in batches so a noisy build doesn't flood IPC
 - [ ] Keyboard and screen-reader pass: the Files tree and tab strip work from the keyboard, focus is visible, the confirm bar takes focus, splitters report their value
 - [ ] Measure memory per tab with ten tabs open, before deciding whether idle tabs need suspending
@@ -187,7 +193,7 @@ From the 2026-10-05 review.
 ### Distribution and promotion
 
 - [ ] Windows installer with electron-builder, published as a GitHub release, with a profile backup before an upgrade and a way back
-- [ ] 🔒 Code-signing certificate (costs money)
+- [ ] Code-signing certificate (costs money) 🔒 Needs Mike
 - [ ] Electron upgrade drill done once, following ADR-001's checklist
 - [ ] Launch post for the ai-automation-tools.dev landing page
 
