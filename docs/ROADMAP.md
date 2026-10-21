@@ -15,7 +15,7 @@
 Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reasoning. **Every item above `## After public release` is a release gate:** the org pipeline's graduate stage makes the repo public once all of them are `- [x]` on `main` and Mike approves. A roadmap routine (`\AI-Automation-Tools-Org\Update-Existing-Projects\Roadmaps\AI-Command-Center Weekly Roadmap`, Sunday and Wednesday 20:00) takes the first open item each run, gates first, and opens a `roadmap/auto-<date>` PR; the org PR sweep (Wednesday and Sunday 09:30) reviews and merges it, and the daily Graduate stage reads the gates on `main`. Items marked 🔒 need Mike and are skipped by the routine. Completed items stay ticked, and each has a line in the [changelog](CHANGELOG.md).
 
 > [!NOTE]
-> **Where we are, 2026-10-05.** Phases 0 to 2 and the daily-use gates are done (see the changelog for the trail). A repo review on 2026-10-05 added three gates (page permissions denied by default, a crash log, and the browser shortcuts a daily browser can't do without), a new **Phase 2b** that closes the agent's loop (an agent can run a command today but can't read the result, read a page, or trigger a Cronsole task), and an **Integrations** list built on APIs Hub and Cronsole already expose. The same day: CI, the settings file, SECURITY.md, the permission handler, the crash log, the shortcuts, find in page, and the `list_terminals`, `terminal_read`, `read_tab`, `cron_tasks` and `cron_run` tools landed. On 2026-10-07 the live demo, the last gate, was built (`src/demo/`, `npm run demo`) and held 🔒. On 2026-10-18 Mike lifted the hold: the `adm-zip` gate closed, the demo went live on Pages, and every release gate is ticked, so the graduate stage can ask for release approval. **Next:** Phase 2b, Integrations and the rest of the roadmap.
+> **Where we are, 2026-10-05.** Phases 0 to 2 and the daily-use gates are done (see the changelog for the trail). A repo review on 2026-10-05 added three gates (page permissions denied by default, a crash log, and the browser shortcuts a daily browser can't do without), a new **Phase 2b** that closes the agent's loop (an agent can run a command today but can't read the result, read a page, or trigger a Cronsole task), and an **Integrations** list built on APIs Hub and Cronsole already expose. The same day: CI, the settings file, SECURITY.md, the permission handler, the crash log, the shortcuts, find in page, and the `list_terminals`, `terminal_read`, `read_tab`, `cron_tasks` and `cron_run` tools landed. On 2026-10-07 the live demo, the last gate, was built (`src/demo/`, `npm run demo`) and held 🔒. On 2026-10-18 Mike lifted the hold: the `adm-zip` gate closed, the demo went live on Pages, and every release gate is ticked, so the graduate stage can ask for release approval. **2026-10-20:** MV3 extension workers run, extensions can be managed from a menu, ads are blocked, and a project audit added Milestones A to D below. **Next:** Milestone A, then the open Integrations items.
 
 ## 🧭 Phase 0: decide
 
@@ -74,7 +74,7 @@ Found using the app on 2026-10-04 and made release gates the same day.
 
 ### Upstream blocker
 
-- [ ] 🔒 LastPass and Rakuten working in a tab. Their workers start since the `browser` alias (2026-10-20, [ADR-001](decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace)); still to check by hand: LastPass login and autofill (it uses `chrome.offscreen`, which the library lacks) and Rakuten's activate-on-shop flow. Rerun `npm run spike:extensions` on every Electron major and tick this when both pass. Mike's, because an Electron bump is a dependency change the routine never makes.
+- [ ] 🔒 LastPass working in a tab. Its worker starts since the `browser` alias (2026-10-20, [ADR-001](decisions/adr-001-electron-shell.md#update-2026-10-20-the-browser-namespace)) and sign-in works, but on Mike's machine the toolbar popup's vault keeps spinning. A copy of the profile opened the vault fine in a test run, and `logs\extensions.log` shows only the worker's `document is not defined`, which comes from `chrome.offscreen.createDocument`, an API electron-chrome-extensions doesn't implement. Next step: implement `chrome.offscreen` (a hidden extension page per document) or wait for the library. Rakuten works, including Google sign-in, since pop-ups keep `window.opener` (2026-10-20). Rerun `npm run spike:extensions` on every Electron major. Mike's, because it needs his vault to check.
 
 ### 🔒 Mike's own checks
 
@@ -87,6 +87,49 @@ Not gates; they decide whether to keep going, per [build-plan.md](product/build-
 | Day | Used as main window? | What broke or got in the way |
 |:---|:--:|:---|
 | | | |
+
+### 🛡️ Milestone A: a trustworthy foundation
+
+From a project audit on 2026-10-20 (the report stays outside the repo). These come before anything that gives agents more authority. Each item lands with tests for its failure cases.
+
+- [ ] `terminal_run` runs exactly what was approved, where it said it would: the main process picks the target when the ask is made, not the renderer at click time, and by default runs the command in a fresh PowerShell terminal it opens (known folder, no half-typed input, no `claude` already running in it). A target that has gone away by the time of the click refuses rather than retargets. The click-to-run rule stays; ADR-003 records the change
+- [ ] Agent `open_tab` opens http(s) only, and a web page can't navigate a tab or a pop-up to a `file:` URL. Local files reach an agent only through Hub's index (`open_file`, `acc://doc`); a person typing a `file:` path in the address bar still works
+- [ ] One child-environment builder for terminals and Cronsole that strips the app's own credentials (`ANTHROPIC_API_KEY`, `ACC_CHAT_API_KEY`) even when they come from the real environment, keeps what Windows needs and adds the MCP address and token. Tested with fake values
+- [ ] MCP request hardening: a non-object `params` or `arguments` gets `-32602`, every error at the HTTP boundary becomes a JSON-RPC error instead of an unhandled rejection, and the next request still works
+- [ ] MCP conformance: `structuredContent` is always an object (or left out), requests with an `Origin` header that isn't loopback are refused, and a test drives the server the way a strict client would
+- [ ] Chat Stop: a Stop button that aborts the model request and any MCP call in flight, withdraws a pending confirm, and leaves the panel ready for the next message; plus a deadline on each request. Stopping says so; it never claims to undo a command that already ran
+- [ ] Less sensitive data at rest: `mcp.log` keeps `terminal_run`'s command and page text out (metadata and length only), strips URL query strings, and the chat's Clear deletes `chat.json`
+- [ ] `npm run smoke` that fails when a check fails: a throwaway profile by default (`--profile` for the real one), each check an assertion, a JSON summary in `.smoke/`, a nonzero exit on any failure or on a no-op second-instance launch. Live Hub and Cronsole checks stay, opt-in
+- [ ] Small fixes: CI's `npm audit` covers Electron (it's a devDependency but ships as the runtime); IPC also checks the sender is the shell's main frame; favorite toggles run one at a time; Hub request timers are cleared; `settings.json`'s `hubUrl` is loopback-only unless `ACC_HUB_REMOTE=1`; README status and Electron badge brought up to date
+
+### 🧭 Milestone B: a project-centered shell
+
+Selecting a project should set the folder, terminals, tabs and conversation together, rather than adding more sidebar panels.
+
+- [ ] Named workspaces: a workspace is a Hub root plus its open tabs, terminal folders and conversation, saved in `workspaces.json` with a schema version. Switching restores them and never re-runs a command
+- [ ] Command palette (Ctrl+K): actions, workspaces, files, tabs and terminals from one box
+- [ ] Context tray: before a message goes, show exactly what's attached (page text, terminal lines) and where it's going, with a remove ✕ on each
+- [ ] Connections view: Hub, Cronsole, each shell, the chat model and the MCP server, each with its state, a Retry and what to set when it's missing
+- [ ] Conversations per workspace: named, listed and searchable, instead of one global `chat.json`
+- [ ] Chat in a resizable right-hand pane, so it stays open beside Files
+
+### 🧑‍💻 Milestone C: editing in the window
+
+Replaces Phase 3's IDE line.
+
+- [ ] 🔒 Editor ADR and spike: code-server publishes no Windows build, so test OpenVSCode Server and code-server under WSL2 against an existing Windows repo (paths, file watching, Git identity, extensions, terminal ownership, speed). It runs in its own session, not the browse session, on an authenticated loopback port, which changes the spec's one-port rule. VS Code handoff stays as the fallback. Mike picks the backend
+- [ ] Editor and browser preview side by side, from the ADR's choice
+- [ ] Git changes: branch, status and diff for the workspace's repo, read-only first
+- [ ] Dev servers the app started: port, URL, ready state, logs, Stop and Restart; never touches a process it didn't start
+
+### 🏃 Milestone D: agent work with evidence
+
+- [ ] Managed runs: a run has an id, its fixed folder and command, start and end, exit code, output and a Cancel; `terminal_run` returns the run id, and `run_status` reads it. Success comes from the exit code, never from the output text
+- [ ] Activity drawer: queued, waiting for approval, running, failed, cancelled and finished agent work, each with what was asked and the exact target
+- [ ] MCP clients by name: `initialize`'s `clientInfo` recorded and shown, and later a per-client switch for which tools it may call (folds in the Integrations item about `claude` showing as two ✗ rows)
+- [ ] Provider adapters: the model API and CLI agents behind one small contract (health, capabilities, invoke, cancel, events), with Claude first
+- [ ] Browser actions on a tab the user attaches: screenshot, click and fill by element, with a confirm before anything submits
+- [ ] Run history: past runs, their output and changed files, searchable, without scrolling the chat
 
 ### Phase 2b: close the agent's loop
 
@@ -110,12 +153,13 @@ APIs the neighbours already expose, found in the 2026-10-05 review.
 - [ ] A count of failed Cronsole tasks on the Cron tab's label, refreshed on the same timer as the Hub health dot
 - [ ] Claude Code in the terminal: when `claude` registers with the MCP server, the MCP tab's first row says which client connected (`initialize`'s `clientInfo`), so the log reads "claude-code 2.x connected" rather than two ✗ rows
 
-### Phase 3: the rest
+### Later
 
-- [ ] IDE pane: code-server or OpenVSCode Server in a tab, started on demand, loopback only
-- [ ] Docs upkeep view: last run and report of the docs-maintenance jobs
+Moved behind Milestones A to D on 2026-10-20: none of these helps the edit, run and check loop. The IDE line moved to Milestone C.
+
+- [ ] Docs upkeep view, as a filter on the Cron tab (the docs-maintenance jobs and their reports) rather than a panel of its own
 - [ ] AI news panel and AI bookmarks feed, read from configurable RSS or Markdown sources
-- [ ] Phone channel through an existing gateway (Claude Remote Control, Hermes or OpenClaw) connected to the MCP server
+- [ ] Phone channel through an existing gateway (Claude Remote Control, Hermes or OpenClaw). Needs its own ADR first: pairing, per-device scopes and revocation. Never exposes the MCP port as it is
 
 ### Daily use, round 2
 
@@ -129,6 +173,9 @@ Nice to have; found in the 2026-10-05 review.
 - [ ] Downloads: `will-download` handled so a finished download shows a toast with Reveal in Explorer, and lands in Recent
 - [ ] Light theme for the shell, following `prefers-color-scheme` the way document pages already do
 - [ ] Terminal search with `@xterm/addon-search` (MIT) — `- [!]` needs a dependency
+- [ ] Terminals: rename a tab, font size, and output sent to the renderer in batches so a noisy build doesn't flood IPC
+- [ ] Keyboard and screen-reader pass: the Files tree and tab strip work from the keyboard, focus is visible, the confirm bar takes focus, splitters report their value
+- [ ] Measure memory per tab with ten tabs open, before deciding whether idle tabs need suspending
 
 ### Code health
 
@@ -139,7 +186,7 @@ From the 2026-10-05 review.
 
 ### Distribution and promotion
 
-- [ ] Windows installer with electron-builder, published as a GitHub release
+- [ ] Windows installer with electron-builder, published as a GitHub release, with a profile backup before an upgrade and a way back
 - [ ] 🔒 Code-signing certificate (costs money)
 - [ ] Electron upgrade drill done once, following ADR-001's checklist
 - [ ] Launch post for the ai-automation-tools.dev landing page
