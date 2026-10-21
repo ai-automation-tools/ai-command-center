@@ -50,7 +50,8 @@ $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 
 - Every call, refused ones included, shows in the sidebar's **MCP** tab and is appended to `logs\mcp.log`.
 - The log keeps `terminal_run`'s command as its length only and cuts URL query strings.
-- Each time Claude Code connects you'll see two ✗ rows: `server/discover`, a method this server doesn't offer, and a `405` for the event stream it doesn't serve. Both are expected.
+- Each time Claude Code connects, a row reads **claude-code 2.x connected**: the name and version the client gave in `initialize`. That's what the client says it is, not proof.
+- Around it are two grey **(handshake)** rows: a `400` telling Claude Code to fall back from the newer protocol version it tries first, and a `405` for the event stream this server doesn't offer. Both are the transport's normal steering, not failures; hover for the detail. A refusal before the token is checked (no token, wrong host or origin) still shows as ✗.
 
 ## Matching skills
 

@@ -408,14 +408,14 @@ export class Sidebar {
     }
     for (const c of this.calls) {
       const row = document.createElement('div');
-      row.className = `row call${c.ok ? '' : ' failed'}`;
+      row.className = `row call${c.ok ? '' : ' failed'}${c.note ? ' info' : ''}`;
       row.tabIndex = 0;
       row.style.paddingLeft = '10px';
       row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span>';
-      q(row, '.icon').textContent = c.ok ? '✓' : '✗';
-      q(row, '.name').textContent = c.tool ? `${c.tool}${c.args && c.args !== '{}' ? ` ${c.args}` : ''}` : c.method;
+      q(row, '.icon').textContent = c.note ? '·' : c.ok ? '✓' : '✗';
+      q(row, '.name').textContent = c.tool ? `${c.tool}${c.args && c.args !== '{}' ? ` ${c.args}` : ''}` : c.client ? `${c.client} connected` : c.method;
       q(row, '.sub').textContent = c.status ? String(c.status) : `${c.ms} ms`;
-      row.title = [new Date(c.at).toLocaleString(), c.tool ? `tools/call ${c.tool}` : c.method, c.args, c.error].filter(Boolean).join('\n');
+      row.title = [new Date(c.at).toLocaleString(), c.tool ? `tools/call ${c.tool}` : c.method, c.args, c.note, c.error].filter(Boolean).join('\n');
       host.append(row);
     }
   }

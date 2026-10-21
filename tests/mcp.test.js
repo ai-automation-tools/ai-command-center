@@ -63,6 +63,34 @@ test('the HTTP server refuses calls without the token and answers with it', asyn
   assert.equal(bad.status, 400);
 });
 
+test("Claude Code's handshake logs as one named connection, with no failures", async (t) => {
+  /** @type {import('../src/shared/mcplog.js').LogEntry[]} */
+  const log = [];
+  const server = createMcpServer({ token: TOKEN, tools, version: '0.1.0', onCall: (e) => log.push(e) });
+  await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
+  t.after(() => server.close());
+  const { port } = /** @type {import('node:net').AddressInfo} */ (server.address());
+  const url = `http://127.0.0.1:${port}/mcp`;
+  const auth = { Authorization: `Bearer ${TOKEN}` };
+  const post = (/** @type {object} */ msg, /** @type {Record<string, string>} */ extra = {}) => fetch(url, { method: 'POST', headers: { ...auth, ...extra }, body: JSON.stringify(msg) });
+  const clientInfo = { name: 'claude-code', version: '2.1.307' };
+  // What Claude Code 2.1.307 sent on 2026-10-21, in order.
+  assert.equal((await post({ jsonrpc: '2.0', id: 'server-discover-probe-1', method: 'server/discover', params: {} }, { 'MCP-Protocol-Version': '2026-07-28' })).status, 400);
+  assert.equal((await post({ jsonrpc: '2.0', id: 0, method: 'initialize', params: { protocolVersion: '2025-11-25', clientInfo } })).status, 200);
+  assert.equal((await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, { 'MCP-Protocol-Version': '2025-11-25' })).status, 202);
+  assert.equal((await fetch(url, { headers: { ...auth, Accept: 'text/event-stream' } })).status, 405);
+  assert.equal((await fetch(url, { method: 'DELETE', headers: auth })).status, 405);
+  assert.equal((await post({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).status, 200);
+  assert.deepEqual(log.filter((e) => !e.ok), []);
+  assert.equal(log.find((e) => e.method === 'initialize')?.client, 'claude-code 2.1.307');
+  assert.deepEqual(log.filter((e) => e.note).map((e) => e.status), [400, 405, 405]);
+  assert.match(String(log[0].note), /2026-07-28/);
+  // Not part of a handshake: still failures.
+  assert.equal((await fetch(url, { method: 'PUT', headers: auth })).status, 405);
+  assert.equal((await fetch(url, { headers: { Accept: 'text/event-stream' } })).status, 401);
+  assert.deepEqual(log.slice(-2).map((e) => e.ok), [false, false]);
+});
+
 test('handleMessage answers malformed params, arguments, ids and names with JSON-RPC errors', async () => {
   const code = async (/** @type {any} */ msg) => (await handleMessage(msg, tools, ''))?.error?.code;
   assert.equal(await code({ jsonrpc: '2.0', id: 1, method: 'initialize', params: null }), -32602);
