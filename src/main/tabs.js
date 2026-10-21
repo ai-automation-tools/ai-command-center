@@ -9,6 +9,32 @@ import { cleanSavedTabs } from '../shared/session.js';
 const MAX_CLOSED = 10;
 
 /**
+ * Navigation and pop-up rules for a page in a tab or in a pop-up it opened. Checks are
+ * page-initiated, so the page's own URL goes along: a web page can't open acc://doc.
+ * Links and plain window.open become tabs. A real pop-up (window.open with window
+ * features, as "Sign in with Google" uses) opens as its own window, because the login
+ * hands its result back through window.opener, which a tab wouldn't have. It inherits
+ * the opener's sandboxed webPreferences and gets these same rules.
+ * @param {Electron.WebContents} wc
+ * @param {(url: string) => void} openTab
+ */
+function guardPage(wc, openTab) {
+  wc.setWindowOpenHandler(({ url, disposition }) => {
+    if (!isAllowedNavigation(url, wc.getURL())) return { action: 'deny' };
+    if (disposition === 'new-window') return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true } };
+    openTab(url);
+    return { action: 'deny' };
+  });
+  wc.on('did-create-window', (win) => guardPage(win.webContents, openTab));
+  wc.on('will-navigate', (e, target) => {
+    if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
+  });
+  wc.on('will-redirect', (e, target) => {
+    if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
+  });
+}
+
+/**
  * @typedef {{ id: number, view: WebContentsView }} Tab
  * @typedef {{ x: number, y: number, width: number, height: number }} Rect
  */
@@ -66,17 +92,7 @@ export class Tabs {
     this.window.contentView.addChildView(view);
     this.extensions?.addTab(wc, /** @type {any} */ (this.window));
 
-    // Page-initiated, so the page's own URL goes along: a web page can't open acc://doc.
-    wc.setWindowOpenHandler(({ url: target }) => {
-      if (isAllowedNavigation(target, wc.getURL())) this.create(target);
-      return { action: 'deny' };
-    });
-    wc.on('will-navigate', (e, target) => {
-      if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
-    });
-    wc.on('will-redirect', (e, target) => {
-      if (!isAllowedNavigation(target, wc.getURL())) e.preventDefault();
-    });
+    guardPage(wc, (target) => this.create(target));
 
     const report = () => this.send('tab:update', this.describe(tab));
     wc.on('page-title-updated', report);

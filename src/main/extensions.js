@@ -3,8 +3,9 @@
 // installs into this app. See docs/decisions/adr-001-electron-shell.md for the licence
 // choice and what's known not to work.
 
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import { fileURLToPath } from 'node:url';
+import { appendLog } from './applog.js';
 import { ElectronChromeExtensions } from 'electron-chrome-extensions';
 import { installChromeWebStore, uninstallExtension, updateExtensions } from 'electron-chrome-web-store';
 
@@ -45,6 +46,19 @@ export async function setupExtensions({ browseSession, shellSession, window, tab
   const aliasBrowser = fileURLToPath(new URL('../preload/extension-browser.cjs', import.meta.url));
   browseSession.registerPreloadScript({ id: 'acc-browser-alias-sw', type: 'service-worker', filePath: aliasBrowser });
   browseSession.registerPreloadScript({ id: 'acc-browser-alias-frame', type: 'frame', filePath: aliasBrowser });
+
+  // Errors from extension workers and pages (popups, options) go to logs/extensions.log.
+  // A popup that spins or a worker that stalls shows nothing anywhere else.
+  const log = (/** @type {string} */ where, /** @type {unknown} */ msg) =>
+    appendLog('extensions.log', `${new Date().toISOString()} ${where} ${String(msg).slice(0, 500).replace(/\r?\n/g, ' ')}\n`);
+  browseSession.serviceWorkers.on('console-message', (_e, d) => {
+    if (d.level === 3) log(d.sourceUrl, d.message);
+  });
+  app.on('web-contents-created', (_e, wc) => {
+    wc.on('console-message', (e) => {
+      if (e.level === 'error' && wc.getURL().startsWith('chrome-extension://')) log(wc.getURL(), e.message);
+    });
+  });
 
   // The shell's <browser-action-list> loads extension icons over crx://.
   ElectronChromeExtensions.handleCRXProtocol(shellSession);

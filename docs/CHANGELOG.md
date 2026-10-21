@@ -25,6 +25,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Added**
 
+- `logs\extensions.log`: errors from extension service workers and extension pages (popups, options pages), so a popup that spins leaves something to read.
 - Ad and tracker blocking, on by default: Ghostery's engine (`@ghostery/adblocker-electron`, MPL-2.0) with its prebuilt EasyList/EasyPrivacy build blocks requests in browser tabs and hides ad slots. **Extensions → Block ads and trackers** turns it off, remembered in `layout.json`. The engine downloads in the background at first start, is cached as `adblock-engine.bin` in userData and is fetched again after a week. Web Store ad blockers can't do this job: they filter through `declarativeNetRequest`, which Electron lacks. LastPass and Rakuten still start with it on.
 - An **Extensions** menu (Alt shows the menu bar): **Get extensions…** opens the Chrome Web Store in a tab, and each installed extension lists its version with **Options**, **Web Store page** and **Remove…**, which asks first, then uninstalls it for good (`uninstallExtension` deletes it from `Extensions/`). The list follows installs and removals. The toolbar's own right-click menu can't remove an extension outside development builds.
 - Right-click in the terminal copies the selection, or pastes when nothing is selected, the way Windows Terminal does.
@@ -77,6 +78,7 @@ Phase 1 done, Phase 2 started (merged in PRs #1 and #2). Tab restore, the launch
 
 **Fixed**
 
+- "Sign in with Google" (and any login that uses a pop-up) failed: every `window.open` became a fresh tab with no `window.opener`, so the pop-up couldn't hand the login back and the page showed an error, as Rakuten's sign-in did. A pop-up opened with window features now gets its own small window that keeps `opener` and follows the same navigation rules as a tab; links and plain `window.open` still open as tabs.
 - Manifest V3 extensions whose background worker uses `browser.*` start instead of crashing on `browser.windows`. Chromium's native `browser` object is separate from the `chrome` object electron-chrome-extensions fills in; `src/preload/extension-browser.cjs` points one at the other in extension contexts only. LastPass's and Rakuten's workers now run; ADR-001 corrects the earlier diagnosis, which blamed Electron's preload support.
 - The `adm-zip` advisories: electron-chrome-web-store, which unpacks Web Store installs, pins `adm-zip` `^0.5.16`, and every release up to 0.6.0 carried open advisories (8 Dependabot alerts, 5 high). A `package.json` `overrides` entry pins the patched `^0.6.1`. `npm audit` reports 0 vulnerabilities, so the CI audit job now fails the build instead of only reporting. `npm run smoke` still loads both installed extensions, and an extract round trip on 0.6.1 passes. *(roadmap: Public release)*
 - A page's right-click "Open link in default browser" passed any link to Windows, so a `file:` or `ms-*:` link could launch a program; it's now http and https only. "Open link in new tab" now goes through the same navigation check as clicks.
