@@ -56,7 +56,7 @@ exists, so it counts as stale until someone has re-read that code.
 | **Weekly** | The repo owner's doc drift check runs `--check` on the local clone, and the org upkeep job rebuilds a stale diagram by PR |
 
 The homepage lives in its own repo, so the builder needs a clone of it. By default that is
-`../ai-command-center-site`, next to this one; pass `--site <path>` for another place, or
+`../houston-site`, next to this one; pass `--site <path>` for another place, or
 `--no-site` to skip the copies (CI does, since it has no clone). Without either, a missing clone
 is an `ISSUE` in `--check` and a failed build.
 
