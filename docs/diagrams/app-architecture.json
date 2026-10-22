@@ -10,7 +10,7 @@
       "url": "https://github.com/ai-automation-tools/ai-command-center.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "25dc2a385d9fd3ce1ac5cb5547caa1b542b0a801"
+      "revision": "d9eb9de8760dccd4ee531641971fe1c8fe42d873"
     }
   },
   "components": [
@@ -46,21 +46,21 @@
       "sources": [
         {
           "path": "src/main/main.js",
-          "line": 149,
-          "end_line": 177,
+          "line": 169,
+          "end_line": 195,
           "label": "shell WebContentsView"
         },
         {
           "path": "src/preload/shell.cjs",
-          "line": 1,
-          "end_line": 30,
+          "line": 15,
+          "end_line": 70,
           "label": "window.acc preload"
         },
         {
           "path": "src/renderer/app.js",
-          "line": 103,
-          "end_line": 140,
-          "label": "confirm bar"
+          "line": 132,
+          "end_line": 166,
+          "label": "confirm bar, run tabs"
         }
       ]
     },
@@ -81,14 +81,14 @@
       "sources": [
         {
           "path": "src/main/main.js",
-          "line": 80,
-          "end_line": 103,
+          "line": 98,
+          "end_line": 120,
           "label": "handle() refuses other senders"
         },
         {
           "path": "src/main/main.js",
-          "line": 278,
-          "end_line": 335,
+          "line": 389,
+          "end_line": 430,
           "label": "IPC channels"
         }
       ]
@@ -110,14 +110,20 @@
       "sources": [
         {
           "path": "src/main/tabs.js",
-          "line": 53,
-          "end_line": 80,
-          "label": "sandboxed view, navigation guard"
+          "line": 82,
+          "end_line": 100,
+          "label": "sandboxed view"
+        },
+        {
+          "path": "src/main/tabs.js",
+          "line": 20,
+          "end_line": 40,
+          "label": "navigation guard"
         },
         {
           "path": "src/main/main.js",
-          "line": 179,
-          "end_line": 185,
+          "line": 200,
+          "end_line": 204,
           "label": "deny-by-default permissions"
         }
       ]
@@ -138,21 +144,21 @@
       "sources": [
         {
           "path": "src/main/hub.js",
-          "line": 1,
-          "end_line": 65,
+          "line": 26,
+          "end_line": 75,
           "label": "scan, webmarks, favorites"
         },
         {
           "path": "src/main/hub.js",
-          "line": 120,
-          "end_line": 158,
+          "line": 134,
+          "end_line": 172,
           "label": "/api/events subscription"
         },
         {
           "path": "src/main/docs.js",
           "line": 1,
           "end_line": 30,
-          "label": "acc://doc from Hub's index"
+          "label": "acc:// pages"
         }
       ]
     },
@@ -172,14 +178,14 @@
       "sources": [
         {
           "path": "src/main/cronsole.js",
-          "line": 12,
-          "end_line": 69,
+          "line": 14,
+          "end_line": 70,
           "label": "spawn on Electron as Node"
         },
         {
           "path": "src/shared/cronsole.js",
-          "line": 115,
-          "end_line": 146,
+          "line": 127,
+          "end_line": 165,
           "label": "list_tasks, run_task"
         }
       ]
@@ -188,7 +194,7 @@
       "id": "userdata",
       "type": "database",
       "label": "userData JSON",
-      "sublabel": "settings, layout, chat",
+      "sublabel": "settings, workspaces, chats",
       "pos": [
         780,
         40
@@ -201,7 +207,7 @@
         {
           "path": "src/main/store.js",
           "line": 1,
-          "end_line": 82,
+          "end_line": 60,
           "label": "atomic JSON files"
         },
         {
@@ -215,7 +221,7 @@
     {
       "id": "chat",
       "type": "backend",
-      "label": "Chat panel",
+      "label": "Chat pane",
       "sublabel": "key stays in main",
       "pos": [
         780,
@@ -228,15 +234,15 @@
       "sources": [
         {
           "path": "src/main/chat.js",
-          "line": 17,
-          "end_line": 72,
-          "label": "one conversation"
+          "line": 19,
+          "end_line": 57,
+          "label": "the open conversation"
         },
         {
           "path": "src/main/main.js",
-          "line": 257,
-          "end_line": 261,
-          "label": "chat:send IPC"
+          "line": 389,
+          "end_line": 397,
+          "label": "chat IPC"
         }
       ]
     },
@@ -256,14 +262,14 @@
       "sources": [
         {
           "path": "src/shared/chat.js",
-          "line": 170,
-          "end_line": 190,
+          "line": 215,
+          "end_line": 240,
           "label": "messagesApi"
         },
         {
           "path": "src/shared/chat.js",
-          "line": 46,
-          "end_line": 59,
+          "line": 58,
+          "end_line": 70,
           "label": "key and model from env"
         }
       ]
@@ -272,7 +278,7 @@
       "id": "terms",
       "type": "backend",
       "label": "Terminals",
-      "sublabel": "PowerShell via node-pty",
+      "sublabel": "shells and managed runs",
       "tag": "fixed shells",
       "pos": [
         490,
@@ -285,15 +291,21 @@
       "sources": [
         {
           "path": "src/main/terminal.js",
-          "line": 56,
-          "end_line": 70,
-          "label": "pty.spawn with MCP env"
+          "line": 62,
+          "end_line": 100,
+          "label": "pty.spawn: a shell or a run"
         },
         {
           "path": "src/shared/shells.js",
           "line": 1,
-          "end_line": 51,
+          "end_line": 64,
           "label": "fixed shell profiles"
+        },
+        {
+          "path": "src/shared/runs.js",
+          "line": 12,
+          "end_line": 35,
+          "label": "run script: exit code is the result"
         }
       ]
     },
@@ -320,14 +332,14 @@
         },
         {
           "path": "src/shared/mcp.js",
-          "line": 98,
-          "end_line": 146,
+          "line": 115,
+          "end_line": 150,
           "label": "host and token check"
         },
         {
           "path": "src/main/main.js",
-          "line": 215,
-          "end_line": 255,
+          "line": 310,
+          "end_line": 360,
           "label": "tools over app sources"
         }
       ]
@@ -348,8 +360,8 @@
       "sources": [
         {
           "path": "src/main/main.js",
-          "line": 247,
-          "end_line": 255,
+          "line": 352,
+          "end_line": 358,
           "label": "MCP address and token in terminal env"
         }
       ]
@@ -372,20 +384,77 @@
         {
           "path": "src/shared/confirm.js",
           "line": 1,
-          "end_line": 51,
+          "end_line": 55,
           "label": "settles once, or null"
         },
         {
           "path": "src/main/main.js",
-          "line": 205,
-          "end_line": 244,
-          "label": "terminal_run, cron_run"
+          "line": 296,
+          "end_line": 345,
+          "label": "terminal_run, run_status, cron_run"
         },
         {
           "path": "src/shared/tools.js",
-          "line": 262,
-          "end_line": 287,
-          "label": "cron_tasks, cron_run"
+          "line": 339,
+          "end_line": 379,
+          "label": "terminal_run, run_status"
+        }
+      ]
+    },
+    {
+      "id": "devs",
+      "type": "backend",
+      "label": "Dev servers",
+      "sublabel": "npm run dev, by click",
+      "tag": "own pids only",
+      "pos": [
+        230,
+        380
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "src/main/devservers.js",
+          "line": 38,
+          "end_line": 110,
+          "label": "start, stop, restart"
+        },
+        {
+          "path": "src/main/devservers.js",
+          "line": 150,
+          "end_line": 205,
+          "label": "spawn by full path"
+        },
+        {
+          "path": "src/main/kill.js",
+          "line": 1,
+          "end_line": 24,
+          "label": "kill a tree by its pid"
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "type": "external",
+      "label": "git",
+      "sublabel": "read-only, fixed commands",
+      "pos": [
+        230,
+        560
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "src/main/git.js",
+          "line": 27,
+          "end_line": 74,
+          "label": "execFile, status, diff page"
         }
       ]
     }
@@ -448,7 +517,7 @@
       "id": "main-chat",
       "from": "main",
       "to": "chat",
-      "label": "chat:send"
+      "label": "chat IPC"
     },
     {
       "id": "chat-anthropic",
@@ -485,7 +554,19 @@
       "id": "confirm-terms",
       "from": "confirm",
       "to": "terms",
-      "label": "types on Run"
+      "label": "opens the run"
+    },
+    {
+      "id": "main-devs",
+      "from": "main",
+      "to": "devs",
+      "label": "spawn"
+    },
+    {
+      "id": "main-git",
+      "from": "main",
+      "to": "git",
+      "label": "execFile"
     }
   ],
   "cards": [
@@ -495,16 +576,16 @@
       "items": [
         "Browser tabs are sandboxed, get only the extension-API and ad-block preloads and are denied every permission but fullscreen, pointer lock and clipboard writes",
         "Every IPC channel refuses any sender but the shell view",
-        "acc://doc serves only ids from Project Hub's index, with no scripts and no framing"
+        "acc:// pages (documents, Cronsole runs, Git diffs, dev server logs) run no scripts; only documents may link to documents, the rest open from the app only"
       ]
     },
     {
       "dot": "violet",
       "title": "What an agent can do",
       "items": [
-        "Look with no click: list_tabs, read_tab, sidebar_search, recent, list_terminals, terminal_read, cron_tasks",
+        "Look with no click: list_tabs, read_tab, sidebar_search, recent, list_terminals, terminal_read, run_status, cron_tasks",
         "Navigate: open_tab, and open_file by Hub node id (VS Code or Explorer, never the default app)",
-        "Act only after Run: terminal_run types one line into a new PowerShell opened for it, cron_run asks Cronsole's run_task"
+        "Act only after Run: terminal_run starts a managed run in its own PowerShell, whose exit code is the result; cron_run asks Cronsole's run_task"
       ]
     },
     {
@@ -513,7 +594,7 @@
       "items": [
         "Claude Code in an app terminal: ACC_MCP_URL and ACC_MCP_TOKEN are in every terminal's environment",
         "The chat panel, through the same server and token, so its calls are logged and confirmed like any client's",
-        "Every call, refused ones too, goes to the sidebar's MCP tab and logs/mcp.log"
+        "Every call, refused ones too, goes to the sidebar's MCP tab and logs/mcp.log, with the connecting client named"
       ]
     },
     {
@@ -522,7 +603,8 @@
       "items": [
         "Without Project Hub the browser and terminals still work; Files and Bookmarks offer Retry",
         "The chat needs ACC_CHAT_API_KEY and ACC_CHAT_MODEL; there is no default model",
-        "Cronsole starts only when ACC_CRONSOLE_MCP names its server script"
+        "Cronsole starts only when ACC_CRONSOLE_MCP names its server script",
+        "Dev servers and the Git tab need a workspace folder; git and npm are found on PATH"
       ]
     }
   ]

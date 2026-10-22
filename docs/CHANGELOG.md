@@ -15,7 +15,7 @@ Entries tagged with a phase in italics came off the [roadmap](ROADMAP.md).
 
 ## Unreleased
 
-Everything since 0.1.0, newest first within each group: Phase 2 (done 2026-10-04), the public-release gates (all closed 2026-10-18, when the repo went public), Phase 2b, the Integrations, Milestone A (2026-10-20), Milestone B (2026-10-21) and the start of Milestone C.
+Everything since 0.1.0, newest first within each group: Phase 2 (done 2026-10-04), the public-release gates (all closed 2026-10-18, when the repo went public), Phase 2b, the Integrations, Milestone A (2026-10-20), Milestone B (2026-10-21), and the starts of Milestones C and D.
 
 **Added**
 
@@ -102,6 +102,7 @@ Everything since 0.1.0, newest first within each group: Phase 2 (done 2026-10-04
 
 **Docs**
 
+- The architecture diagram is rebuilt for the 2026-10-21 work, pinned to `d9eb9de`: new Dev servers and git components outside the main process, Terminals as "shells and managed runs" with the confirm bar opening the run, the chat as a pane, `run_status` on the agent card, and every cited line range re-read. The homepage copy in `ai-command-center-site` is updated by its own PR. The roadmap's hand-check item now also lists the Cron count, the MCP tab's named client, and a succeeding, failing and cancelled run. The confirm bar's answer is now only yes or no in code too, since runs open their own terminal.
 - A pass after Milestone B and the Git view (2026-10-21): the test badge says 190+, the docs hub, the build plan and the roadmap's status note say where things stand, CLAUDE.md describes the app as it is now, and the demo's welcome page mentions the Git tab. The roadmap's hand checks now cover everything Milestone B added plus the Git tab, and Code health gained the bare `powershell.exe` fallback found while building the Git view. The architecture diagram doesn't show Connections, the chat pane or Git yet; the weekly upkeep job rebuilds it when its cited code drifts.
 - The root README is short now: one-line feature rows, the quick-start commands, shortcuts and a folder table. The detail moved to a new user guide in `docs/guide/` (setup, features, Claude Code, chat, Cronsole, the security model, contributing), linked from the README and the docs hub.
 - A docs pass on 2026-10-21: the README's MCP tools are one table under "Drive the app from Claude Code", the extension warning names what's actually broken (LastPass's popup), and stale lines about going public are gone. The docs hub links `UPSTREAMS.md`, which nothing linked to before. The roadmap follows the lab's roadmap standard: done dates on finished phases, `🔒 Needs Mike` at the end of a line, a real `- [!]` for the blocked terminal search, and two new hand checks (workspaces and the palette, chat against the live API). `src/README.md`'s `main.js` entry was rewritten without its repeats, and the build plan and demo notes no longer say the release is still to come.
