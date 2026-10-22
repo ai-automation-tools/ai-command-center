@@ -21,8 +21,8 @@
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:4273/api/health   # Project Hub answers
-git clone https://github.com/ai-automation-tools/ai-command-center
-cd ai-command-center
+git clone https://github.com/ai-automation-tools/houston
+cd houston
 npm install                                          # node-pty ships prebuilt binaries; no compiler needed
 npm start
 ```

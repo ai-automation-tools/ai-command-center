@@ -148,7 +148,7 @@ export function readOnlyTools(src) {
   const limitSchema = { type: 'integer', minimum: 1, maximum: MAX_LIMIT };
   return new Map([
     ['list_tabs', {
-      description: 'List the browser tabs open in AI Command Center: id, URL, title, whether it is loading, and which one is active.',
+      description: 'List the browser tabs open in Houston: id, URL, title, whether it is loading, and which one is active.',
       annotations: LOOKS,
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       run: () => ({ tabs: src.listTabs() }),
@@ -231,7 +231,7 @@ export function readOnlyTools(src) {
 export function navigationTools(src) {
   return new Map([
     ['open_tab', {
-      description: 'Open a browser tab in AI Command Center. Takes what the address bar takes: a URL, localhost:<port>, a host name, or words to search for. http and https pages only; for a file in Project Hub use open_file.',
+      description: 'Open a browser tab in Houston. Takes what the address bar takes: a URL, localhost:<port>, a host name, or words to search for. http and https pages only; for a file in Project Hub use open_file.',
       annotations: { ...OPENS, openWorldHint: true },
       inputSchema: {
         type: 'object',
@@ -311,7 +311,7 @@ export function cronTools(src) {
 export function terminalTools(src) {
   return new Map([
     ['list_terminals', {
-      description: "The terminal sessions open in AI Command Center: id, shell, folder, whether it is PowerShell, whether it is a terminal_run run, whether it has exited, and which one is showing.",
+      description: "The terminal sessions open in Houston: id, shell, folder, whether it is PowerShell, whether it is a terminal_run run, whether it has exited, and which one is showing.",
       annotations: LOOKS,
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       run: () => ({ terminals: src.listTerminals() }),
@@ -337,7 +337,7 @@ export function terminalTools(src) {
       },
     }],
     ['terminal_run', {
-      description: "Run one line of PowerShell as a managed run in its own AI Command Center terminal, opened in `cwd` (an absolute folder path) or, without it, in the folder the active terminal started in. The app shows the command and folder and waits for the user to click Run, so this can take minutes; it fails if they deny it or don't answer in 5 minutes. Returns as soon as it starts, with a run id: call run_status with it for the state, exit code and output. The terminal runs only this command and closes its shell when it ends; its exit code is the last native program's non-zero code, else 1 if PowerShell wrote an error, else 0 (`exit N` sets it). Join statements with ';'.",
+      description: "Run one line of PowerShell as a managed run in its own Houston terminal, opened in `cwd` (an absolute folder path) or, without it, in the folder the active terminal started in. The app shows the command and folder and waits for the user to click Run, so this can take minutes; it fails if they deny it or don't answer in 5 minutes. Returns as soon as it starts, with a run id: call run_status with it for the state, exit code and output. The terminal runs only this command and closes its shell when it ends; its exit code is the last native program's non-zero code, else 1 if PowerShell wrote an error, else 0 (`exit N` sets it). Join statements with ';'.",
       annotations: ACTS,
       inputSchema: {
         type: 'object',

@@ -1,4 +1,4 @@
-// AI Command Center: main process. One BaseWindow holding the shell UI (sidebar, tab
+// Houston: main process. One BaseWindow holding the shell UI (sidebar, tab
 // strip, terminal panel) as a WebContentsView, with a WebContentsView per browser tab
 // stacked over the shell's content area.
 
@@ -168,7 +168,7 @@ function buildMenu(extensions = [{ label: 'Loading…', enabled: false }]) {
 
 async function createWindow() {
   const layout = store.layout();
-  win = new BaseWindow({ width: 1500, height: 950, minWidth: 900, minHeight: 600, title: 'AI Command Center', autoHideMenuBar: true, backgroundColor: '#0b0d10' });
+  win = new BaseWindow({ width: 1500, height: 950, minWidth: 900, minHeight: 600, title: 'Houston', autoHideMenuBar: true, backgroundColor: '#0b0d10' });
 
   shellView = new WebContentsView({
     webPreferences: {

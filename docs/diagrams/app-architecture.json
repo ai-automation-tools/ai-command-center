@@ -2,12 +2,12 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "AI Command Center: one window, one main process",
+    "title": "Houston: one window, one main process",
     "output": "docs/diagrams/app-architecture.html",
     "quality_profile": "showcase",
     "locale": "en",
     "repository": {
-      "url": "https://github.com/ai-automation-tools/ai-command-center.git",
+      "url": "https://github.com/ai-automation-tools/houston.git",
       "provider": "github",
       "link_mode": "web",
       "revision": "d9eb9de8760dccd4ee531641971fe1c8fe42d873"

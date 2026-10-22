@@ -1,4 +1,4 @@
-# CLAUDE.md — AI Command Center
+# CLAUDE.md — Houston
 
 Instructions for any agent working in this repo, including the roadmap routine that runs twice a week.
 Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before changing code.

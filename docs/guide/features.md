@@ -74,7 +74,7 @@
 
 ## 🔌 Connections
 
-- Click the dot next to "Command Center" at the top of the sidebar, or pick **Connections** from the palette or the View menu.
+- Click the dot next to "Houston" at the top of the sidebar, or pick **Connections** from the palette or the View menu.
 - One row each for Project Hub, Cronsole, every shell the app knows, the chat model and the MCP server.
 - Each row shows working, not set up or failing, a detail line, and what to set when it's missing.
 - **Retry** checks one row again; **Check all** checks everything. A shell installed since the app started shows up on Retry, no restart needed.

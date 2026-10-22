@@ -422,7 +422,7 @@ const spaceBtn = $('workspace');
 async function showSpace(w) {
   space = w;
   const cur = w.list.find((x) => x.id === w.active);
-  spaceBtn.textContent = `🧭 ${cur && w.active !== 'default' ? cur.name : 'Command Center'}`;
+  spaceBtn.textContent = `🧭 ${cur && w.active !== 'default' ? cur.name : 'Houston'}`;
   spaceBtn.title = `Workspace: ${cur?.name || 'Default'}${w.folder ? ` (${w.folder})` : ''}. Click to switch; right-click a folder in Files to add one.`;
   sidebar.setRoot(cur?.hubId || '');
   terminals.showWorkspace(w.active);
