@@ -500,7 +500,7 @@ async function createWindow() {
     terminals.kill(Number(id));
   });
 
-  handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true ? true : Number.isInteger(answer) ? answer : null));
+  handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true ? true : null));
 
   // A native menu, so it draws over the browser view instead of under it.
   handle('menu:popup', (items) => new Promise((resolve) => {
