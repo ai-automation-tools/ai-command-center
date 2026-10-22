@@ -1,6 +1,6 @@
 # Lint and unit tests on every push and pull request. The tests cover src/shared/ and
 # need no Electron binary, so the download is skipped; the smoke run needs a desktop
-# session and stays a local command (see CLAUDE.md).
+# session and stays a local command (see AGENTS.md).
 name: CI
 
 on:
