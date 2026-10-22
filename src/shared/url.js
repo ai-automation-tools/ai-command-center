@@ -28,7 +28,7 @@ export function toUrl(input) {
 /**
  * Schemes a tab may be sent to. Everything else (javascript:, data:, custom protocol
  * handlers, the shell's acc://shell) is refused before it reaches the browser pane.
- * Command Center's document pages (acc://doc) open from the app itself, with no `from`,
+ * Houston's document pages (acc://doc) open from the app itself, with no `from`,
  * or from another document page; a web page can't navigate to one. A Cronsole run's
  * output (acc://run), a Git diff (acc://git) and a dev server's log (acc://dev) open from
  * the app only. A local file (file:) opens from the app (the address bar, a restored

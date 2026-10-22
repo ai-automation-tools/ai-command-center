@@ -10,7 +10,7 @@ allows. Expect an acknowledgement within a week.
 ## What the app promises
 
 The full model, with file references, is in the README's
-[security model](docs/guide/security-model.md) page and in `CLAUDE.md`'s
+[security model](docs/guide/security-model.md) page and in `AGENTS.md`'s
 security invariants, which every change has to keep. In short:
 
 - **Web pages are untrusted.** Browser tabs run sandboxed with context isolation.

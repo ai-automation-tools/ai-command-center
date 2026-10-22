@@ -1,6 +1,6 @@
 <a id="readme-top"></a>
 
-<h1 align="center">🧭 AI Command Center</h1>
+<h1 align="center">🧭 Houston</h1>
 
 <p align="center">
   <em>One window for your browser, PowerShell, project files and bookmarks,<br>with an MCP server that lets an agent drive it.</em>
@@ -9,11 +9,11 @@
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
   ·
-  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://ai-command-center-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
+  <a href="https://houston.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://houston-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-automation-tools/ai-command-center">GitHub</a>
+  <a href="https://github.com/ai-automation-tools/houston">GitHub</a>
   ·
   <a href="docs/ROADMAP.md">Roadmap</a>
   ·
@@ -39,11 +39,11 @@
 
 ---
 
-A Windows desktop app: a browser, PowerShell terminals and your project folders in one window.
+Houston (formerly AI Command Center) is a Windows desktop app: a browser, PowerShell terminals and your project folders in one window.
 An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing without your click.
 
 > [!TIP]
-> **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser. Made-up data; nothing runs or calls out.
+> **[Try the demo](https://houston-demo.ai-automation-tools.dev/)** in any browser. Made-up data; nothing runs or calls out.
 
 > [!WARNING]
 > Chrome extensions only half-work. LastPass's popup, for one, keeps spinning. [Details](docs/guide/features.md#-browser).
@@ -58,7 +58,7 @@ An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing 
 | **⚡ Command palette** | Ctrl+K: actions, tabs, terminals, workspaces and files in one box |
 | **📁 Files** | Every project from [Project Hub](https://github.com/ai-automation-tools/project-hub), opened in a tab |
 | **🔖 Bookmarks · 🕘 Recent · 🔍 Search** | Your browser's bookmarks, what you opened, one search over all of it |
-| **🤖 MCP server** | Eleven tools so Claude Code can see and act in the window, and what it asked to run and how that went |
+| **🤖 MCP server** | Twelve tools so Claude Code can see and act in the window, and what it asked to run and how that went |
 | **💬 Chat** | Claude in a pane on the right, with the same tools; named, searchable conversations per workspace |
 | **⏱️ Cron** | [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks and their runs |
 | **🌿 Git** | The workspace repo's branch and changed files, each diff a click away (read-only) |
@@ -72,8 +72,8 @@ The full tour is in [features.md](docs/guide/features.md).
 Needs Windows 11, Node.js 24, PowerShell 7 and a running [Project Hub](https://github.com/ai-automation-tools/project-hub).
 
 ```powershell
-git clone https://github.com/ai-automation-tools/ai-command-center
-cd ai-command-center
+git clone https://github.com/ai-automation-tools/houston
+cd houston
 npm install
 npm start
 ```
@@ -118,7 +118,7 @@ How to contribute: [contributing.md](docs/guide/contributing.md).
 | [**🧩 src/**](src/README.md) | The app's code |
 | [**🧪 tests/**](tests/README.md) | Unit tests and the scripted launch check |
 | **📜 scripts/** | Smoke run, lint, demo build, diagram build, launcher |
-| [**🤖 CLAUDE.md**](CLAUDE.md) | Rules for agents working in this repo |
+| [**🤖 AGENTS.md**](AGENTS.md) | Rules for agents working in this repo (`CLAUDE.md` imports it) |
 | [**🛡️ SECURITY.md**](SECURITY.md) | Reporting a vulnerability; the full model is in [security-model.md](docs/guide/security-model.md) |
 
 ## ⚖️ Licence

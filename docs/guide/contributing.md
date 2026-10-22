@@ -22,7 +22,7 @@ npm run demo     # builds the browser demo into _site/
 - Branch from `main` and open a pull request against `main`.
 - Keep `npm run lint` and `npm test` green. CI runs both, plus `npm audit`, on every push.
 - Run `npm run smoke` when you touch the main process, the preload or the shell UI. What it checks is in [tests/](../../tests/README.md).
-- [CLAUDE.md](../../CLAUDE.md) has the standards, the security invariants and the list of things this project won't do.
+- [AGENTS.md](../../AGENTS.md) has the standards, the security invariants and the list of things this project won't do.
 
 ## The roadmap routine
 

@@ -1,6 +1,6 @@
 // The shells the terminal panel can start. Each profile is a fixed executable with
 // fixed arguments; the renderer names a profile and nothing else, so no message can
-// start a shell with chosen arguments (CLAUDE.md's terminal rule).
+// start a shell with chosen arguments (AGENTS.md's terminal rule).
 
 import path from 'node:path';
 

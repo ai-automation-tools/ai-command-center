@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Starts AI Command Center without leaving a console window open.
+    Starts Houston without leaving a console window open.
 
 .DESCRIPTION
     Launches the repo's own electron.exe directly with the repo as the app, so no

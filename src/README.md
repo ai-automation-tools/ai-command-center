@@ -58,7 +58,7 @@ Plain JavaScript with JSDoc types, no bundler. Electron loads `main/main.js` dir
 
 ## 🎭 demo/ — the browser demo
 
-The shell UI from `renderer/` running in an ordinary browser. `npm run demo` (`scripts/demo.js`) copies `renderer/`, `shared/`, this folder and xterm into `_site/`, and `.github/workflows/pages.yml` deploys that to [ai-command-center-demo.ai-automation-tools.dev](https://ai-command-center-demo.ai-automation-tools.dev/) on every push to `main`. The app never loads anything here.
+The shell UI from `renderer/` running in an ordinary browser. `npm run demo` (`scripts/demo.js`) copies `renderer/`, `shared/`, this folder and xterm into `_site/`, and `.github/workflows/pages.yml` deploys that to [houston-demo.ai-automation-tools.dev](https://houston-demo.ai-automation-tools.dev/) on every push to `main`. The app never loads anything here.
 
 | File | What it does |
 |:---|:---|

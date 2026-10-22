@@ -11,7 +11,7 @@
 
 ---
 
-The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s security invariants. To report a problem, see [SECURITY.md](../../SECURITY.md).
+The rules every change has to keep are in [AGENTS.md](../../AGENTS.md)'s security invariants. To report a problem, see [SECURITY.md](../../SECURITY.md).
 
 ## Web pages
 

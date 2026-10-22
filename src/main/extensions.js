@@ -114,7 +114,7 @@ async function removeExtension(browseSession, window, ext) {
     defaultId: 1,
     cancelId: 1,
     message: `Remove ${ext.name}?`,
-    detail: 'It is uninstalled from AI Command Center. You can add it again from the Web Store.',
+    detail: 'It is uninstalled from Houston. You can add it again from the Web Store.',
   });
   if (response !== 0) return;
   try {
