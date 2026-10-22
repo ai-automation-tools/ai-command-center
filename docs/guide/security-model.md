@@ -31,8 +31,9 @@ The rules every change has to keep are in [CLAUDE.md](../../CLAUDE.md)'s securit
 ## Terminals and agents
 
 - Each shell is a fixed executable with fixed arguments. The UI chooses only a starting folder and a shell by name.
-- `terminal_run` never starts a process. After you click Run, it types one line into a new PowerShell terminal opened for that command in the folder the bar named.
-- The main process keeps the command and folder. The click only says yes, and main checks the terminal it gets back is that fresh one.
+- `terminal_run` starts nothing until you click Run. Then the main process opens a PowerShell terminal for that command alone, in the folder the bar named. Its arguments are a fixed script; the command reaches it in an environment variable that only the main process sets and the script removes, so the shell still never takes arguments from an agent or the UI.
+- The main process keeps the command and folder from the moment it asks. The click only says yes or no.
+- A run's result is its exit code, never its output. Closing its tab while it runs ends it and every process it started, found by the pid the app started, never by name.
 - Newlines, control characters and invisible characters are refused, so the bar shows exactly what runs. Unanswered asks expire after 5 minutes.
 
 ## The MCP server

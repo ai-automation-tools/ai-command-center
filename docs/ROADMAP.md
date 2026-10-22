@@ -17,7 +17,7 @@ Ordered by what blocks what; [build-plan.md](product/build-plan.md) has the reas
 Markers: `- [ ]` open, `- [-]` claimed by a run in progress, `- [x]` done, `- [!]` blocked (the reason follows on the line). `🔒 Needs Mike` marks an item only Mike can do; the routine skips it.
 
 > [!NOTE]
-> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. Milestone C has started: the Git changes view (read-only) and dev servers are in. **Next:** its editor ADR is Mike's call and the side-by-side editor waits on it, and the Integrations are all done, so Milestone D is next. LastPass's popup is the one known upstream blocker.
+> **Where we are, 2026-10-21.** Public since 2026-10-18. A project audit on 2026-10-20 added Milestones A to D: A (a trustworthy foundation) and B (a project-centered shell: workspaces, the command palette, the context tray, connections, named conversations, the chat pane) are done. Milestone C has started: the Git changes view (read-only) and dev servers are in. **Next:** its editor ADR is Mike's call and the side-by-side editor waits on it, and the Integrations are all done. Milestone D has started: managed runs are in, and the activity drawer is next. LastPass's popup is the one known upstream blocker.
 
 ## 🧭 Phase 0: decide (done 2026-09-29)
 
@@ -130,7 +130,7 @@ Replaces Phase 3's IDE line.
 
 ### 🏃 Milestone D: agent work with evidence
 
-- [ ] Managed runs: a run has an id, its fixed folder and command, start and end, exit code, output and a Cancel; `terminal_run` returns the run id, and `run_status` reads it. Success comes from the exit code, never from the output text
+- [x] Managed runs: a run has an id, its fixed folder and command, start and end, exit code, output and a Cancel; `terminal_run` returns the run id, and `run_status` reads it. Success comes from the exit code, never from the output text — done 2026-10-21: on Run, main opens the run's own PowerShell with a fixed `-Command` script and the command in `ACC_RUN_COMMAND` (ADR-003's 2026-10-21 update); its exit code is the result (last native non-zero code, else 1 if PowerShell wrote an error, else 0; `exit N` wins), the same in PowerShell 7 and 5.1. Closing its tab while it runs cancels it and ends its process tree. `run_status` gives state, exit code, times and cleaned output; the newest 50 runs are kept. `isFreshRunTarget` is gone. `src/shared/runs.js`, `src/main/kill.js`; 5 tests; `npm run smoke` checks a success, an exit code 3 and a cancel (32 checks)
 - [ ] Activity drawer: queued, waiting for approval, running, failed, cancelled and finished agent work, each with what was asked and the exact target
 - [ ] MCP clients by name: `initialize`'s `clientInfo` recorded and shown, and later a per-client switch for which tools it may call (the log's connection row is done, from the Integrations item; what's left is tying later calls to their client and the switch)
 - [ ] Provider adapters: the model API and CLI agents behind one small contract (health, capabilities, invoke, cancel, events), with Claude first

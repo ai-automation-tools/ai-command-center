@@ -19,7 +19,7 @@ Read in order. The requirements set what matters, the options pick the shape, an
 | [**🏗️ architecture-options.md**](architecture-options.md) | Electron shell vs. a BrowserOS fork vs. VS Code as the shell. Electron wins on cost; its weak spot is MV3 extensions. |
 | [**🧱 adr-001-electron-shell.md**](adr-001-electron-shell.md) | The runtime, the GPL-3.0 extension library, and the spike. MV3 extension workers crashed until the 2026-10-20 update, which traced it to the `browser` namespace; what still doesn't work is listed there. |
 | [**🔗 adr-002-hub-over-http.md**](adr-002-hub-over-http.md) | Files and bookmarks come from Project Hub's API, called from the main process so Hub's same-origin guard needs no change. |
-| [**💻 adr-003-terminal-in-main.md**](adr-003-terminal-in-main.md) | node-pty with the bundled ConPTY, a fixed shell, and the renderer only picks a folder. Why the app calls `app.exit(0)` on quit, and (2026-10-20) why `terminal_run` types only into a fresh terminal opened for it. |
+| [**💻 adr-003-terminal-in-main.md**](adr-003-terminal-in-main.md) | node-pty with the bundled ConPTY, a fixed shell, and the renderer only picks a folder. Why the app calls `app.exit(0)` on quit, (2026-10-20) why `terminal_run` gets a fresh terminal of its own, and (2026-10-21) how a run's exit code becomes its result. |
 
 ---
 

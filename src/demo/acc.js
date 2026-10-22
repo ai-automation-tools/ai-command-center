@@ -352,6 +352,8 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
       resize: () => {},
       onData: listen('term:data'),
       onExit: listen('term:exit'),
+      // No agent runs anything in the demo, so main never opens a run terminal.
+      onOpened: listen('term:opened'),
     },
 
     recent: {

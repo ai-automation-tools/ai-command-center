@@ -40,6 +40,22 @@ export class TerminalPanel {
 
   /** @param {string} [cwd] @param {string} [shell] profile id from app:info's shells; the default when left out */
   async open(cwd, shell) {
+    const { term, fit, pane } = this.mount();
+    const info = await this.api.term.create({ cwd, shell, cols: term.cols, rows: term.rows });
+    return this.wire(info, term, fit, pane);
+  }
+
+  /**
+   * A session main opened itself (a terminal_run run): give it a tab, sized to the panel.
+   * @param {{ id: number, cwd: string, shell: string, powershell: boolean, ws: string, run?: boolean }} info
+   */
+  attach(info) {
+    const { term, fit, pane } = this.mount();
+    this.api.term.resize(info.id, term.cols, term.rows);
+    return this.wire(info, term, fit, pane);
+  }
+
+  mount() {
     const term = new Terminal({
       fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace',
       fontSize: 13,
@@ -57,16 +73,23 @@ export class TerminalPanel {
     this.host.append(pane);
     term.open(pane);
     fit.fit();
+    return { term, fit, pane };
+  }
 
-    const info = await this.api.term.create({ cwd, shell, cols: term.cols, rows: term.rows });
+  /**
+   * @param {{ id: number, cwd: string, shell: string, powershell?: boolean, ws?: string, run?: boolean }} info
+   * @param {Terminal} term @param {FitAddon} fit @param {HTMLElement} pane
+   */
+  wire(info, term, fit, pane) {
     const id = /** @type {number} */ (info.id);
 
     const tab = document.createElement('div');
-    tab.className = 'term-tab';
+    tab.className = `term-tab${info.run ? ' run' : ''}`;
     tab.setAttribute('role', 'tab');
-    tab.title = info.cwd;
+    // A run's × is its Cancel while it runs.
+    tab.title = info.run ? `Run in ${info.cwd}. Closing it while it runs cancels it.` : info.cwd;
     tab.innerHTML = '<span class="title"></span><button class="close" aria-label="Close terminal">×</button>';
-    /** @type {HTMLElement} */ (tab.querySelector('.title')).textContent = `${info.shell} · ${shortDir(info.cwd)}`;
+    /** @type {HTMLElement} */ (tab.querySelector('.title')).textContent = `${info.run ? 'run' : info.shell} · ${shortDir(info.cwd)}`;
     tab.addEventListener('click', (e) => {
       if (/** @type {HTMLElement} */ (e.target).closest('.close')) this.close(id);
       else this.activate(id);
@@ -75,9 +98,12 @@ export class TerminalPanel {
 
     term.onData((data) => this.api.term.write(id, data));
     term.onResize(({ cols, rows }) => this.api.term.resize(id, cols, rows));
-    term.onTitleChange((title) => {
-      /** @type {HTMLElement} */ (tab.querySelector('.title')).textContent = title.split(/[\\/]/).pop() || title;
-    });
+    // A run keeps its "run" label; PowerShell would retitle it with its own path.
+    if (!info.run) {
+      term.onTitleChange((title) => {
+        /** @type {HTMLElement} */ (tab.querySelector('.title')).textContent = title.split(/[\\/]/).pop() || title;
+      });
+    }
     const paste = (/** @type {string} */ text) => this.api.term.write(id, text);
     term.attachCustomKeyEventHandler((e) => clipboardKeys(e, term, paste));
     // Right-click works like Windows Terminal: copy the selection if there is one, else paste.

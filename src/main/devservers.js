@@ -4,13 +4,14 @@
 // on a process this module spawned, by the pid spawn gave it, and only while it runs;
 // every one still running is stopped when the window closes.
 
-import { execFile, execFileSync, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEV_MAX, devIdFromUrl, devScripts, devStateText, isScriptName, packageManager, readyAddress } from '../shared/devservers.js';
 import { appendOutput, cleanOutput, lastLines } from '../shared/output.js';
 import { devLogPage } from '../shared/docs.js';
 import { childEnv, onPath } from './env.js';
+import { killTree } from './kill.js';
 
 const WIN = process.platform === 'win32';
 const SYSTEM32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32');
@@ -27,20 +28,12 @@ const SERVER_ENV = { BROWSER: 'none', FORCE_COLOR: '0' };
 const view = ({ child, output, restart, ...rest }) => ({ ...rest, pid: child?.pid ?? null, text: devStateText(rest) });
 
 /**
- * Ends a server's whole process tree: npm starts cmd, which starts node, and killing
- * only the first leaves the server listening.
+ * Ends a server's whole process tree (src/main/kill.js): killing only npm leaves the
+ * server listening.
  * @param {import('node:child_process').ChildProcess} child
- * @param {boolean} [sync] at shutdown, so it's done before the app exits
+ * @param {boolean} [sync]
  */
-function killTree(child, sync = false) {
-  if (!WIN || !child.pid) return void child.kill();
-  const args = ['/pid', String(child.pid), '/t', '/f'];
-  if (sync) {
-    try { execFileSync(path.join(SYSTEM32, 'taskkill.exe'), args, { stdio: 'ignore', windowsHide: true }); } catch { /* already gone */ }
-  } else {
-    execFile(path.join(SYSTEM32, 'taskkill.exe'), args, { windowsHide: true }, () => {});
-  }
-}
+const stopChild = (child, sync = false) => { if (!killTree(child.pid, sync)) child.kill(); };
 
 export class DevServers {
   /** @param {(channel: string, ...args: unknown[]) => void} send */
@@ -95,7 +88,7 @@ export class DevServers {
     const s = this.get(id);
     if (s.child && s.state !== 'stopping') {
       s.state = 'stopping';
-      killTree(s.child);
+      stopChild(s.child);
       this.changed();
     }
     return view(s);
@@ -114,7 +107,7 @@ export class DevServers {
 
   /** At shutdown: end every server this run started. */
   stopAll() {
-    for (const s of this.servers.values()) if (s.child) killTree(s.child, true);
+    for (const s of this.servers.values()) if (s.child) stopChild(s.child, true);
   }
 
   /** The acc://dev/<id> page: the server's state and its last lines of output. @param {string} url */

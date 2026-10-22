@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tools-11-8B5CF6?style=for-the-badge" alt="11 tools">
+  <img src="https://img.shields.io/badge/tools-12-8B5CF6?style=for-the-badge" alt="12 tools">
   <a href="README.md"><img src="https://img.shields.io/badge/↩-guide-6B7280?style=for-the-badge" alt="Back to the guide"></a>
 </p>
 
@@ -39,11 +39,13 @@ $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 | `sidebar_search` · `recent` | The sidebar's search across files, bookmarks and Recent; the Recent list | no |
 | `open_tab` | Opens what the address bar takes, web pages only. An agent can't open a local file as a tab | no |
 | `open_file` | A Hub node id from `sidebar_search`, opened in VS Code or revealed in Explorer. Never a path, never the file's default app | no |
-| `terminal_run` | Shows a command and its folder on the Run bar over the terminal. Run opens a new PowerShell terminal there and types it in | **yes** |
+| `terminal_run` | Shows a command and its folder on the Run bar over the terminal. Run starts it as a managed run in a PowerShell terminal of its own there, and returns a run id | **yes** |
+| `run_status` | A run's state (running, succeeded, failed, cancelled), exit code, times and last lines of output | no |
 | `cron_tasks` · `cron_run` | Cronsole's scheduled tasks; start one now | `cron_run` |
 
 - `tools/list` marks each tool read-only, or destructive for `terminal_run` and `cron_run`, so a client can show which tools look and which act.
-- After `terminal_run`, the agent reads the result with `terminal_read`.
+- After `terminal_run`, the agent polls `run_status` with the run id. Success is exit code 0: the last native program's code if it wasn't 0, else 1 if PowerShell wrote an error, else 0; `exit N` sets it. The output is never read to decide.
+- A run's terminal shows `> command`, the output and the exit code, and its shell ends with the command. Closing its tab while it runs cancels it, and everything it started.
 - Unanswered Run asks expire after 5 minutes.
 
 ## The MCP tab and the log
