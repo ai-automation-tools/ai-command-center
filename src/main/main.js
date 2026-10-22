@@ -25,6 +25,7 @@ import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
 import { Confirmations } from '../shared/confirm.js';
 import { Runs, runInfo } from '../shared/runs.js';
+import { Activity, activityRows } from '../shared/activity.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
@@ -218,7 +219,12 @@ async function createWindow() {
   const terminals = new Terminals(send);
   // terminal_run's runs: a run ends when its session exits, and that exit code is its result.
   const runs = new Runs();
-  terminals.onExit = (id, code) => { runs.end(id, code, terminals.read(id)?.raw ?? undefined); };
+  // The MCP panel's agent work: every ask from the confirm bar to its end.
+  const activity = new Activity();
+  const workChanged = () => send('activity:changed', activityRows(activity.list));
+  /** @param {import('../shared/runs.js').Run | undefined} r */
+  const runEnded = (r) => { if (r && activity.runEnded(r)) workChanged(); };
+  terminals.onExit = (id, code) => runEnded(runs.end(id, code, terminals.read(id)?.raw ?? undefined));
 
   // Workspaces (workspaces.json): switching swaps the tabs and the conversation, and shows
   // that workspace's terminals. Terminals keep running while hidden; a workspace's saved
@@ -296,14 +302,33 @@ async function createWindow() {
   };
 
   // terminal_run and cron_run: the shell shows the command or the task's name and answers
-  // true or null. The command, its folder and the task id stay here; the answer can't
+  // yes or no. The command, its folder and the task id stay here; the answer can't
   // change what runs or where.
-  /** @type {Confirmations<true>} */
+  /** @type {Confirmations<boolean>} */
   const confirmations = new Confirmations({
     show: (ask) => send('mcp:confirm', ask),
     cancel: (id) => send('mcp:cancel', id),
     timeoutMs: CONFIRM_TIMEOUT_MS,
   });
+  /**
+   * Ask on the bar, and track the ask in the activity list. True only for Run.
+   * @param {{ kind: 'command' | 'task', asked: string, target: string }} work
+   * @param {Record<string, unknown>} payload what the bar shows
+   * @param {AbortSignal | undefined} signal
+   */
+  const askFor = async (work, payload, signal) => {
+    const w = activity.ask(work);
+    workChanged();
+    const answer = await confirmations.ask(payload, signal);
+    activity.answered(w.id, answer, Boolean(signal?.aborted));
+    workChanged();
+    return answer === true ? w : null;
+  };
+  /** @param {number} id @param {'started' | 'failed'} state @param {unknown} [err] */
+  const workEnded = (id, state, err) => {
+    activity.settle(id, state, err === undefined ? null : err instanceof Error ? err.message : String(err));
+    workChanged();
+  };
 
   // The MCP server starts once there are tabs for its tools to look at.
   /** @type {import('../shared/tools.js').Sources} */
@@ -326,9 +351,18 @@ async function createWindow() {
     runCommand: async (command, cwd, signal) => {
       const dir = cwd ?? terminals.defaultFolder(current().folder);
       if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
-      if (await confirmations.ask({ command, cwd: dir }, signal) !== true) return null;
-      const t = terminals.create({ cwd: dir, ws: spaces.active, run: command });
+      const w = await askFor({ kind: 'command', asked: command, target: dir }, { command, cwd: dir }, signal);
+      if (!w) return null;
+      let t;
+      try {
+        t = terminals.create({ cwd: dir, ws: spaces.active, run: command });
+      } catch (err) {
+        workEnded(w.id, 'failed', err);
+        throw err;
+      }
       const r = runs.start({ terminal: t.id, command, cwd: t.cwd });
+      activity.ranAs(w.id, r.run);
+      workChanged();
       send('term:opened', t);
       return { run: r.run, terminal: t.id, cwd: t.cwd };
     },
@@ -341,12 +375,21 @@ async function createWindow() {
     runCronTask: async (id, signal) => {
       const task = (await cron.tasks()).find((t) => t.id === id);
       if (!task) throw new Error(`Cronsole has no task with id ${id}`);
-      if (await confirmations.ask({ task: task.name }, signal) !== true) return null;
-      return cron.run(id);
+      const w = await askFor({ kind: 'task', asked: task.name, target: id }, { task: task.name }, signal);
+      if (!w) return null;
+      try {
+        const out = await cron.run(id);
+        workEnded(w.id, 'started');
+        return out;
+      } catch (err) {
+        workEnded(w.id, 'failed', err);
+        throw err;
+      }
     },
   };
   const callLog = mcpLog(send);
   handle('mcp:log', () => callLog.entries);
+  handle('activity:list', () => activityRows(activity.list));
   // Terminals get the address and token, so `claude` in one can reach the app (README,
   // "Drive the app from Claude Code"). The shell loads after this, so even the first has them.
   const mcpReady = startMcp(new Map([...readOnlyTools(sources), ...navigationTools(sources), ...terminalTools(sources), ...cronTools(sources)]), (e) => callLog.add(e))
@@ -496,11 +539,11 @@ async function createWindow() {
   on('term:resize', (id, cols, rows) => terminals.resize(Number(id), cols, rows));
   // Closing a run's terminal before it ends is its Cancel.
   handle('term:kill', (id) => {
-    runs.cancel(Number(id), terminals.read(Number(id))?.raw ?? undefined);
+    runEnded(runs.cancel(Number(id), terminals.read(Number(id))?.raw ?? undefined));
     terminals.kill(Number(id));
   });
 
-  handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true ? true : null));
+  handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true));
 
   // A native menu, so it draws over the browser view instead of under it.
   handle('menu:popup', (items) => new Promise((resolve) => {

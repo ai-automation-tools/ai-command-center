@@ -73,6 +73,12 @@ button.brand:hover, button.brand:focus-visible { background: var(--panel-2); }
 .row.call.failed .icon, .row.call.failed .sub { color: var(--bad); }
 .row.call.info .icon, .row.call.info .sub, .row.call.info .name { color: var(--text-3); }
 .row.call .name { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+.row.work .name { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+.row.work.waiting .icon, .row.work.waiting .sub, .row.work.running .icon { color: var(--warn); }
+.row.work.succeeded .icon, .row.work.started .icon { color: var(--ok); }
+.row.work.failed .icon, .row.work.failed .sub { color: var(--bad); }
+.row.work.cancelled .sub, .row.work.denied .sub, .row.work.expired .sub, .row.work.withdrawn .sub { color: var(--text-3); }
+.tab-badge.work { background: var(--warn); color: #000; }
 .row:focus-visible { outline: none; border-left-color: var(--accent); background: var(--panel-2); }
 .row .caret { width: 12px; color: var(--text-3); flex: none; text-align: center; font-size: 10px; }
 .row .icon { width: 16px; flex: none; text-align: center; }

@@ -81,8 +81,10 @@ test('the confirm bar ask runs only after Run', async () => {
   api.mcp.onLogged((/** @type {any} */ e) => logged.push(e));
   await new Promise((r) => setTimeout(r, 10));
   assert.equal(asks[0].command, 'npm test');
+  assert.equal((await api.activity.list())[0].label, 'waiting for approval');
   await api.mcp.answer(asks[0].id, null);
   assert.equal(logged[0].ok, false);
+  assert.equal((await api.activity.list())[0].state, 'denied');
 });
 
 test('fabricated tree has no virtual node with a path and flattens', () => {

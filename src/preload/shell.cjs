@@ -83,6 +83,12 @@ contextBridge.exposeInMainWorld('acc', {
     onLogged: listen('mcp:logged'),
   },
 
+  /** terminal_run and cron_run asks, from the confirm bar to their end. */
+  activity: {
+    list: invoke('activity:list'),
+    onChanged: listen('activity:changed'),
+  },
+
   chat: {
     info: invoke('chat:info'),
     attach: invoke('chat:attach'),

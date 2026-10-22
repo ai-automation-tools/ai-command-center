@@ -51,6 +51,7 @@ $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 ## The MCP tab and the log
 
 - Every call, refused ones included, shows in the sidebar's **MCP** tab and is appended to `logs\mcp.log`.
+- Above the calls, **Agent work** lists every `terminal_run` and `cron_run` ask, newest first: the exact command (or the task's name), where it goes (the folder, or the Cronsole task id) and how it stands: waiting for approval (the one on the bar), queued behind it, running with its run id, finished or failed with the exit code, cancelled, denied, not answered in time, or withdrawn because its asker went away. A Cronsole task ends as started in Cronsole, whose own history has the result. The tab's label counts what's waiting or running. The newest 50 are kept while the app runs; nothing is written to disk.
 - The log keeps `terminal_run`'s command as its length only and cuts URL query strings.
 - Each time Claude Code connects, a row reads **claude-code 2.x connected**: the name and version the client gave in `initialize`. That's what the client says it is, not proof.
 - Around it are two grey **(handshake)** rows: a `400` telling Claude Code to fall back from the newer protocol version it tries first, and a `405` for the event stream this server doesn't offer. Both are the transport's normal steering, not failures; hover for the detail. A refusal before the token is checked (no token, wrong host or origin) still shows as ✗.
