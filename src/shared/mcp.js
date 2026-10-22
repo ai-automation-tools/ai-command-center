@@ -60,7 +60,7 @@ export async function handleMessage(msg, tools, version, signal) {
       result: {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: {} },
-        serverInfo: { name: 'ai-command-center', version },
+        serverInfo: { name: 'houston', version },
       },
     };
   }

@@ -1,6 +1,6 @@
 # AGENTS.md — Houston
 
-Instructions for any agent working in this repo (Codex, Gemini CLI, opencode and Claude Code, which imports this file from `CLAUDE.md`), including the roadmap routine that runs twice a week.
+Instructions for any agent working in this repo (Codex, opencode, Antigravity and Claude Code, which imports this file from `CLAUDE.md`), including the roadmap routine that runs twice a week.
 Read `docs/ROADMAP.md`, `docs/product/spec.md` and `docs/decisions/` before changing code.
 
 ## What this is

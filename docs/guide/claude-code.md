@@ -13,21 +13,21 @@
 
 ## Connect once
 
-Every terminal the app opens has `ACC_MCP_URL` and `ACC_MCP_TOKEN` set to this launch's address and token. Register the server with the variable names, not their values, so it survives the new port and token each restart brings:
+Register the stdio bridge, `scripts/mcp-stdio.js`, with the path to your clone:
 
 ```powershell
-claude mcp add --scope user --transport http ai-command-center '${ACC_MCP_URL}' --header 'Authorization: Bearer ${ACC_MCP_TOKEN}'
+claude mcp add --scope user houston -- node <houston>\scripts\mcp-stdio.js
 ```
 
-- The single quotes matter. They stop PowerShell expanding the variables, so Claude Code stores the names and fills them in each time it starts.
-- Then run `claude` in one of the app's terminals and ask it to, say, "open this repo's README in a tab" or "run npm test". `/mcp` shows the connection.
-- `--scope user` makes the server available in every folder. Claude Code started outside the app has no variables, so it lists `ai-command-center` as failed with "Missing environment variables". That's harmless.
+- It reads `%APPDATA%\ai-command-center\mcp.json` on every message and forwards it with that launch's token, so it works from any terminal, in the app or not, and survives the app restarting.
+- Codex, opencode and Antigravity register the same command as a stdio server.
+- Then run `claude` and ask it to, say, "open this repo's README in a tab" or "run npm test". `/mcp` shows the connection. With the app closed, every call answers "Houston isn't running".
+- An older `ai-command-center` registration can go: `claude mcp remove ai-command-center`.
 
-To use it from a terminal outside the app while the app runs, load the variables from `mcp.json` first:
+The app's own terminals also carry `ACC_MCP_URL` and `ACC_MCP_TOKEN`, for a direct HTTP registration that works only inside them. Keep the single quotes, so Claude Code stores the variable names rather than this launch's values:
 
 ```powershell
-$m = Get-Content "$env:APPDATA\ai-command-center\mcp.json" | ConvertFrom-Json
-$env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
+claude mcp add --scope user --transport http houston '${ACC_MCP_URL}' --header 'Authorization: Bearer ${ACC_MCP_TOKEN}'
 ```
 
 ## The tools
