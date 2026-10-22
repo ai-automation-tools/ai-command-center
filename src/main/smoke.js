@@ -190,6 +190,12 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
         ok?.state === 'succeeded' && ok.exitCode === 0 && /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/.test(ok.output)
         && failed?.state === 'failed' && failed.exitCode === 3 && /about to fail/.test(failed.output)
         && before?.state === 'running' && cancelled?.state === 'cancelled' && cancelled.exitCode === null, runRun);
+      // The same three in the MCP panel's Agent work, newest first, each with how it ended.
+      const work = await wc.executeJavaScript(`[...document.querySelectorAll('#panel-mcp .row.work')].slice(0, 3).map((r) => [r.className.split(' ').pop(), r.querySelector('.name').textContent, r.querySelector('.sub').textContent])`);
+      console.log(`[smoke] work=${JSON.stringify(work)}`);
+      check('the MCP panel lists each run under Agent work: what was asked and how it ended',
+        JSON.stringify(work.map((/** @type {string[]} */ w) => w[0])) === '["cancelled","failed","succeeded"]'
+        && work[0][1] === 'Start-Sleep -Seconds 60' && work[1][2] === 'failed (exit 3)' && work[2][2] === 'finished (exit 0)', work);
       console.log(`[smoke] terminal raw tail=${JSON.stringify(terminals.read()?.raw?.slice(-400))}`);
       const page = await call('read_tab', { tab: tab.view.webContents.id });
       console.log(`[smoke] mcp read_tab title=${JSON.stringify(page.title)} chars=${page.text?.length} truncated=${page.truncated} start=${JSON.stringify(page.text?.slice(0, 60))}`);

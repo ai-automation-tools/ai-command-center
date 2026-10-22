@@ -10,6 +10,7 @@ import { toggleFavorite } from '../shared/favorites.js';
 import { trayItem } from '../shared/chat.js';
 import { chatRow, cronsoleRow, hubRow, mcpRow, shellRows } from '../shared/connections.js';
 import { searchConversations } from '../shared/conversations.js';
+import { Activity, activityRows } from '../shared/activity.js';
 import { WELCOME_ID, WELCOME_URL } from './about.js';
 
 const HOUR = 3_600_000;
@@ -266,6 +267,20 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
   // ---- one terminal_run ask, to show the confirm bar ----
   let asked = false;
   const ask = { id: 1, command: 'npm test', cwd: 'D:\\work\\acme-api' };
+  // The MCP panel's agent work: two made-up past asks, then the one above.
+  const work = new Activity();
+  /** @param {{ kind: 'command', asked: string, target: string }} w @param {boolean} yes @param {number} [exitCode] */
+  const seed = (w, yes, exitCode) => {
+    const item = work.ask(w, now() - 2 * HOUR);
+    work.answered(item.id, yes, false, now() - 2 * HOUR);
+    if (exitCode === undefined) return;
+    work.ranAs(item.id, item.id);
+    work.runEnded(/** @type {any} */ ({ run: item.id, state: exitCode ? 'failed' : 'succeeded', exitCode, endedAt: now() - 2 * HOUR + 4000 }));
+  };
+  seed({ kind: 'command', asked: 'npm run lint', target: 'D:\\work\\acme-api' }, true, 0);
+  seed({ kind: 'command', asked: 'git push --force', target: 'D:\\work\\acme-api' }, false);
+  let askWork = 0;
+  const workChanged = () => emit('activity', activityRows(work.list));
 
   const api = {
     info: async () => ({
@@ -365,20 +380,35 @@ export function demoApi({ now = Date.now, onTab = () => {}, notify = () => {}, a
     mcp: {
       answer: async (/** @type {number} */ id, /** @type {number | true | null} */ answer) => {
         if (id !== ask.id) return;
-        if (typeof answer === 'number' && terms.has(answer)) type(answer, `${ask.command}\r`);
-        logCall('terminal_run', { command: ask.command }, answer !== null);
+        work.answered(askWork, answer === true, false);
+        // Nothing runs in the demo: a Run click finishes at once.
+        if (answer === true) {
+          work.ranAs(askWork, askWork);
+          work.runEnded(/** @type {any} */ ({ run: askWork, state: 'succeeded', exitCode: 0, endedAt: now() }));
+        }
+        workChanged();
+        logCall('terminal_run', { command: ask.command }, answer === true);
       },
       onConfirm: (/** @type {(ask: { id: number, command: string }) => void} */ fn) => {
         const off = listen('confirm')(fn);
         if (!asked && askAfterMs !== null) {
           asked = true;
-          setTimeout(() => emit('confirm', ask), askAfterMs);
+          setTimeout(() => {
+            askWork = work.ask({ kind: 'command', asked: ask.command, target: ask.cwd }).id;
+            workChanged();
+            emit('confirm', ask);
+          }, askAfterMs);
         }
         return off;
       },
       onCancel: listen('cancel'),
       log: async () => log,
       onLogged: listen('logged'),
+    },
+
+    activity: {
+      list: async () => activityRows(work.list),
+      onChanged: listen('activity'),
     },
 
     chat: {

@@ -101,6 +101,12 @@ export class Sidebar {
       pushEntry(this.calls, entry);
       this.renderCalls();
     });
+    /** @type {import('./shared/activity.js').WorkRow[]} */
+    this.work = [];
+    api.activity.onChanged((/** @type {import('./shared/activity.js').WorkRow[]} */ rows) => {
+      this.work = rows;
+      this.renderCalls();
+    });
   }
 
   async load() {
@@ -110,6 +116,7 @@ export class Sidebar {
     this.recent = await this.api.recent.list();
     this.renderRecent();
     this.calls = await this.api.mcp.log();
+    this.work = await this.api.activity.list();
     this.renderCalls();
     await Promise.all([this.loadFiles(), this.loadBookmarks()]);
     // Hub rescans on its own; reload the tree when it says so, no Retry needed.
@@ -133,6 +140,21 @@ export class Sidebar {
     } catch {
       this.showCronFailures([]);
     }
+  }
+
+  /** The MCP tab's count of agent work waiting for a click or still running. */
+  showWorkCount() {
+    const btn = /** @type {HTMLElement | null} */ (document.querySelector('.side-tabs [data-panel="mcp"]'));
+    if (!btn) return;
+    const open = this.work.filter((w) => w.open);
+    btn.textContent = 'MCP';
+    btn.title = "Calls agents made to the app's MCP server, and the commands and tasks they asked to run";
+    if (!open.length) return;
+    const badge = document.createElement('span');
+    badge.className = 'tab-badge work';
+    badge.textContent = String(open.length);
+    btn.append(badge);
+    btn.title = open.slice(0, 10).map((w) => `${w.label}: ${w.text}`).join('\n');
   }
 
   /** @param {import('./shared/cronsole.js').CronTask[]} failed */
@@ -402,8 +424,14 @@ export class Sidebar {
   renderCalls() {
     const host = this.el.mcp;
     host.innerHTML = '';
+    this.showWorkCount();
+    if (this.work.length) {
+      host.append(groupTitle('Agent work'));
+      for (const w of this.work) host.append(workRow(w));
+      host.append(groupTitle('Calls'));
+    }
     if (!this.calls.length) {
-      host.append(note("Calls agents make to the app's MCP server show up here, newest first. The full log is in %APPDATA%\\ai-command-center\\logs\\mcp.log."));
+      host.append(note("Calls agents make to the app's MCP server show up here, newest first, under the commands and tasks they asked to run. The full log is in %APPDATA%\\ai-command-center\\logs\\mcp.log."));
       return;
     }
     for (const c of this.calls) {
@@ -705,6 +733,30 @@ function note(text, bad = false) {
   d.style.whiteSpace = 'pre-line';
   d.textContent = text;
   return d;
+}
+
+/**
+ * One ask an agent made (terminal_run, cron_run): what it asked, where, and how it stands.
+ * @param {import('./shared/activity.js').WorkRow} w
+ */
+function workRow(w) {
+  const row = document.createElement('div');
+  row.className = `row work ${w.state}`;
+  row.tabIndex = 0;
+  row.style.paddingLeft = '10px';
+  row.innerHTML = '<span class="icon"></span><span class="name"></span><span class="sub"></span>';
+  q(row, '.icon').textContent = w.icon;
+  q(row, '.name').textContent = w.text;
+  q(row, '.sub').textContent = w.label;
+  row.title = [
+    w.text,
+    w.where,
+    w.label,
+    `Asked ${new Date(w.askedAt).toLocaleString()}`,
+    w.endedAt && `Ended ${new Date(w.endedAt).toLocaleString()}`,
+    w.error,
+  ].filter(Boolean).join('\n');
+  return row;
 }
 
 /** @param {string} text */
