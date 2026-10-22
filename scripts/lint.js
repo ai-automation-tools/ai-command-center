@@ -1,5 +1,5 @@
 // `npm run lint`: syntax-check every JavaScript file in the repo with `node --check`.
-// No linter dependency on purpose (see CLAUDE.md); swap in ESLint only through the roadmap.
+// No linter dependency on purpose (see AGENTS.md); swap in ESLint only through the roadmap.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';

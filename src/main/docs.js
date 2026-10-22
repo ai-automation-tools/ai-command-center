@@ -1,5 +1,5 @@
 // Serves acc://doc/<Hub node id> on the browse session, so documents open in ordinary
-// sandboxed tabs under Command Center's own sidebar. The shell's acc://shell lives on
+// sandboxed tabs under Houston's own sidebar. The shell's acc://shell lives on
 // the shell's session; tabs can't reach it. See src/shared/docs.js for the page.
 //
 // acc://run/<task>/<run> is a Cronsole run's output, acc://git/<path>?area=… a file's

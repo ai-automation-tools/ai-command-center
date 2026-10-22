@@ -1,4 +1,4 @@
-// The demo's welcome page: what AI Command Center is, shown in the first tab in the
+// The demo's welcome page: what Houston is, shown in the first tab in the
 // style of the repo's README. Static HTML, no scripts, no network: the badges are CSS,
 // not shields.io images, so opening the demo calls nothing. Keep it in step with the
 // README's "What works today" table when a feature lands.
@@ -20,8 +20,8 @@ const tech = (name, color) => `<span class="tech" style="--b:${color}">${name}</
 
 export const ABOUT_HTML = `<article class="demo-doc">
   <header class="hero">
-    <img class="hero-logo" src="demo/icon.svg" alt="AI Command Center, a desktop app that puts a browser, terminals and your project folders in one window an agent can drive" width="88" height="88">
-    <h1>AI Command Center</h1>
+    <img class="hero-logo" src="demo/icon.svg" alt="Houston, a desktop app that puts a browser, terminals and your project folders in one window an agent can drive" width="88" height="88">
+    <h1>Houston</h1>
     <p class="tagline">A browser, PowerShell terminals and every project folder you work in,<br>in one window that Claude can drive.</p>
     <p class="explore"><a href="${REPO_URL}#readme" ${ext}><strong>Explore the docs »</strong></a></p>
     <p class="nav-row">
@@ -81,7 +81,7 @@ export const ABOUT_HTML = `<article class="demo-doc">
   <p>You need Windows 11, Node.js 24, PowerShell 7 and a running Project Hub. Without Hub the browser and terminals still work; the Files and Bookmarks panels just wait for it.</p>
   <pre><code><span class="c"># 1. Clone and install (node-pty ships prebuilt, no compiler needed)</span>
 git clone ${REPO_URL}
-cd ai-command-center
+cd houston
 npm install
 
 <span class="c"># 2. Run it</span>

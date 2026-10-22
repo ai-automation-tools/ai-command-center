@@ -1,6 +1,6 @@
 <a id="docs-top"></a>
 
-<h1 align="center">📚 AI Command Center Docs</h1>
+<h1 align="center">📚 Houston Docs</h1>
 
 <p align="center">
   <em>Why the app is built the way it is, what's left, and what changed.</em>
@@ -21,6 +21,7 @@ Start with the roadmap if you want to know what's next, or the decisions folder 
 | Folder | What's inside |
 |:---|:---|
 | [**📖 guide/**](guide/README.md) | Setup, every feature in full, connecting Claude Code, the Chat and Cron tabs, the security model, and contributing. |
+| [**🤖 mcp-server.md**](mcp-server.md) | The app's MCP server on one page: entry file, transport, install line, all twelve tools and the variables they read. |
 
 ## 🗺️ Planning
 
@@ -36,7 +37,7 @@ Start with the roadmap if you want to know what's next, or the decisions folder 
 |:---|:---|
 | [**🎯 product/**](product/README.md) | The spec (must stories with acceptance criteria, the Won't list) and the build plan with its stop points. |
 | [**⚖️ decisions/**](decisions/README.md) | Requirements, three architecture options, and three ADRs: the Electron shell (with the extension spike), Project Hub over HTTP, and the terminal. |
-| [**🧭 diagrams/**](diagrams/README.md) | The architecture diagram the [homepage](https://ai-command-center.ai-automation-tools.dev/#architecture) shows, with every component linked to its code, and how to rebuild it when the code moves. |
+| [**🧭 diagrams/**](diagrams/README.md) | The architecture diagram the [homepage](https://houston.ai-automation-tools.dev/#architecture) shows, with every component linked to its code, and how to rebuild it when the code moves. |
 
 <p align="right">(<a href="#docs-top">back to top</a>)</p>
 
