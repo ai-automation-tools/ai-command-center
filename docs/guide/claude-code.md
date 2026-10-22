@@ -58,7 +58,7 @@ $env:ACC_MCP_URL = $m.url; $env:ACC_MCP_TOKEN = $m.token
 
 ## Matching skills
 
-[agent-skills](https://github.com/ai-automation-tools/agent-skills) has Claude Code skills for two of the app's integrations: [`project-hub`](https://github.com/ai-automation-tools/agent-skills/tree/main/Skills/Projects/project-hub) for the Hub behind the sidebar, and [`cronsole`](https://github.com/ai-automation-tools/agent-skills/tree/main/Skills/Projects/cronsole) for the tasks behind the Cron tab. Install them where Claude Code in your terminals can see them.
+[agent-skills](https://github.com/ai-automation-tools/agent-skills) has Claude Code skills for two of the app's integrations: [`project-hub`](https://github.com/ai-automation-tools/agent-skills/tree/main/skills/projects/project-hub) for the Hub behind the sidebar, and [`cronsole`](https://github.com/ai-automation-tools/agent-skills/tree/main/skills/projects/cronsole) for the tasks behind the Cron tab. Install them where Claude Code in your terminals can see them.
 
 ---
 
