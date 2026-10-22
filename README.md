@@ -58,7 +58,7 @@ An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing 
 | **⚡ Command palette** | Ctrl+K: actions, tabs, terminals, workspaces and files in one box |
 | **📁 Files** | Every project from [Project Hub](https://github.com/ai-automation-tools/project-hub), opened in a tab |
 | **🔖 Bookmarks · 🕘 Recent · 🔍 Search** | Your browser's bookmarks, what you opened, one search over all of it |
-| **🤖 MCP server** | Twelve tools so Claude Code can see and act in the window, and what it asked to run and how that went |
+| [**🤖 MCP server**](docs/mcp-server.md) | Twelve tools so Claude Code can see and act in the window, and what it asked to run and how that went |
 | **💬 Chat** | Claude in a pane on the right, with the same tools; named, searchable conversations per workspace |
 | **⏱️ Cron** | [Cronsole](https://github.com/ai-automation-tools/cronsole)'s scheduled tasks and their runs |
 | **🌿 Git** | The workspace repo's branch and changed files, each diff a click away (read-only) |
@@ -81,6 +81,7 @@ npm start
 | Next | Where |
 |:---|:---|
 | Launcher, `settings.json`, where files live | [setup.md](docs/guide/setup.md) |
+| Set up the MCP server in any client | [mcp-server.md](docs/mcp-server.md) |
 | Connect Claude Code | [claude-code.md](docs/guide/claude-code.md) |
 | Turn on the Chat tab | [chat.md](docs/guide/chat.md) |
 | Show Cronsole's tasks | [cronsole.md](docs/guide/cronsole.md) |
