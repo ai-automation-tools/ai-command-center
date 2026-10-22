@@ -21,7 +21,7 @@
  *   node scripts/build-diagram.mjs --check      drift only, changes nothing; exit 1 if stale
  *   node scripts/build-diagram.mjs --hook       like --check, always exit 0 (CI warns with it)
  *
- *   --site <path>   the houston-site clone (default: ../ai-command-center-site, the local folder name)
+ *   --site <path>   the houston-site clone (default: ../houston-site, the local folder name)
  *   --no-site       skip the homepage copies (CI, which has no site clone)
  *
  * Building needs Chrome and the archify skill (default
@@ -55,7 +55,7 @@ const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const option = (name, fallback) => (args.includes(name) ? resolve(args[args.indexOf(name) + 1]) : fallback);
 // The homepage is its own repo; a sibling clone by default.
-const SITE = flag('--no-site') ? null : option('--site', resolve(ROOT, '..', 'ai-command-center-site'));
+const SITE = flag('--no-site') ? null : option('--site', resolve(ROOT, '..', 'houston-site'));
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const rel = (p) => relative(ROOT, p).replaceAll('\\', '/');
