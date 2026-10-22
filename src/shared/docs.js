@@ -1,4 +1,4 @@
-// Command Center's own document view: acc://doc/<Hub node id> in an ordinary sandboxed
+// Houston's own document view: acc://doc/<Hub node id> in an ordinary sandboxed
 // tab, and the same page around a Cronsole run's output (acc://run). Project Hub renders the file (its /api/file); this wraps the result in a plain
 // page with no scripts, or lists a folder's children. URL paths mirror Hub ids, so a
 // README's relative links and images resolve the way they do on disk.

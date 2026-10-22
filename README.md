@@ -1,6 +1,6 @@
 <a id="readme-top"></a>
 
-<h1 align="center">🧭 AI Command Center</h1>
+<h1 align="center">🧭 Houston</h1>
 
 <p align="center">
   <em>One window for your browser, PowerShell, project files and bookmarks,<br>with an MCP server that lets an agent drive it.</em>
@@ -9,11 +9,11 @@
 <p align="center">
   <a href="docs/README.md"><strong>Explore the docs »</strong></a>
   ·
-  <a href="https://ai-command-center.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://ai-command-center-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
+  <a href="https://houston.ai-automation-tools.dev/"><strong>Homepage</strong></a> · <a href="https://houston-demo.ai-automation-tools.dev/"><strong>Try the demo »</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-automation-tools/ai-command-center">GitHub</a>
+  <a href="https://github.com/ai-automation-tools/houston">GitHub</a>
   ·
   <a href="docs/ROADMAP.md">Roadmap</a>
   ·
@@ -39,11 +39,11 @@
 
 ---
 
-A Windows desktop app: a browser, PowerShell terminals and your project folders in one window.
+Houston (formerly AI Command Center) is a Windows desktop app: a browser, PowerShell terminals and your project folders in one window.
 An agent (Claude Code, or Claude in the sidebar) can drive it, and runs nothing without your click.
 
 > [!TIP]
-> **[Try the demo](https://ai-command-center-demo.ai-automation-tools.dev/)** in any browser. Made-up data; nothing runs or calls out.
+> **[Try the demo](https://houston-demo.ai-automation-tools.dev/)** in any browser. Made-up data; nothing runs or calls out.
 
 > [!WARNING]
 > Chrome extensions only half-work. LastPass's popup, for one, keeps spinning. [Details](docs/guide/features.md#-browser).
@@ -72,8 +72,8 @@ The full tour is in [features.md](docs/guide/features.md).
 Needs Windows 11, Node.js 24, PowerShell 7 and a running [Project Hub](https://github.com/ai-automation-tools/project-hub).
 
 ```powershell
-git clone https://github.com/ai-automation-tools/ai-command-center
-cd ai-command-center
+git clone https://github.com/ai-automation-tools/houston
+cd houston
 npm install
 npm start
 ```

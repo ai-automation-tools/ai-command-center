@@ -7,7 +7,7 @@
  * `meta.repository.revision`. A build renders it with Archify
  * (https://github.com/tt-a1i/archify) into app-architecture.html (interactive;
  * source links go to GitHub at that commit) and app-architecture.png (a static
- * snapshot), copies both into the homepage repo's clone (ai-command-center-site,
+ * snapshot), copies both into the homepage repo's clone (houston-site,
  * a separate private repo published by Pages from its root), and records the git
  * blob of every cited file at the pinned commit in app-architecture.sources.lock.json.
  *
@@ -21,7 +21,7 @@
  *   node scripts/build-diagram.mjs --check      drift only, changes nothing; exit 1 if stale
  *   node scripts/build-diagram.mjs --hook       like --check, always exit 0 (CI warns with it)
  *
- *   --site <path>   the ai-command-center-site clone (default: ../ai-command-center-site)
+ *   --site <path>   the houston-site clone (default: ../ai-command-center-site, the local folder name)
  *   --no-site       skip the homepage copies (CI, which has no site clone)
  *
  * Building needs Chrome and the archify skill (default
@@ -87,12 +87,12 @@ function findIssues() {
     issues.push('the pinned revision changed since the last build; rebuild it');
   }
   if (SITE && !existsSync(SITE)) {
-    issues.push(`homepage clone not found at ${SITE}; pass --site <ai-command-center-site clone> or --no-site`);
+    issues.push(`homepage clone not found at ${SITE}; pass --site <houston-site clone> or --no-site`);
   } else if (SITE) {
     for (const built of [HTML, PNG]) {
       const copy = join(SITE, basename(built));
       if (!existsSync(copy) || !readFileSync(copy).equals(readFileSync(built))) {
-        issues.push(`ai-command-center-site/${basename(built)} differs from the build; rebuild it`);
+        issues.push(`houston-site/${basename(built)} differs from the build; rebuild it`);
       }
     }
   }

@@ -1,7 +1,7 @@
 <h1 align="center">🧭 Diagrams</h1>
 
 <p align="center">
-  <em>How AI Command Center's one window is put together, drawn from the code and checked against it.</em>
+  <em>How Houston's one window is put together, drawn from the code and checked against it.</em>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 ## 🏗️ App architecture
 
-[![AI Command Center app architecture](app-architecture.png)](app-architecture.html)
+[![Houston app architecture](app-architecture.png)](app-architecture.html)
 
 What sits behind the window: you work in the shell UI, which talks to the Electron main process
 over IPC that refuses every sender but the shell. The main process opens the sandboxed browser
@@ -25,8 +25,8 @@ from Claude Code (or any MCP client) with the per-launch token, and its acting t
 confirm bar before anything is typed into a terminal or run in Cronsole. Below the map, four cards
 cover what keeps pages out, what an agent can do, who reaches the MCP server, and the optional parts.
 
-**See it on the [homepage](https://ai-command-center.ai-automation-tools.dev/#architecture)**, or open the interactive version: [`app-architecture.html`](app-architecture.html) in a browser
-from a clone, or [render it from GitHub](https://raw.githack.com/ai-automation-tools/ai-command-center/main/docs/diagrams/app-architecture.html).
+**See it on the [homepage](https://houston.ai-automation-tools.dev/#architecture)**, or open the interactive version: [`app-architecture.html`](app-architecture.html) in a browser
+from a clone, or [render it from GitHub](https://raw.githack.com/ai-automation-tools/houston/main/docs/diagrams/app-architecture.html).
 Each component links to the exact lines it describes at the pinned commit, and the viewer adds route
 tracing, search, light/dark, and SVG/PNG export.
 
@@ -36,7 +36,7 @@ tracing, search, light/dark, and SVG/PNG export.
 |:---|:---|:---|
 | [`app-architecture.json`](app-architecture.json) | The source: components, connections, the boundary, cards, and the code each component cites | **Yes, this is the only file you edit** |
 | `app-architecture.html` · `.png` | Generated: the interactive diagram, which the homepage embeds live, and a static PNG snapshot | Never; rebuild |
-| `ai-command-center-site/app-architecture.html` · `.png` | Copies the build writes into the homepage repo, a separate private repo whose root Pages publishes. `--check` flags a copy that differs | Never; rebuild |
+| `houston-site/app-architecture.html` · `.png` | Copies the build writes into the homepage repo, a separate private repo whose root Pages publishes. `--check` flags a copy that differs | Never; rebuild |
 | `app-architecture.delivery.json` · `.sources.lock.json` | Build receipt, and the git blob of every cited file at the pinned commit | Never; rebuild |
 | [`../../scripts/build-diagram.mjs`](../../scripts/build-diagram.mjs) | Builds the diagram and checks it for drift | Only to change how it builds or checks |
 
@@ -74,7 +74,7 @@ To bring it up to date:
    ```
 
 4. Commit the JSON and the generated files here with a [CHANGELOG](../CHANGELOG.md) line, and the two
-   copies in `ai-command-center-site` there, by PR on each repo.
+   copies in `houston-site` there, by PR on each repo.
 
 Building needs Node 18+, Chrome, and the [Archify](https://github.com/tt-a1i/archify) skill
 (default path `~/.claude/skills/archify/bin/archify.mjs`; pass `--archify <path>` to point

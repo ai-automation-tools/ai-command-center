@@ -21,7 +21,7 @@ const node = (id, name, kind, children, desc) => ({ id, name, kind, ...(children
 
 export const TREE = [
   node('@projects', 'Projects', 'projects', [
-    node('ai-command-center', 'ai-command-center', 'repo', [node(WELCOME_ID, 'README.md', 'md')], 'This app'),
+    node('ai-command-center', 'houston', 'repo', [node(WELCOME_ID, 'README.md', 'md')], 'This app'),
     node('acme-api', 'acme-api', 'repo', [
       node('acme-api/README.md', 'README.md', 'md'),
       node('acme-api/package.json', 'package.json', 'config'),
