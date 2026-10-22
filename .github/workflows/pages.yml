@@ -1,6 +1,6 @@
 # Builds the demo (`npm run demo`) and publishes _site/ to GitHub Pages at
 # https://houston-demo.ai-automation-tools.dev/. The demo is fake end to end;
-# see src/demo/ and CLAUDE.md.
+# see src/demo/ and AGENTS.md.
 name: Pages
 
 on:
