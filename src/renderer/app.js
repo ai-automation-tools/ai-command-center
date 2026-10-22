@@ -131,8 +131,8 @@ $('term-shells').addEventListener('click', async () => {
 
 // ---- terminal_run confirmations ----------------------------------------------
 // One bar at a time over the terminal; the rest wait their turn. Main holds the
-// command and folder and types it; on Run this opens a new PowerShell terminal in
-// that folder and answers with its id, which main checks before typing anything.
+// command and folder; Run answers true, and main opens the run's own terminal, which
+// arrives here through term:opened.
 
 /** @type {{ id: number, command?: string, cwd?: string, task?: string }[]} */
 const asks = [];
@@ -144,7 +144,7 @@ function showAsk() {
   if (mainEl.classList.contains('no-terminal')) setTerminalOpen(true);
   // A command names the terminal it goes to; a Cronsole task (cron_run) names Cronsole.
   $('confirm-cmd').textContent = ask.task ?? ask.command ?? '';
-  $('confirm-where').textContent = ask.task !== undefined ? 'Cronsole' : `a new PowerShell terminal in ${ask.cwd ?? 'your home folder'}`;
+  $('confirm-where').textContent = ask.task !== undefined ? 'Cronsole' : `its own PowerShell terminal in ${ask.cwd ?? 'your home folder'}, which ends with the command`;
   // Deny takes focus, so an Enter meant for the terminal can't run the command.
   $('confirm-deny').focus();
 }
@@ -154,17 +154,15 @@ async function answerAsk(run) {
   const ask = asks.shift();
   if (!ask) return;
   $('confirm-bar').hidden = true;
-  if (ask.task !== undefined) {
-    await api.mcp.answer(ask.id, run ? true : null);
-    showAsk();
-    return;
-  }
-  const pwsh = info.shells.find((/** @type {{ powershell: boolean }} */ s) => s.powershell)?.id;
-  const id = run ? await openTerminal(ask.cwd, pwsh) : null;
-  await api.mcp.answer(ask.id, id);
-  if (id !== null) terminals.activate(id);
+  await api.mcp.answer(ask.id, run ? true : null);
   showAsk();
 }
+
+// A run's terminal, opened by main on Run: shown and brought forward.
+api.term.onOpened((/** @type {any} */ t) => {
+  setTerminalOpen(true);
+  terminals.activate(terminals.attach(t));
+});
 
 $('confirm-run').addEventListener('click', () => answerAsk(true));
 $('confirm-deny').addEventListener('click', () => answerAsk(false));

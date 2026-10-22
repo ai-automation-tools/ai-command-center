@@ -42,6 +42,19 @@ export function shellProfiles(env, exists) {
 }
 
 /**
+ * The shell a managed run (terminal_run) starts: the first PowerShell, with the fixed run
+ * script (shared/runs.js) instead of an interactive prompt, so the session ends with the
+ * command and its exit code is the result. The command comes in through the environment.
+ * @param {Shell[]} profiles
+ * @param {string} script RUN_SCRIPT
+ * @returns {Shell}
+ */
+export function runShell(profiles, script) {
+  const ps = profiles.find((p) => p.powershell) || profiles[0];
+  return { ...ps, args: ['-NoLogo', '-Command', script] };
+}
+
+/**
  * The profile a terminal asks for by id, or the default (the first) for anything else.
  * @param {Shell[]} profiles
  * @param {unknown} id

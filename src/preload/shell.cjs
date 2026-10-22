@@ -65,6 +65,8 @@ contextBridge.exposeInMainWorld('acc', {
     resize: (id, cols, rows) => ipcRenderer.send('term:resize', id, cols, rows),
     onData: listen('term:data'),
     onExit: listen('term:exit'),
+    /** A session main opened itself: a terminal_run run, after the user clicked Run. */
+    onOpened: listen('term:opened'),
   },
 
   recent: {

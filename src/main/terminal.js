@@ -7,9 +7,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import pty from 'node-pty';
-import { pickShell, shellProfiles } from '../shared/shells.js';
+import { pickShell, runShell, shellProfiles } from '../shared/shells.js';
 import { appendOutput } from '../shared/output.js';
+import { RUN_SCRIPT } from '../shared/runs.js';
 import { childEnv } from './env.js';
+import { killTree } from './kill.js';
 
 /** @param {unknown} dir */
 function safeCwd(dir) {
@@ -28,8 +30,10 @@ export class Terminals {
     /** @type {Map<number, import('node-pty').IPty>} */
     this.sessions = new Map();
     /** What list_terminals reports; kept after exit until the UI closes the tab. */
-    /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean, ws: string }>} */
+    /** @type {Map<number, { id: number, shell: string, profile: string, cwd: string, powershell: boolean, exited: boolean, ws: string, run: boolean }>} */
     this.meta = new Map();
+    /** Hears every session's exit with its code; main hands it to the runs. @type {(id: number, exitCode: number) => void} */
+    this.onExit = () => {};
     /** Raw pty output per session, newest OUTPUT_MAX_CHARS, for terminal_read. */
     /** @type {Map<number, string>} */
     this.output = new Map();
@@ -55,19 +59,22 @@ export class Terminals {
   }
 
   /**
-   * @param {{ cwd?: string, cols?: number, rows?: number, shell?: string, ws?: string }} opts ws: the workspace it opens in
-   * @returns {{ id: number, cwd: string, shell: string, profile: string, powershell: boolean, ws: string }}
+   * @param {{ cwd?: string, cols?: number, rows?: number, shell?: string, ws?: string, run?: string }} opts
+   *   ws: the workspace it opens in; run: a confirmed terminal_run command, which main passes
+   *   and no IPC message can: the session runs that and ends (shared/runs.js RUN_SCRIPT)
+   * @returns {{ id: number, cwd: string, shell: string, profile: string, powershell: boolean, ws: string, run: boolean }}
    */
   create(opts = {}) {
     const cwd = safeCwd(opts.cwd);
     const id = this.nextId++;
-    const profile = pickShell(this.profiles, opts.shell);
+    const run = typeof opts.run === 'string';
+    const profile = run ? runShell(this.profiles, RUN_SCRIPT) : pickShell(this.profiles, opts.shell);
     const p = pty.spawn(profile.file, profile.args, {
       name: 'xterm-256color',
       cols: clamp(opts.cols, 20, 500, 100),
       rows: clamp(opts.rows, 5, 200, 30),
       cwd,
-      env: childEnv(process.env, { TERM_PROGRAM: 'ai-command-center', ...this.env }),
+      env: childEnv(process.env, { TERM_PROGRAM: 'ai-command-center', ...this.env, ...(run && { ACC_RUN_COMMAND: /** @type {string} */ (opts.run) }) }),
       useConpty: true,
       // The bundled conpty.dll path kills without forking node-pty's console-list helper,
       // which crashes (AttachConsole failed) and keeps the app alive when it quits.
@@ -81,10 +88,11 @@ export class Terminals {
       this.sessions.delete(id);
       const m = this.meta.get(id);
       if (m) m.exited = true;
+      this.onExit(id, exitCode);
       this.send('term:exit', id, exitCode);
     });
     this.sessions.set(id, p);
-    const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell, ws: opts.ws || '' };
+    const info = { id, cwd, shell: path.basename(profile.file), profile: profile.id, powershell: profile.powershell, ws: opts.ws || '', run };
     this.meta.set(id, { ...info, exited: false });
     this.output.set(id, '');
     return info;
@@ -138,11 +146,14 @@ export class Terminals {
 
   /** @param {number} id */
   kill(id) {
+    const run = this.meta.get(id)?.run;
     this.meta.delete(id);
     this.output.delete(id);
     const p = this.sessions.get(id);
     if (!p) return;
     this.sessions.delete(id);
+    // A run's command may have started programs of its own; end them with it.
+    if (run) killTree(p.pid);
     try { p.kill(); } catch { /* already gone */ }
   }
 

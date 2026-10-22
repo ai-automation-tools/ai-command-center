@@ -157,6 +157,39 @@ export function smoke(dir, wc, tabs, terminals, browseSession) {
       console.log(`[smoke] mcp terminal_read terminal=${output.terminal} text=${JSON.stringify(output.text?.slice(-200))}`);
       check('terminal_read reads back what the command printed, with the MCP address it was given', output.terminal === ranOut?.terminal && /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/.test(output.text || ''), output.text?.slice(-200));
       check('list_terminals shows the new terminal as active', sessions?.terminals?.some((/** @type {any} */ s) => s.id === ranOut?.terminal && s.active), sessions);
+      // Managed runs: the run ends with its session, and its exit code is the result.
+      // One that succeeds (the one above), one that fails with a code, one cancelled by
+      // closing its terminal. Each needs a Run click, given the way a person would.
+      const settle = async (/** @type {number} */ run) => {
+        let s = null;
+        for (let i = 0; i < 60; i++) {
+          s = await call('run_status', { run, lines: 5 });
+          if (s?.state && s.state !== 'running') break;
+          await wait(250);
+        }
+        return s;
+      };
+      const clickRun = () => wc.executeJavaScript(`(() => { const b = document.getElementById('confirm-run'); const shown = !document.getElementById('confirm-bar').hidden; b.click(); return shown; })()`);
+      const ok = await settle(ranOut?.run);
+      const failing = call('terminal_run', { command: 'Write-Output "about to fail"; cmd /c exit 3' });
+      await wait(500);
+      await clickRun();
+      const failed = await settle((await failing)?.run);
+      const slow = call('terminal_run', { command: 'Start-Sleep -Seconds 60' });
+      await wait(500);
+      await clickRun();
+      const slowRun = await slow;
+      await wait(1500);
+      const before = await call('run_status', { run: slowRun?.run });
+      // The run tab's ×, the way a person cancels it.
+      await wc.executeJavaScript(`[...document.querySelectorAll('#term-tabs .term-tab.run')].pop()?.querySelector('.close')?.click()`);
+      const cancelled = await settle(slowRun?.run);
+      const runRun = { ok, failed, before: before?.state, cancelled };
+      console.log(`[smoke] runs=${JSON.stringify(runRun)}`);
+      check('terminal_run returns a run id; run_status reports success, a failure\'s exit code, and a cancel from closing the terminal',
+        ok?.state === 'succeeded' && ok.exitCode === 0 && /acc-smoke http:\/\/127\.0\.0\.1:\d+\/mcp/.test(ok.output)
+        && failed?.state === 'failed' && failed.exitCode === 3 && /about to fail/.test(failed.output)
+        && before?.state === 'running' && cancelled?.state === 'cancelled' && cancelled.exitCode === null, runRun);
       console.log(`[smoke] terminal raw tail=${JSON.stringify(terminals.read()?.raw?.slice(-400))}`);
       const page = await call('read_tab', { tab: tab.view.webContents.id });
       console.log(`[smoke] mcp read_tab title=${JSON.stringify(page.title)} chars=${page.text?.length} truncated=${page.truncated} start=${JSON.stringify(page.text?.slice(0, 60))}`);

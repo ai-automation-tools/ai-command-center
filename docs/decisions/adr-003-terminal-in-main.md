@@ -38,6 +38,20 @@ Until now an approved command went into the active terminal, picked by the rende
 
 **Now:** the main process fixes the command and the folder (the agent's `cwd`, else the folder the active terminal started in, else home) when the ask is made, and the bar names both. Run opens a new PowerShell terminal in that folder; main types the command only if the id that comes back is a terminal opened after the ask, still running PowerShell, in that folder (`isFreshRunTarget` in `src/shared/confirm.js`), and refuses otherwise. The click-to-run rule is unchanged. The cost is a terminal tab per run; a managed runner with exit codes (roadmap Milestone D) is the longer-term answer.
 
+## Update 2026-10-21: managed runs
+
+Typing a command into an interactive shell never tells the app when it finished or how. Agents read the output and guessed.
+
+**Now:** each `terminal_run` is a run with an id. On Run, main opens the run's own PowerShell session (the 2026-10-20 rule, minus the round trip: the renderer no longer opens the terminal, it attaches a tab to the one main opened). Instead of `-NoLogo` and a prompt, that session starts with `-NoLogo -Command <RUN_SCRIPT>`, a fixed script in `src/shared/runs.js`, and the confirmed command goes in the `ACC_RUN_COMMAND` environment variable, which the script removes before running it. The shell's arguments stay fixed; only main sets the variable, from the command it held since the ask. The script echoes the command, runs it, and exits; the session's exit code is the run's result:
+
+- `exit N` gives N; a parse error or anything thrown gives 1;
+- otherwise the last native program's exit code when it isn't 0;
+- otherwise 1 if PowerShell wrote any error, else 0.
+
+The same rule holds in PowerShell 7 and 5.1 (checked case by case). `run_status` reports the state (running, succeeded, failed, cancelled), exit code, times and the last lines of output. Closing a run's tab while it runs is its Cancel: the app ends the session's process tree by its pid, and the run is cancelled with no exit code. `isFreshRunTarget` is gone, since nothing is typed into a shell the renderer chose.
+
+**Trade-offs:** a run's terminal is no longer interactive once the command ends, and the command runs in a script block rather than at a prompt, so PSReadLine and prompt functions don't apply. Ctrl+C still interrupts the command, which then counts as failed.
+
 ---
 
 <p align="center">

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { handleMessage } from '../src/shared/mcp.js';
 import { commandArg, cronTools, hubIdArg, limitArg, navigationTools, readOnlyTools, tabUrlArg, terminalTools } from '../src/shared/tools.js';
 import { searchAll } from '../src/shared/tree.js';
+import { Runs, runInfo } from '../src/shared/runs.js';
 
 const scan = {
   base: 'D:/work',
@@ -163,7 +164,7 @@ test('open_file reports Hub refusing or being down as a tool error', async () =>
   assert.match(res.content[0].text, /403/);
 });
 
-/** @param {(command: string, cwd?: string) => Promise<{ terminal: number, cwd: string } | null>} runCommand */
+/** @param {(command: string, cwd?: string) => Promise<{ run: number, terminal: number, cwd: string } | null>} runCommand */
 function term(runCommand) {
   /** @type {any[]} */
   const asked = [];
@@ -171,10 +172,10 @@ function term(runCommand) {
   return { t, asked };
 }
 
-test('terminal_run asks with the trimmed command and reports the terminal and folder it ran in', async () => {
-  const { t, asked } = term(async (_c, d) => ({ terminal: 3, cwd: d ?? 'C:\\Users\\me' }));
+test('terminal_run asks with the trimmed command and reports the run, terminal and folder', async () => {
+  const { t, asked } = term(async (_c, d) => ({ run: 7, terminal: 3, cwd: d ?? 'C:\\Users\\me' }));
   const res = await call(t, 'terminal_run', { command: '  git status; npm test  ' });
-  assert.deepEqual(res.structuredContent, { ran: true, terminal: 3, cwd: 'C:\\Users\\me', command: 'git status; npm test' });
+  assert.deepEqual(res.structuredContent, { ran: true, run: 7, terminal: 3, cwd: 'C:\\Users\\me', command: 'git status; npm test' });
   await call(t, 'terminal_run', { command: 'npm test', cwd: ' D:/work/app ' });
   assert.deepEqual(asked, ['git status; npm test', ['npm test', 'D:/work/app']]);
 });
@@ -272,6 +273,28 @@ test('list_terminals and terminal_read read the showing terminal or a named one,
   assert.match((await call(none, 'terminal_read', {})).content[0].text, /No terminal is open/);
 });
 
+test('run_status reports a run by its exit code, with its output cleaned and trimmed', async () => {
+  const runs = new Runs();
+  runs.start({ terminal: 4, command: 'npm test', cwd: 'D:\\w' }, 100);
+  runs.end(4, 1, '\x1b[90m> npm test\x1b[0m\r\nok 1 all passed\r\n', 400);
+  runs.start({ terminal: 5, command: 'npm run build', cwd: 'D:\\w' }, 500);
+  const live = { 5: 'building\r\nstill going\r\n' };
+  const t = terminalTools(/** @type {any} */ ({
+    runStatus: (/** @type {number | undefined} */ id) => {
+      const r = runs.get(id);
+      return r && { info: runInfo(r, 1000), raw: r.state === 'running' ? live[/** @type {5} */ (r.terminal)] : r.output };
+    },
+  }));
+  const done = (await call(t, 'run_status', { run: 1 })).structuredContent;
+  assert.deepEqual([done.state, done.exitCode, done.durationMs, done.output], ['failed', 1, 300, '> npm test\nok 1 all passed']);
+  const now = (await call(t, 'run_status', { lines: 1 })).structuredContent;
+  assert.deepEqual([now.run, now.state, now.exitCode, now.output], [2, 'running', null, 'still going']);
+  for (const args of [{ run: 0 }, { run: '1' }, { lines: 0 }, { lines: 501 }]) assert.equal((await call(t, 'run_status', args)).isError, true, JSON.stringify(args));
+  assert.match((await call(t, 'run_status', { run: 9 })).content[0].text, /No run with id 9/);
+  const none = terminalTools(/** @type {any} */ ({ runStatus: () => undefined }));
+  assert.match((await call(none, 'run_status', {})).content[0].text, /No command has run yet/);
+});
+
 // ---- cron_tasks, cron_run ------------------------------------------------------
 
 test('cron_tasks lists Cronsole tasks and surfaces a missing setup as a tool error', async () => {
@@ -316,7 +339,7 @@ test('tools/list annotates every tool: only the click-gated ones act, and they s
   const res = /** @type {any} */ (await handleMessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, all, ''));
   /** @type {Record<string, any>} */
   const by = Object.fromEntries(res.result.tools.map((/** @type {any} */ t) => [t.name, t.annotations]));
-  assert.equal(Object.keys(by).length, 11);
+  assert.equal(Object.keys(by).length, 12);
   for (const [name, a] of Object.entries(by)) {
     for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof a?.[hint], 'boolean', `${name}.${hint}`);
   }

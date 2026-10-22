@@ -23,7 +23,8 @@ import { DevServers } from './devservers.js';
 import { toUrl } from '../shared/url.js';
 import { cleanSavedTabs, savedActiveIndex } from '../shared/session.js';
 import { cronTools, navigationTools, readOnlyTools, terminalTools } from '../shared/tools.js';
-import { Confirmations, isFreshRunTarget } from '../shared/confirm.js';
+import { Confirmations } from '../shared/confirm.js';
+import { Runs, runInfo } from '../shared/runs.js';
 import { menuItems } from '../shared/menu.js';
 import { HUB_FAVORITES } from '../shared/tree.js';
 import { isPermissionAllowed } from '../shared/permissions.js';
@@ -215,6 +216,9 @@ async function createWindow() {
     onVisit: (url, title) => send('recent:changed', store.addRecent({ type: 'url', target: url, label: title || url })),
   });
   const terminals = new Terminals(send);
+  // terminal_run's runs: a run ends when its session exits, and that exit code is its result.
+  const runs = new Runs();
+  terminals.onExit = (id, code) => { runs.end(id, code, terminals.read(id)?.raw ?? undefined); };
 
   // Workspaces (workspaces.json): switching swaps the tabs and the conversation, and shows
   // that workspace's terminals. Terminals keep running while hidden; a workspace's saved
@@ -291,10 +295,10 @@ async function createWindow() {
     send('recent:changed', store.addRecent({ type: 'file', target: id, label }));
   };
 
-  // terminal_run: the shell shows the command and answers with the terminal to type it
-  // into, or null. cron_run: the shell shows the task's name and answers true or null.
-  // The command and the task id stay here; the answer can't change what runs.
-  /** @type {Confirmations<number | true>} */
+  // terminal_run and cron_run: the shell shows the command or the task's name and answers
+  // true or null. The command, its folder and the task id stay here; the answer can't
+  // change what runs or where.
+  /** @type {Confirmations<true>} */
   const confirmations = new Confirmations({
     show: (ask) => send('mcp:confirm', ask),
     cancel: (id) => send('mcp:cancel', id),
@@ -316,18 +320,22 @@ async function createWindow() {
     readTerminal: (id) => terminals.read(id),
     openTab: (url, activate) => tabs.create(url, { activate }),
     openFile: (id, how) => openInHub(id, how, id.split('/').pop() || id),
-    // The command and folder are fixed here, before the bar shows them. The shell opens a
-    // new PowerShell terminal there on Run and answers with its id; anything but that
-    // fresh terminal refuses (isFreshRunTarget), so the approval can't change target.
+    // The command and folder are fixed here, before the bar shows them. On Run this opens
+    // the run's own PowerShell session there, which runs exactly that and ends; the shell
+    // only attaches a tab to it.
     runCommand: async (command, cwd, signal) => {
       const dir = cwd ?? terminals.defaultFolder(current().folder);
       if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`cwd is not a folder: ${dir}`);
-      const sinceId = terminals.nextId;
-      const terminal = await confirmations.ask({ command, cwd: dir }, signal);
-      if (typeof terminal !== 'number' || !isFreshRunTarget(terminals.info(terminal), { sinceId, cwd: dir })) return null;
-      // \r is Enter; PSReadLine takes \n as a continuation line.
-      terminals.write(terminal, `${command}\r`);
-      return { terminal, cwd: dir };
+      if (await confirmations.ask({ command, cwd: dir }, signal) !== true) return null;
+      const t = terminals.create({ cwd: dir, ws: spaces.active, run: command });
+      const r = runs.start({ terminal: t.id, command, cwd: t.cwd });
+      send('term:opened', t);
+      return { run: r.run, terminal: t.id, cwd: t.cwd };
+    },
+    // While it runs, its output is the terminal's; once it ends, what the run kept.
+    runStatus: (id) => {
+      const r = runs.get(id);
+      return r && { info: runInfo(r), raw: r.state === 'running' ? terminals.read(r.terminal)?.raw ?? '' : r.output ?? '' };
     },
     listCronTasks: () => cron.tasks(),
     runCronTask: async (id, signal) => {
@@ -486,7 +494,11 @@ async function createWindow() {
   on('term:write', (id, data) => terminals.write(Number(id), data));
   on('term:active', (id) => { terminals.activeId = Number.isInteger(id) ? id : null; });
   on('term:resize', (id, cols, rows) => terminals.resize(Number(id), cols, rows));
-  handle('term:kill', (id) => terminals.kill(Number(id)));
+  // Closing a run's terminal before it ends is its Cancel.
+  handle('term:kill', (id) => {
+    runs.cancel(Number(id), terminals.read(Number(id))?.raw ?? undefined);
+    terminals.kill(Number(id));
+  });
 
   handle('mcp:answer', (id, answer) => confirmations.settle(Number(id), answer === true ? true : Number.isInteger(answer) ? answer : null));
 
