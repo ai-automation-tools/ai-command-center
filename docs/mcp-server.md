@@ -17,20 +17,20 @@
 |:---|:---|
 | **Entry file** | [`src/main/mcp.js`](../src/main/mcp.js) starts it; the protocol is in [`src/shared/mcp.js`](../src/shared/mcp.js) and the tools in [`src/shared/tools.js`](../src/shared/tools.js) |
 | **Launched by** | The app itself, at start-up. Nothing to install or run separately; it stops when the app quits |
-| **Transport** | Streamable HTTP, plain JSON responses (no SSE stream, no sessions), on `127.0.0.1` with a random port |
+| **Transport** | Streamable HTTP, plain JSON responses (no SSE stream, no sessions), on `127.0.0.1` with a random port. [`scripts/mcp-stdio.js`](../scripts/mcp-stdio.js) bridges it to stdio for clients started anywhere |
 | **Auth** | `Authorization: Bearer <token>`, a fresh token each launch. Host and Origin must be loopback |
 | **Discovery** | `mcp.json` in the app's userData folder holds this launch's URL and token (deleted on quit). Every terminal the app opens has `ACC_MCP_URL` and `ACC_MCP_TOKEN` set |
-| **MCP id** | `ai-command-center`, kept from the app's old name so existing registrations still work |
+| **MCP id** | `houston`. The userData folder keeps the old name, `ai-command-center`, so saved data stays put |
 
 ## Install
 
-Run once, from one of the app's terminals:
+Register the stdio bridge once, with the path to your clone. It reads `mcp.json` on every message, so it works from any terminal and survives the new port and token each restart brings:
 
 ```powershell
-claude mcp add --scope user --transport http ai-command-center '${ACC_MCP_URL}' --header 'Authorization: Bearer ${ACC_MCP_TOKEN}'
+claude mcp add --scope user houston -- node <houston>\scripts\mcp-stdio.js
 ```
 
-The single quotes keep the variable names, so the registration survives the new port and token each restart brings. Using it from a terminal outside the app, and what the MCP tab shows, are in [guide/claude-code.md](guide/claude-code.md).
+Codex, opencode and Antigravity take the same command (`node <houston>\scripts\mcp-stdio.js`) as a stdio server. While the app is closed the server answers every call with "Houston isn't running". An older `ai-command-center` HTTP registration can go: `claude mcp remove ai-command-center`. Using it from a terminal outside the app, and what the MCP tab shows, are in [guide/claude-code.md](guide/claude-code.md).
 
 ## Tools
 
@@ -57,7 +57,8 @@ Names only; values go in the gitignored `.env` (see [`.env.example`](../.env.exa
 
 | Variable | Used for |
 |:---|:---|
-| `ACC_MCP_URL`, `ACC_MCP_TOKEN` | Set by the app in its terminals, for the client registration above |
+| `ACC_MCP_URL`, `ACC_MCP_TOKEN` | Set by the app in its terminals, for a direct HTTP registration (see the guide) |
+| `HOUSTON_MCP_JSON` | Where `scripts/mcp-stdio.js` looks for `mcp.json`, if not `%APPDATA%\ai-command-center\mcp.json` |
 | `ACC_CRONSOLE_MCP` | Path to Cronsole's MCP server script; `cron_tasks` and `cron_run` need it |
 | `ACC_CRONSOLE_UI` | Where Cronsole's UI answers, if not the default |
 | `ACC_HUB_URL`, `ACC_HUB_REMOTE` | Where Project Hub answers, for `sidebar_search` and `open_file` |

@@ -88,8 +88,8 @@ npm install
 npm start</code></pre>
 
   <h2>🤖 Let Claude Code drive it</h2>
-  <p>Every terminal the app opens carries its MCP address and token. Register the server once, and <code>claude</code> in any of those terminals can open tabs, read pages and put commands on the Run bar:</p>
-  <pre><code>claude mcp add --scope user --transport http ai-command-center '\${ACC_MCP_URL}' --header 'Authorization: Bearer \${ACC_MCP_TOKEN}'</code></pre>
+  <p>Register the app's MCP server once, and <code>claude</code> in any terminal can open tabs, read pages and put commands on the Run bar while the app runs:</p>
+  <pre><code>claude mcp add --scope user houston -- node &lt;houston&gt;\\scripts\\mcp-stdio.js</code></pre>
   <p>Settings, the chat key, Cronsole setup and the rest are in the <a href="${REPO_URL}#readme" ${ext}>README on GitHub</a>.</p>
 
   <hr>
