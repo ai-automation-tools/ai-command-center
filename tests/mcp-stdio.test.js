@@ -27,4 +27,9 @@ test('mcp-stdio bridges stdin lines to the app and says so when it is not runnin
   assert.equal((await ask({ jsonrpc: '2.0', id: 2, method: 'initialize', params: {} })).result.serverInfo.name, 'houston');
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
   assert.deepEqual((await ask({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'echo', arguments: { x: 1 } } })).result.structuredContent, { x: 1 });
+  // A modern (2026-07-28) client: the bridge mirrors _meta into the headers HTTP checks.
+  const _meta = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {} };
+  assert.equal((await ask({ jsonrpc: '2.0', id: 4, method: 'server/discover', params: { _meta } })).result.supportedVersions[0], '2026-07-28');
+  assert.deepEqual((await ask({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'echo', arguments: { y: 2 }, _meta } })).result.structuredContent, { y: 2 });
+  assert.equal((await ask({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'echo', _meta: { ..._meta, 'io.modelcontextprotocol/protocolVersion': '2099-01-01' } } })).error.code, -32022);
 });
