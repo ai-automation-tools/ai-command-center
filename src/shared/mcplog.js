@@ -15,7 +15,7 @@ const AT_REST_ONLY_LENGTH = { terminal_run: ['command'] };
  *   at: number, method: string, tool?: string, args?: string, argsAtRest?: string,
  *   ok: boolean, ms: number, status?: number, error?: string, client?: string, note?: string,
  * }} LogEntry argsAtRest: what mcp.log gets in place of args, when that differs;
- *   client: who connected, from initialize's clientInfo; note: an expected non-200 answer
+ *   client: who connected, from initialize's or server/discover's clientInfo; note: an expected non-200 answer
  */
 
 /** @param {string} s @param {number} max */
@@ -43,9 +43,10 @@ export function describeCall({ msg, out, ms, at = Date.now() }) {
   const method = typeof msg?.method === 'string' ? clip(msg.method, 100) : '(invalid)';
   /** @type {LogEntry} */
   const entry = { at, method, ok: true, ms };
-  if (method === 'initialize') {
-    // Self-reported, so it names the client, it doesn't prove who it is.
-    const info = msg.params?.clientInfo;
+  if (method === 'initialize' || method === 'server/discover') {
+    // Self-reported, so it names the client, it doesn't prove who it is. A modern
+    // (2026-07-28) client sends it in _meta, and server/discover is its first call.
+    const info = msg.params?.clientInfo ?? msg.params?._meta?.['io.modelcontextprotocol/clientInfo'];
     const name = plain(info?.name, 60);
     if (name) entry.client = [name, plain(info.version, 30)].filter(Boolean).join(' ');
   }
@@ -82,8 +83,9 @@ export function refusedCall(status, reason, at = Date.now()) {
 
 /**
  * A request answered with an error status that's part of a normal connection, not a
- * failure: Claude Code first probes with a newer protocol version (400 tells it to fall
- * back) and asks for an event stream with GET (405 tells it there is none).
+ * failure: Claude Code first probes with a modern protocol version and no _meta (400
+ * tells it to fall back to initialize) and asks for an event stream with GET (405 tells
+ * it there is none); a version the server doesn't speak gets 400 with the ones it does.
  * @param {number} status
  * @param {string} note
  * @returns {LogEntry}

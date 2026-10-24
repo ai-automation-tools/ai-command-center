@@ -90,3 +90,8 @@ test('query strings and fragments are cut from logged URLs and errors', () => {
   assert.match(String(e.args), /https:\/\/x\.dev\/cb\?…/);
   assert.equal(e.error, 'failed https://x.dev/a?…');
 });
+
+test("server/discover records a modern client's name from _meta", () => {
+  const msg = { jsonrpc: '2.0', id: 'd', method: 'server/discover', params: { _meta: { 'io.modelcontextprotocol/clientInfo': { name: 'claude-code', version: '3.0.0' } } } };
+  assert.equal(describeCall({ msg, out: { result: {} }, ms: 0 }).client, 'claude-code 3.0.0');
+});
